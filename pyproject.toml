@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools >=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tilia"
+version = "1.0.0"
+authors = [
+    {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+]
+description = "A library for individual tree segmentation in 3D point clouds."
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: GPL License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["tree", "point cloud", "segmentation"]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas"
+]
+[project.optional-dependencies]
+dev = [
+    "black",
+    "coverage",
+    "coverage-badge",
+    "mypy",
+    "pandas-stubs",
+    "parameterized",
+    "pylint",
+    "pytest",
+]
+docs = [
+    "sphinx",
+    "sphinx-copybutton",
+    "sphinx-design",
+    "sphinx-docsearch",
+    "sphinxawesome-theme",
+    "sphinx-sitemap",
+    "sphinxcontrib-jsmath",
+    "sphinxcontrib-katex",
+    "sphinxcontrib-napoleon"
+]
+
+[project.urls]
+Homepage = "https://github.com/josafatburmeister/tilia"
+
+[tool.bumpver]
+current_version = "1.0.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message  = "Bump version {old_version} -> {new_version}"
+commit          = true
+tag             = true
+push            = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
+"src/segtree/__init__.py" = ["""{version}"""]

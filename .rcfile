@@ -1,0 +1,12 @@
+[MASTER]
+ignore=venv
+
+[FORMAT]
+max-line-length=120
+
+[DESIGN]
+max-args=10
+max-attributes=10
+
+[REPORTS]
+reports=yes

@@ -3,7 +3,7 @@ requires = ["setuptools >=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tilia"
+name = "forest3d"
 version = "1.0.0"
 authors = [
     {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
@@ -45,7 +45,7 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/josafatburmeister/tilia"
+Homepage = "https://github.com/josafatburmeister/forest3d"
 
 [tool.bumpver]
 current_version = "1.0.0"

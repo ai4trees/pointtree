@@ -1,0 +1,46 @@
+name: Build of Sphinx Documentation
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sphinx:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    container:
+      image: justushildebrand/python-cuda:3.9-cuda11.8
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
+    if: ${{ !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
+    steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
+      - name: Checkout out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Build sphinx documentation from docstrings
+        shell: bash
+        run: |
+          source /root/venv/bin/activate
+          cd /github/workspace/
+          python -m pip install --upgrade .'[dev, docs]'
+          sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
+          cd docs
+          rm -rf _build
+          make clean
+          make html
+          cp -r build _build
+      - name: Commit and push documentation files
+        run: |
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add docs/source/*
+          git add docs/_build/html/*
+          git pull
+          git commit -m "Automated docs push: ${{ github.event.pull_request.title }}" --allow-empty
+          git push

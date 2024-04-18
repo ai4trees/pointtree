@@ -1,0 +1,14 @@
+
+name: CI pipeline for pull requests
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    if: ${{ !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
+    uses: ./.github/workflows/code-quality.yml
+    with:
+      update-coverage-badge: true

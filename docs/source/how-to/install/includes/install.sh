@@ -1,1 +1,1 @@
-python -m pip install -e pointtorch
+python -m pip install -e forest3d

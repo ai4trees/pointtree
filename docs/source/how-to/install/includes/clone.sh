@@ -1,1 +1,1 @@
-git clone https://github.com/josafatburmeister/pointtorch
+git clone https://github.com/josafatburmeister/forest3d

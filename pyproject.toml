@@ -18,8 +18,13 @@ classifiers = [
 keywords = ["tree", "point cloud", "segmentation"]
 requires-python = ">=3.9"
 dependencies = [
+    "numba",
+    "numba-kdtree",
     "numpy",
-    "pandas"
+    "pandas",
+    "pyclesperanto-prototype",
+    "scipy",
+    "scikit-image"
 ]
 [project.optional-dependencies]
 dev = [

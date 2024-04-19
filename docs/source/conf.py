@@ -11,10 +11,10 @@ from sphinxawesome_theme.postprocess import Icons
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Forest3D'
-author = 'Josafat-Mattias Burmeister'
+project = "Forest3D"
+author = "Josafat-Mattias Burmeister"
 copyright = f"2024, {author}."
-release = '1.0.0'
+release = "1.0.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -30,9 +30,14 @@ extensions = [
     "sphinx_sitemap",
 ]
 
-templates_path = ['_templates']
-exclude_patterns = []
 
+napoleon_custom_sections = [
+    ("Parameters for the DBSCAN clustering of trunk points", "params_style"),
+    ("Parameters for the construction and maximum filtering of the canopy height model", "params_style"),
+    ("Parameters for the matching of trunk positions and crown top positions", "params_style"),
+    ("Parameters for the Watershed segmentation", "params_style"),
+    ("Parameters for the region growing segmentation", "params_style"),
+]
 napoleon_use_ivar = True
 nitpicky = True
 python_maximum_signature_line_length = 88
@@ -44,6 +49,9 @@ substitutions = [
 ]
 rst_prolog = "\n".join(substitutions)
 
+templates_path = ["_templates"]
+exclude_patterns = []
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
@@ -53,7 +61,7 @@ theme_options = ThemeOptions(
     main_nav_links={"Docs": "/index"},
     extra_header_link_icons={
         "repository on GitHub": {
-            "link": "https://github.com/josafatburmeister/tilia",
+            "link": "https://github.com/josafatburmeister/forest3d",
             "icon": (
                 '<svg height="26px" style="margin-top:-2px;display:inline" '
                 'viewBox="0 0 45 44" '
@@ -92,11 +100,11 @@ html_copy_source = False
 html_logo = ""
 html_favicon = ""
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = "https://github.com/josafatburmeister/tilia"
+html_baseurl = "https://github.com/josafatburmeister/forest3d"
 html_extra_path = ["robots.txt", "_redirects"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 html_css_files = ["autoclass.css"]

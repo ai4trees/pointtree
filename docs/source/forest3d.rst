@@ -6,6 +6,7 @@ forest3d
    :titlesonly:
 
    forest3d.evaluation
+   forest3d.instance_segmentation
 
 .. automodule:: forest3d
    :members:

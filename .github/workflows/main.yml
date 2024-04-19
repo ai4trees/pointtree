@@ -10,3 +10,25 @@ jobs:
     uses: ./.github/workflows/code-quality.yml
     with:
       update-coverage-badge: false
+
+  deploy-docs:
+    name: Deploy documentation
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
+    steps:
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './docs/_build'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

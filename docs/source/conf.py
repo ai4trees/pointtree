@@ -50,7 +50,7 @@ substitutions = [
 ]
 rst_prolog = "\n".join(substitutions)
 
-templates_path = ["_templates"]
+templates_path = ["apidoc_templates"]
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
@@ -59,7 +59,7 @@ exclude_patterns = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/index"},
+    main_nav_links={"Docs": "/forest3d/index"},
     extra_header_link_icons={
         "repository on GitHub": {
             "link": "https://github.com/josafatburmeister/forest3d",

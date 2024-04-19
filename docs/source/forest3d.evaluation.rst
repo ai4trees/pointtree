@@ -1,6 +1,5 @@
-forest3d.evaluation package
-===========================
-
+forest3d.evaluation
+===================
 .. automodule:: forest3d.evaluation
    :members:
    :undoc-members:

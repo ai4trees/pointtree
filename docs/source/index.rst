@@ -1,20 +1,36 @@
-.. Tilia documentation master file, created by
-   sphinx-quickstart on Tue Apr  9 10:34:22 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. meta::
+   :description: A Python package for deriving information about vegetation from 3D point clouds.
+   :twitter:description: A Python package for deriving information about vegetation from 3D point clouds.
 
-Welcome to Forest3D's documentation!
-=====================================
+Forest3D
+====================
+
+.. rst-class:: lead
+
+   A Python package for deriving information about vegetation from 3D point clouds.
+
+----
+
+This is the documentation for version |current| of the |product| package.
+
+Get started
+-----------
+
+#. Clone the repository:
+
+   .. literalinclude:: how-to/install/includes/clone.sh
+      :language: sh
+
+#. Install the package:
+
+   .. literalinclude:: how-to/install/includes/install.sh
+      :language: sh
+
+Package Documentation
+----------------------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 4
+   :titlesonly:
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   forest3d

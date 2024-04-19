@@ -30,7 +30,8 @@ extensions = [
     "sphinx_sitemap",
 ]
 
-
+autodoc_type_aliases = {"ArrayLike": "ArrayLike"}
+default_role = "literal"
 napoleon_custom_sections = [
     ("Parameters for the DBSCAN clustering of trunk points", "params_style"),
     ("Parameters for the construction and maximum filtering of the canopy height model", "params_style"),
@@ -49,7 +50,7 @@ substitutions = [
 ]
 rst_prolog = "\n".join(substitutions)
 
-templates_path = ["_templates"]
+templates_path = ["apidoc_templates"]
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
@@ -58,7 +59,7 @@ exclude_patterns = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/index"},
+    main_nav_links={"Docs": "/forest3d/index"},
     extra_header_link_icons={
         "repository on GitHub": {
             "link": "https://github.com/josafatburmeister/forest3d",
@@ -100,7 +101,7 @@ html_copy_source = False
 html_logo = ""
 html_favicon = ""
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = "https://github.com/josafatburmeister/forest3d"
+html_baseurl = "https://josafatburmeister.github.io/forest3d/"
 html_extra_path = ["robots.txt", "_redirects"]
 
 # Add any paths that contain custom static files (such as style sheets) here,

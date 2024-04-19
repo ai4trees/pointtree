@@ -1,3 +1,3 @@
 User-agent: *
 
-Sitemap: http://www.example.com/sitemap.xml
+Sitemap: https://josafatburmeister.github.io/forest3d/sitemap.xml

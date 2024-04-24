@@ -13,7 +13,7 @@ from sklearn.cluster import DBSCAN
 from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 
-from forest3d.evaluation import Timer, TimeTracker
+from forest3d.evaluation import Timer
 from ._utils import remap_instance_ids
 from forest3d.visualization import save_tree_map
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
@@ -159,7 +159,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None
     ):
         r"""
-        Multi-stage tree segmentation algorithm.
+        Multi-stage tree instance segmentation algorithm.
 
         Args:
             tree_coords: Coordinates of all tree points.
@@ -190,8 +190,16 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                 unique_instance_ids,
                 watershed_labels_with_border,
                 watershed_labels_without_border,
-                tree_positions_grid,
-            ) = self.coarse_segmentation(crown_top_positions, canopy_height_model, grid_origin)
+                tree_positions_grid
+            ) = self.coarse_segmentation(
+                tree_coords,
+                classification,
+                np.full(len(tree_coords), fill_value=-1, dtype=np.int64),
+                crown_top_positions,
+                canopy_height_model,
+                grid_origin,
+                point_cloud_id=point_cloud_id
+            )
 
             return instance_ids
 
@@ -206,7 +214,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             crown_top_positions,
         )
 
-        watershed_labels_with_border, watershed_labels_without_border, tree_positions_grid = self.coarse_segmentation(
+        instance_ids, unique_instance_ids, watershed_labels_with_border, watershed_labels_without_border, tree_positions_grid = self.coarse_segmentation(
             tree_coords,
             classification,
             instance_ids,
@@ -219,7 +227,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         if self._algorithm == "watershed_matched_tree_positions":
             return instance_ids
 
-        seed_mask = self.determine_overlapping_crowns(
+        seed_mask, instance_ids = self.determine_overlapping_crowns(
             tree_coords,
             classification,
             instance_ids,
@@ -228,7 +236,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             watershed_labels_with_border,
         )
 
-        instance_ids_to_refine = np.sort(np.unique(self._instance_ids[seed_mask]))
+        instance_ids_to_refine = np.sort(np.unique(instance_ids[seed_mask]))
 
         crown_distance_fields = self.compute_crown_distance_fields(
             watershed_labels_without_border, tree_positions_grid[instance_ids_to_refine]
@@ -771,7 +779,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
                     voronoi_input[current_tree_positions[:, 0], current_tree_positions[:, 1]] = neighbor_instance_ids
 
-                    # when all pixels are assigned the same height value, the Watershed algorithm approximates a Voronoi segmentation
+                    # when all pixels are assigned the same height value, the Watershed algorithm approximates a Voronoi
+                    # segmentation
                     voronoi_labels_with_border = watershed(
                         np.zeros_like(voronoi_input),
                         voronoi_input,
@@ -948,8 +957,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                 instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]
                 mask = watershed_labels_without_border == instance_id
                 inverse_mask = np.logical_not(mask)
-                distance_mask = -ndi.morphology.distance_transform_edt(mask)
-                distance_mask[inverse_mask] = ndi.morphology.distance_transform_edt(inverse_mask)[inverse_mask]
+                distance_mask = -ndi.distance_transform_edt(mask)
+                distance_mask[inverse_mask] = ndi.distance_transform_edt(inverse_mask)[inverse_mask]
                 crown_distance_fields[idx] = distance_mask
 
         return crown_distance_fields

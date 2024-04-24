@@ -1,10 +1,11 @@
 """ Tests for forest3d.instance_segmentation.MultiStageSegmentationAlgorithm. """
 
 import os
-from typing import Any, Callable, Dict, List, Literal
+from typing import Any, Callable, Dict, List, Literal, Optional
 import shutil
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from forest3d.instance_segmentation import MultiStageAlgorithm
@@ -656,12 +657,8 @@ class TestMultiStageAlgorithm:
         classification[-3] = 2
         classification[-2:] = 0
 
-        print("classification", classification)
-
         instance_ids = np.array([1] * 8 + [2] * 8 + [0] + [1] * 2 + [2], dtype=np.int64)
         unique_instance_ids = np.array([0, 1, 2], dtype=np.int64)
-
-        print("instance_ids", instance_ids)
 
         canopy_height_model = np.array(
             [[1, 1, 1, 0], [1, 2, 1, 0], [1, 1, 1, 1], [0, 1, 2, 1], [0, 1, 1, 1], [0, 0, 0, 0], [0, 1, 0, 0]],
@@ -832,3 +829,75 @@ class TestMultiStageAlgorithm:
         instance_ids = algorithm.grow_trees(tree_coords, instance_ids, grid_origin, crown_distance_fields, seed_mask)
 
         np.testing.assert_array_equal(expected_instance_ids, instance_ids)
+
+    def test_upsample_instance_ids(self):
+        original_coords = np.array([[0, 0, 0], [0, 1, 0], [0, 10, 0], [1, 10, 0]], dtype=np.float64)
+        downsampled_coords = np.array([[0, 1, 0], [0, 10, 0]], dtype=np.float64)
+        instance_ids = np.array([1, 0], dtype=np.int64)
+        non_predicted_point_indices = np.array([0, 3], dtype=np.int64)
+        predicted_point_indices = np.array([1, 2], dtype=np.int64)
+
+        expected_upsampled_instance_ids = np.array([1, 1, 0, 0], dtype=np.int64)
+
+        upsampled_instance_ids = MultiStageAlgorithm.upsample_instance_ids(original_coords, downsampled_coords,
+                                                                           instance_ids, non_predicted_point_indices,
+                                                                           predicted_point_indices)
+
+        np.testing.assert_array_equal(expected_upsampled_instance_ids, upsampled_instance_ids)
+
+    @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
+    @pytest.mark.parametrize("branch_class_id", [None, 2])
+    @pytest.mark.parametrize("downsampling_voxel_size", [None, 0.05])
+    def test_algorithm(self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"], branch_class_id: Optional[int], downsampling_voxel_size: Optional[float]):
+        num_tree_points = 30
+        tree_coords = np.random.rand(num_tree_points, 3)
+        classification = np.zeros(num_tree_points, dtype=np.int64)
+        point_indices = np.arange(num_tree_points, dtype=np.int64)
+        np.random.shuffle(point_indices)
+        classification[point_indices[:int(num_tree_points/2)]] = 1
+        if branch_class_id is not None:
+            classification[point_indices[int(num_tree_points/2):int(num_tree_points*3/4)]] = 2
+
+        point_cloud = pd.DataFrame(np.column_stack([tree_coords, classification]), columns=["x", "y", "z", "classification"])
+
+        point_cloud_id = "test"
+
+        algorithm = MultiStageAlgorithm(
+            trunk_class_id=0,
+            crown_class_id=1,
+            branch_class_id=branch_class_id,
+            algorithm=algorithm,
+            downsampling_voxel_size=downsampling_voxel_size
+        )
+        instance_ids = algorithm(point_cloud, point_cloud_id)
+
+        assert len(tree_coords) == len(instance_ids)
+        assert len(algorithm.runtime_stats()) > 0
+
+    @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
+    @pytest.mark.parametrize("missing_columns", [["x"], ["x", "classification"]])
+    def test_invalid_inputs(self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"], missing_columns: List[str]):
+        point_cloud = pd.DataFrame(np.random.rand(20, 4), columns=["x", "y", "z", "classification"])
+        point_cloud = point_cloud.drop(missing_columns, axis=1)
+
+        algorithm = MultiStageAlgorithm(
+            trunk_class_id=0,
+            crown_class_id=1,
+            algorithm=algorithm
+        )
+        with pytest.raises(ValueError):
+            algorithm(point_cloud)
+
+    @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
+    def test_no_tree_points(self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"]):
+        point_cloud = pd.DataFrame(np.column_stack([np.random.rand(20, 3), np.zeros(20, dtype=np.int64)]), columns=["x", "y", "z", "classification"])
+
+        algorithm = MultiStageAlgorithm(
+            trunk_class_id=1,
+            crown_class_id=2,
+            algorithm=algorithm
+        )
+
+        instance_ids = algorithm(point_cloud)
+
+        np.testing.assert_array_equal(np.full(len(point_cloud), fill_value=-1, dtype=np.int64), instance_ids)

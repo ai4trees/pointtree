@@ -83,8 +83,10 @@
 </nav><nav class="table w-full min-w-full my-6 lg:my-8">
 <ul>
 <li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="forest3d.html">forest3d<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="forest3d.config.html">forest3d.config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.evaluation.html">forest3d.evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="forest3d.operations.html">forest3d.operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
 </ul>
 </li>
@@ -114,6 +116,10 @@
 </span></code></pre></div>
 </div>
 </li>
+<li><p>Install <a class="reference external" href="https://pytorch.org/get-started/locally" rel="nofollow noopener">PyTorch<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a></p></li>
+<li><p>Install <a class="reference external" href="https://github.com/rusty1s/pytorch_scatter" rel="nofollow noopener">torch-scatter<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a></p></li>
+<li><p>Install <a class="reference external" href="https://pypi.org/project/torch-cluster" rel="nofollow noopener">torch-cluster<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a></p></li>
+<li><p>Install <a class="reference external" href="https://pytorch3d.org/#quickstart" rel="nofollow noopener">PyTorch3D<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a> (optional)</p></li>
 <li><p>Install the package:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>forest3d
 </span></code></pre></div>
@@ -126,8 +132,10 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="forest3d.html">forest3d</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="forest3d.config.html">forest3d.config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.evaluation.html">forest3d.evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="forest3d.operations.html">forest3d.operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
 </ul>
 </li>

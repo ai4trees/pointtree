@@ -17,7 +17,7 @@
 <link href="_static/awesome-sphinx-design.css?v=a54cf077" rel="stylesheet" type="text/css"/>
 <link href="https://josafatburmeister.github.io/forest3d/forest3d.instance_segmentation.html" rel="canonical"/>
 <link href="search.html" rel="search" title="Search"/>
-<link href="forest3d.visualization.html" rel="next" title="forest3d.visualization"/>
+<link href="forest3d.operations.html" rel="next" title="forest3d.operations"/>
 <link href="forest3d.evaluation.html" rel="prev" title="forest3d.evaluation"/>
 <script>
     <!-- Prevent Flash of wrong theme -->
@@ -82,8 +82,10 @@
 </nav><nav class="table w-full min-w-full my-6 lg:my-8">
 <ul class="current">
 <li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="forest3d.html">forest3d<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="forest3d.config.html">forest3d.config</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.evaluation.html">forest3d.evaluation</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">forest3d.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="forest3d.operations.html">forest3d.operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
 </ul>
 </li>
@@ -110,8 +112,755 @@
 <div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.instance_segmentation</span>
 </nav>
 <div id="content" role="main">
-<section id="forest3d-instance-segmentation">
-<h1>forest3d.instance_segmentation<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d-instance-segmentation"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
+<section id="module-forest3d.instance_segmentation">
+<span id="forest3d-instance-segmentation"></span><h1>forest3d.instance_segmentation<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#module-forest3d.instance_segmentation"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
+<p>Algorithms for tree instance segmentation.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">forest3d.instance_segmentation.</span></span><span class="sig-name descname"><span class="pre">MultiStageAlgorithm</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">trunk_class_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">crown_class_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">branch_class_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">algorithm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'full'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'watershed_crown_top_positions'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'watershed_matched_tree_positions'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'full'</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">downsampling_voxel_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">visualization_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">eps_trunk_clustering</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.5</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">min_samples_trunk_clustering</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">min_trunk_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">grid_size_canopy_height_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">min_distance_crown_tops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">7</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">min_points_crown_detection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">min_tree_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.5</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">smooth_canopy_height_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">smooth_sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">distance_match_trunk_and_crown_top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">correct_watershed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">max_point_spacing_region_growing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.08</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">max_radius_region_growing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">multiplier_outside_coarse_border</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">num_neighbors_region_growing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">27</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">z_scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">InstanceSegmentationAlgorithm</span></code></p>
+<p>Multi-stage algorithm for tree instance segmentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trunk_class_id</strong> – Integer class ID that designates the tree trunk points.</p></li>
+<li><p><strong>crown_class_id</strong> – Integer class ID that designates the tree crown points.</p></li>
+<li><p><strong>branch_class_id</strong> – Integer class ID that designates the tree branch points. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, assuming that
+branch points are not separately labeled. If branches are separately labeled, the branch points are treated
+as trunk points by this algorithm.</p></li>
+<li><p><strong>algorithm</strong> – Variant of the algorithm to be used: <code class="code docutils literal notranslate"><span class="pre">"full"</span></code>: The full algorithm is used.
+<code class="code docutils literal notranslate"><span class="pre">"watershed_crown_top_positions"</span></code>: A marker-controlled Watershed segmentation is performed, using the
+crown top positions as markers. <code class="code docutils literal notranslate"><span class="pre">"watershed_matched_tree_positions"</span></code>: A marker-controlled Watershed
+segmentation is performed, using the tree positions as markers, resulting from the matching of crown top
+positions and trunk positions.</p></li>
+<li><p><strong>downsampling_voxel_size</strong> – Voxel size for the voxel-based downsampling of the tree points before performing the
+tree instance segmentation. Defaults to <code class="code docutils literal notranslate"><span class="pre">None</span></code>, which means that the tree instance segmentation is
+performed with the full resolution of the point cloud.</p></li>
+<li><p><strong>visualization_folder</strong> – Path of a directory in which to store visualizations of intermediate results of the
+algorithm. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which means that no visualizations are stored.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters for the DBSCAN clustering of trunk points<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>eps_trunk_clustering</strong> – Parameter <span class="math notranslate nohighlight">\(\epsilon\)</span> for clustering the trunk points using the DBSCAN
+algorithm. Further details on the meaning of the parameter can be found in the documentation of
+<a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html" rel="nofollow noopener">sklearn.cluster.DBSCAN<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a>.
+Defaults to 2.5 m.</p></li>
+<li><p><strong>min_samples_trunk_clustering</strong> – Parameter <span class="math notranslate nohighlight">\(MinSamples\)</span> for clustering the trunk points using the
+DBSCAN algorithm. Further details on the meaning of the parameter can be found in the documentation of
+<a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html" rel="nofollow noopener">sklearn.cluster.DBSCAN<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a>.
+Defaults to 1.</p></li>
+<li><p><strong>min_trunk_points</strong> – Minimum number of points a cluster of trunk points must contain to be considered as a trunk.
+Defaults to 100.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Parameters for the construction and maximum filtering of the canopy height model<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grid_size_canopy_height_model</strong> – Width of the 2D grid cells used to create the canopy height model. Defaults to
+0.5 m.</p></li>
+<li><p><strong>min_distance_crown_tops</strong> – Minimum horizontal distance that local maxima of the canopy height model must have in
+order to be considered as separate crown tops. Defaults to 7 m.</p></li>
+<li><p><strong>min_points_crown_detection</strong> – Minimum number of points that must be contained in a cell of the canopy height model
+for the cell to be considered a possible crown top. Defaults to 100.</p></li>
+<li><p><strong>min_tree_height</strong> – Minimum height that a local maximum of the canopy height model must have to be considered as a
+crown top. Defaults to 2.5 m.</p></li>
+<li><p><strong>smooth_canopy_height_model</strong> – Whether to smooth the canopy height model using a Gaussian blur filter. Defaults to
+<code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>smooth_sigma</strong> – Parameter <span class="math notranslate nohighlight">\(\sigma\)</span> of the Gaussian blur filter used to smooth the canopy height model.
+Defaults to 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters for the matching of trunk positions and crown top positions<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>distance_match_trunk_and_crown_top</strong> – Maximum horizontal distance between trunk positions and crown top positions
+up to which both are considered to belong to the same tree. Defaults to 5 m.</p>
+</dd>
+<dt class="field-odd">Parameters for the Watershed segmentation<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>correct_watershed</strong> – Whether erroneous parts of the watershed segmentation should be replaced by a Voronoi
+segmentation. Defaults to <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+</dd>
+<dt class="field-even">Parameters for the region growing segmentation<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>max_point_spacing_region_growing</strong> – The results of the Watershed segmentation are only refined in sufficiently
+dense point cloud regions. For this purpose, the average distance of the points to their nearest neighbor is
+determined for each tree. If this average distance is less than <code class="code docutils literal notranslate"><span class="pre">max_point_spacing_region_growing</span></code> the
+tree is considered for refining its segmentation using the region growing approach. Defaults to 0.08 m.</p></li>
+<li><p><strong>max_radius_region_growing</strong> – Maximum radius in which to search for neighboring points during region growing.
+Defaults to 1m .</p></li>
+<li><p><strong>multiplier_outside_coarse_border</strong> – In our region growing approach, the points are processed in a sorted order,
+with points with the smallest distance to an already assigned tree point being processed first. For points
+that lie outside the crown boundary, the distance is multiplied by a constant factor to restrict growth in
+areas outside the crown boundary. This parameter defines this constant factor. The larger the factor, the
+more growth is restricted in areas outside the crown boundaries. Defaults to 2.</p></li>
+<li><p><strong>num_neighbors_region_growing</strong> – In our region growing approach, the k-nearest neighbors of each seed point a are
+searched and may be added to the same tree instance. This parameter specifies the number of neighbors to
+search. Defaults to 27.</p></li>
+<li><p><strong>z_scale</strong> – Factor by which the z-coordinates are multiplied in region growing. Using a value between zero and one
+favors upward growth. Defaults to 0.5.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.cluster_trunks">
+<span class="sig-name descname"><span class="pre">cluster_trunks</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">classification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.cluster_trunks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.cluster_trunks" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.cluster_trunks'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Clusters tree trunk points using the
+<a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html" rel="nofollow noopener">DBSCAN<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a> algorithm and assigns
+the same unique instance ID to the points belonging to the same cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
+<li><p><strong>classification</strong> – Class ID of all tree points.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of two arrays. The first contains the instance ID of each tree point. Points that do not belong to any</dt><dd><p>instance are assigned the ID <span class="math notranslate nohighlight">\(-1\)</span>. The second contains the unique instance IDs.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">classification</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p>Output: Tuple of two arrays. The first has shape <span class="math notranslate nohighlight">\((N)\)</span> and the second <span class="math notranslate nohighlight">\((T)\)</span></p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(T = \text{ number of trunk instances}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.coarse_segmentation">
+<span class="sig-name descname"><span class="pre">coarse_segmentation</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">classification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">canopy_height_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">grid_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">point_cloud_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.coarse_segmentation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.coarse_segmentation" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.coarse_segmentation'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Coarse tree instance segmentation using the marker-controlled Watershed algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
+<li><p><strong>classification</strong> – Class ID of all tree points.</p></li>
+<li><p><strong>instance_ids</strong> – Instance IDs of each tree point.</p></li>
+<li><p><strong>tree_positions</strong> – The 2D positions of all tree instances.</p></li>
+<li><p><strong>canopy_height_model</strong> – The canopy height model to segment.</p></li>
+<li><p><strong>grid_origin</strong> – 2D coordinates of the origin of the canopy height model.</p></li>
+<li><p><strong>point_cloud_id</strong> – ID of the point cloud to be used in the file names of the visualization results. Defaults to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, which means that no visualizations are created.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of five arrays. The first contains the instance ID of each tree point. Points that do not belong to
+any instance are assigned the ID <span class="math notranslate nohighlight">\(-1\)</span>. The second contains the unique instance IDs. The first contains
+the 2D segmentation mask with the pixels at the boundary lines between neighboring trees are assigned the
+background value of 0. The fourth contains the same segmentation mask without boundary lines. The fifth
+contains the integer positions of each tree in the grid coordinate system of the canopy height model.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">classification</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_positions</span></code>: <span class="math notranslate nohighlight">\((N, 2)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">canopy_height_model</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">grid_origin</span></code>: <span class="math notranslate nohighlight">\((2)\)</span></p></li>
+<li><p>Output: Tuple of five arrays. The first has shape <span class="math notranslate nohighlight">\((N)\)</span> and the second <span class="math notranslate nohighlight">\((I)\)</span>. The third and fourth have shape <span class="math notranslate nohighlight">\((W, H)\)</span>. The fifth has shape <span class="math notranslate nohighlight">\((N, 2)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of tree instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the canopy height model in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the canopy height model in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_distance_fields">
+<span class="sig-name descname"><span class="pre">compute_crown_distance_fields</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">watershed_labels_without_border</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_positions_grid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.compute_crown_distance_fields"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_distance_fields" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_distance_fields'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Calculates signed distance fields from the 2D segmentation mask of each tree. The distance values specify the 2D
+distance to the boundary of the segmentation mask. The distance value is negative for pixels that belong to the
+tree and positive for pixels that do not belong to the tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>watershed_labels_without_border</strong> – Watershed labels without boundary lines.</p></li>
+<li><p><strong>tree_positions_grid</strong> – Indices of the grid cells of the canopy height model in which the tree positions are
+located.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Signed distance masks for all trees.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">watershed_labels_without_border</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_positions_grid</span></code>: <span class="math notranslate nohighlight">\((N, 2)\)</span></p></li>
+<li><p>Output: <span class="math notranslate nohighlight">\((I, W, H)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of tree instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the distance fields in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the distance fields in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_top_positions">
+<span class="sig-name descname"><span class="pre">compute_crown_top_positions</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">classification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">point_cloud_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.compute_crown_top_positions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_top_positions" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_top_positions'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Constructs a 2D canopy height model, identifies the local maxima corresponding to the crown tops and calculates
+their 2D position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
+<li><p><strong>classification</strong> – Class IDs of each tree point.</p></li>
+<li><p><strong>point_cloud_id</strong> – ID of the point cloud to be used in the file names of the visualization results. Defaults to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, which means that no visualizations are created.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of three arrays. The first contains the 2D position of each crown top. The second contains the canopy</dt><dd><p>height model. The third contains the position of the grid origin.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">classification</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p>Output: Tuple of three tensors. The first has shape <span class="math notranslate nohighlight">\((C, 2)\)</span>. The second has shape <span class="math notranslate nohighlight">\((W, H)\)</span>. The third has shape <span class="math notranslate nohighlight">\((2)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(C = \text{ number of crown instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the canopy height model in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the canopy height model in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.compute_trunk_positions">
+<span class="sig-name descname"><span class="pre">compute_trunk_positions</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">unique_instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.compute_trunk_positions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.compute_trunk_positions" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.compute_trunk_positions'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Computes the 2D position of each trunk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
+<li><p><strong>instance_ids</strong> – Instance IDs of each tree point.</p></li>
+<li><p><strong>unique_instance_ids</strong> – Unique instance IDs.</p></li>
+<li><p><strong>min_points</strong> – Minimum number of points an instance must have to not be discarded.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>2D position of each trunk.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">unique_instance_ids</span></code>: <span class="math notranslate nohighlight">\((T)\)</span></p></li>
+<li><p>Output: <span class="math notranslate nohighlight">\((T, 2)\)</span></p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(T = \text{ number of trunk instances}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.create_height_map">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_height_map</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">grid_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.create_height_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.create_height_map" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.create_height_map'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Creates a 2D height map from a given point cloud. For this purpose, the 3D point cloud is projected onto a 2D
+grid and the maximum z-coordinate within each grid cell is recorded. The value of grid cells that do not contain
+any point is set to zero. Before creating the height map, the point cloud is normalized by subtracting the
+minimum z-coordinate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>points</strong> – Coordinates of each point.</p></li>
+<li><p><strong>grid_size</strong> – Grid size of the height map.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of three arrays. The first is the height map. The second is a map of the same size containing the
+number of points within each grid cell. The third contains the position of the grid origin.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">points</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p>Output: Tuple of three arrays. The first and second have shape <span class="math notranslate nohighlight">\((W, H)\)</span>. The third has shape <span class="math notranslate nohighlight">\((2)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the height map in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the height map in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.determine_overlapping_crowns">
+<span class="sig-name descname"><span class="pre">determine_overlapping_crowns</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">classification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">unique_instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">canopy_height_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">watershed_labels_with_border</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">watershed_labels_without_border</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.determine_overlapping_crowns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.determine_overlapping_crowns" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.determine_overlapping_crowns'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Identifies trees whose crowns overlap with neighboring trees. If such trees have sufficient point density and
+contain trunk points, their segmentation is refined. For this purpose, the trunk points are selected as seed
+points for region growing and the instance IDs of the crown points are reset to -1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
+<li><p><strong>classification</strong> – Class ID of all tree points.</p></li>
+<li><p><strong>instance_ids</strong> – Instance IDs of each tree point.</p></li>
+<li><p><strong>unique_instance_ids</strong> – Unique instance IDs.</p></li>
+<li><p><strong>canopy_height_model</strong> – The canopy height model.</p></li>
+<li><p><strong>watershed_labels_with_border</strong> – Watershed labels with boundary lines between neighboring
+trees are assigned the background value of 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of two arrays. The first contains a boolean mask indicating which points were selected as seed points</dt><dd><p>for region growing. The second contains the updated instance IDs for each tree points. For trees whose
+segmentation is to be refined the instance IDs of the crown points is set to -1.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">classification</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">unique_instance_ids</span></code>: <span class="math notranslate nohighlight">\((I)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">canopy_height_model</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">watershed_labels_with_border</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p>Output: Tuple of two arrays. Both have shape <span class="math notranslate nohighlight">\((N)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of tree instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the canopy height model in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the canopy height model in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.filter_trunk_clusters">
+<span class="sig-name descname"><span class="pre">filter_trunk_clusters</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">unique_instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">min_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.filter_trunk_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.filter_trunk_clusters" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.filter_trunk_clusters'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Removes trunk instances with less than <code class="code docutils literal notranslate"><span class="pre">min_points</span></code> from the set of trunk instances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>instance_ids</strong> – Instance IDs of each tree point.</p></li>
+<li><p><strong>unique_instance_ids</strong> – Unique instance IDs.</p></li>
+<li><p><strong>min_points</strong> – Minimum number of points an instance must have to not be discarded.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of two arrays. The first contains the updated instance ID of each tree point. Points that do not
+belong to any instance are assigned the ID <span class="math notranslate nohighlight">\(-1\)</span>. The second contains the unique instance IDs.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">unique_instance_ids</span></code>: <span class="math notranslate nohighlight">\((T)\)</span></p></li>
+<li><p>Output: Tuple of two arrays. The first has shape <span class="math notranslate nohighlight">\((N)\)</span> and the second <span class="math notranslate nohighlight">\((T')\)</span></p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(T = \text{ number of trunk instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(T' = \text{ number of trunk instances after filtering}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.grow_trees">
+<span class="sig-name descname"><span class="pre">grow_trees</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">unique_instances_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">grid_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">crown_distance_fields</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">seed_mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.grow_trees"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.grow_trees" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.grow_trees'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Region growing segmentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
+<li><p><strong>instance_ids</strong> – Instance IDs of each tree point.</p></li>
+<li><p><strong>grid_origin</strong> – 2D coordinates of the origin of the crown distance fields.</p></li>
+<li><p><strong>crown_distance_fields</strong> – 2D signed distance fields idicating the distance to the crown boundary of each tree
+to segment.</p></li>
+<li><p><strong>seed_mask</strong> – Boolean mask indicating which points were selected as seed points for region growing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated instance IDs.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">grid_origin</span></code>: <span class="math notranslate nohighlight">\((2)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">crown_distance_fields</span></code>: <span class="math notranslate nohighlight">\((I', W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">seed_mask</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p>Output: <span class="math notranslate nohighlight">\((N)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(I' = \text{ number of tree instances to segment}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the distance fields in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the distance fields in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.match_trunk_and_crown_tops">
+<span class="sig-name descname"><span class="pre">match_trunk_and_crown_tops</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">trunk_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">crown_top_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.match_trunk_and_crown_tops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.match_trunk_and_crown_tops" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.match_trunk_and_crown_tops'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Merges trunk and crown topm positions corresponding to the same tree.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trunk_positions</strong> – 2D position of each trunk.</p></li>
+<li><p><strong>crown_top_positions</strong> – 2D position of each crown top.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Merged tree positions.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">trunk_positions</span></code>: <span class="math notranslate nohighlight">\((T, 2)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">crown_top_positions</span></code>: <span class="math notranslate nohighlight">\((C, 2)\)</span></p></li>
+<li><p>Output: <span class="math notranslate nohighlight">\((I, 2)\)</span></p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(T = \text{ number of trunk instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(C = \text{ number of crown instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of merged tree instances}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.watershed_correction">
+<span class="sig-name descname"><span class="pre">watershed_correction</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">watershed_labels_with_border</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">watershed_labels_without_border</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_positions_grid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">point_cloud_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.watershed_correction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_correction" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_correction'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Detects erroneous parts within a Watershed segmentation mask and replaces them by a Voronoi segmentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>watershed_labels_with_border</strong> – Uncorrected Watershed labels with boundary lines between neighboring
+trees are assigned the background value of 0.</p></li>
+<li><p><strong>watershed_labels_without_border</strong> – Uncorrected Watershed labels without boundary lines.</p></li>
+<li><p><strong>tree_positions_grid</strong> – Indices of the grid cells of the canopy height model in which the tree positions are
+located.</p></li>
+<li><p><strong>point_cloud_id</strong> – ID of the point cloud to be used in the file names of the visualization results. Defaults to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, which means that no visualizations are created.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of two arrays. The first contains the corrected Watershed segmentation mask with the pixels at the
+boundary lines between neighboring trees are assigned the background value of 0. The second contains the
+same Watershed segmentation mask without boundary lines.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">watershed_labels_with_border</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">watershed_labels_without_border</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_positions_grid</span></code>: <span class="math notranslate nohighlight">\((I, 2)\)</span></p></li>
+<li><p>Output: Tuple of two arrays. Both have shape <span class="math notranslate nohighlight">\((W, H)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of tree instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the canopy height model in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the canopy height model in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.MultiStageAlgorithm.watershed_segmentation">
+<span class="sig-name descname"><span class="pre">watershed_segmentation</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">canopy_height_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">tree_positions_grid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_multi_stage_algorithm.html#MultiStageAlgorithm.watershed_segmentation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_segmentation" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_segmentation'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Marker-controlled Watershed segmentation of the canopy height model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>canopy_height_model</strong> – The canopy height model to segment.</p></li>
+<li><p><strong>tree_positions_grid</strong> – Indices of the grid cells of the canopy height model in which the tree positions are
+located.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of two arrays. The first contains the Watershed segmentation mask with the pixels at the boundary
+lines between neighboring trees are assigned the background value of 0. The second contains the same
+Watershed segmentation mask without boundary lines.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">canopy_height_model</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">tree_positions_grid</span></code>: <span class="math notranslate nohighlight">\((I, 2)\)</span></p></li>
+<li><p>Output: Tuple of two arrays. Both have shape <span class="math notranslate nohighlight">\((W, H)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of tree instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(W = \text{ extent of the canopy height model in x-direction}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(H = \text{ extent of the canopy height model in y-direction}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+</dd></dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">forest3d.instance_segmentation.</span></span><span class="sig-name descname"><span class="pre">PriorityQueue</span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_priority_queue.html#PriorityQueue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Priority queue that allows to update the priority of items in the queue.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue.REMOVED">
+<span class="sig-name descname"><span class="pre">REMOVED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'_REMOVED_TASK'</span></em><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue.REMOVED" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue.REMOVED'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd></dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_priority_queue.html#PriorityQueue.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue.add" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue.add'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Adds a new item to the queue or updates the priority of an existing item.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – The key of the item to add or update.</p></li>
+<li><p><strong>entry</strong> – The data entry of the item.</p></li>
+<li><p><strong>priority</strong> – The priority of the item.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_priority_queue.html#PriorityQueue.get"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue.get" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue.get'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Retrieves an item without removing it from the queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> – The key of the item to retrieve.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Priority of the retrieved item and its data entry if the key exists, <code class="code docutils literal notranslate"><span class="pre">None</span></code> otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue.pop">
+<span class="sig-name descname"><span class="pre">pop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_priority_queue.html#PriorityQueue.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue.pop" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue.pop'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Removes and returns the lowest priority item.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The priority, key, and data entry of the lowest priority item.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – If the queue is empty.</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_priority_queue.html#PriorityQueue.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue.remove" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue.remove'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Marks an existing item as REMOVED.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> – The key of the item to be removed.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – If the <code class="code docutils literal notranslate"><span class="pre">key</span></code> does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.PriorityQueue.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_entry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_priority_queue.html#PriorityQueue.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.PriorityQueue.update" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.PriorityQueue.update'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Updates the data entry of an item in the queue without changing its priority.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> – The key of the item to update.</p></li>
+<li><p><strong>new_entry</strong> – New data entry for the item.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – If the <code class="code docutils literal notranslate"><span class="pre">key</span></code> does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="forest3d.instance_segmentation.remap_instance_ids">
+<span class="sig-prename descclassname"><span class="pre">forest3d.instance_segmentation.</span></span><span class="sig-name descname"><span class="pre">remap_instance_ids</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/instance_segmentation/_utils.html#remap_instance_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.instance_segmentation.remap_instance_ids" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.instance_segmentation.remap_instance_ids'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Remaps instance IDs that may not be continuous to a continuous range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>instance_ids</strong> – Instance IDs to remap.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of two arrays. The first contains the remapped instance IDs. The second contains the unique instance IDs
+after remapping.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p>Output: Tuple of two arrays. The first has shape <span class="math notranslate nohighlight">\((N)\)</span> and the second <span class="math notranslate nohighlight">\((I)\)</span></p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(I = \text{ number of instances}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
 </section>
 </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
 <div class="mr-auto">
@@ -123,14 +872,44 @@
       </a>
 </div>
 <div class="ml-auto">
-<a class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-accent hover:text-accent-foreground py-2 px-4" href="forest3d.visualization.html">
-        forest3d.visualization
+<a class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-accent hover:text-accent-foreground py-2 px-4" href="forest3d.operations.html">
+        forest3d.operations
         <svg class="ml-2 h-4 w-4" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
 <polyline points="9 18 15 12 9 6"></polyline>
 </svg>
 </a>
 </div>
-</div></div>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm</span></code></a><ul>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.cluster_trunks'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.cluster_trunks"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.cluster_trunks()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.coarse_segmentation'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.coarse_segmentation"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.coarse_segmentation()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_distance_fields'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_distance_fields"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.compute_crown_distance_fields()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_top_positions'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.compute_crown_top_positions"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.compute_crown_top_positions()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.compute_trunk_positions'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.compute_trunk_positions"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.compute_trunk_positions()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.create_height_map'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.create_height_map"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.create_height_map()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.determine_overlapping_crowns'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.determine_overlapping_crowns"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.determine_overlapping_crowns()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.filter_trunk_clusters'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.filter_trunk_clusters"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.filter_trunk_clusters()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.grow_trees'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.grow_trees"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.grow_trees()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.match_trunk_and_crown_tops'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.match_trunk_and_crown_tops"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.match_trunk_and_crown_tops()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_correction'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_correction"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.watershed_correction()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_segmentation'" class="reference internal" href="#forest3d.instance_segmentation.MultiStageAlgorithm.watershed_segmentation"><code class="docutils literal notranslate"><span class="pre">MultiStageAlgorithm.watershed_segmentation()</span></code></a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue"><code class="docutils literal notranslate"><span class="pre">PriorityQueue</span></code></a><ul>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue.REMOVED'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue.REMOVED"><code class="docutils literal notranslate"><span class="pre">PriorityQueue.REMOVED</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue.add'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue.add"><code class="docutils literal notranslate"><span class="pre">PriorityQueue.add()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue.get'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue.get"><code class="docutils literal notranslate"><span class="pre">PriorityQueue.get()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue.pop'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue.pop"><code class="docutils literal notranslate"><span class="pre">PriorityQueue.pop()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue.remove'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue.remove"><code class="docutils literal notranslate"><span class="pre">PriorityQueue.remove()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.PriorityQueue.update'" class="reference internal" href="#forest3d.instance_segmentation.PriorityQueue.update"><code class="docutils literal notranslate"><span class="pre">PriorityQueue.update()</span></code></a></li>
+</ul>
+</li>
+<li><a :data-current="activeSection === '#forest3d.instance_segmentation.remap_instance_ids'" class="reference internal" href="#forest3d.instance_segmentation.remap_instance_ids"><code class="docutils literal notranslate"><span class="pre">remap_instance_ids()</span></code></a></li>
+</ul>
+</div>
+</aside>
 </main>
 </div>
 </div><footer class="py-6 border-t border-border md:py-0">
@@ -146,5 +925,6 @@
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script defer="defer" src="_static/theme.js?v=8dc3ddfe"></script>
 <script src="_static/design-tabs.js?v=36754332"></script>
+<script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </body>
 </html>

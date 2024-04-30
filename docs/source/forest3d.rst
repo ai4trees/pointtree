@@ -5,8 +5,10 @@ forest3d
    :maxdepth: 4
    :titlesonly:
 
+   forest3d.config
    forest3d.evaluation
    forest3d.instance_segmentation
+   forest3d.operations
    forest3d.visualization
 
 .. automodule:: forest3d

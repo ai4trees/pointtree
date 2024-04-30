@@ -1022,7 +1022,7 @@
 </span><span id="line-827">
 </span><span id="line-828">                        <span class="n">img_path</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="line-829">                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_visualization_folder</span><span class="si">}</span><span class="s2">/voronoi_labels_without_border_</span><span class="si">{</span><span class="n">point_cloud_id</span><span class="si">}</span><span class="s2">_&quot;</span>
-</span><span id="line-830">                            <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{instance_id}</span><span class="s2">.png&quot;</span>
+</span><span id="line-830">                            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">instance_id</span><span class="si">}</span><span class="s2">.png&quot;</span>
 </span><span id="line-831">                        <span class="p">)</span>
 </span><span id="line-832">                        <span class="n">save_tree_map</span><span class="p">(</span>
 </span><span id="line-833">                            <span class="n">voronoi_labels_without_border</span><span class="p">,</span>
@@ -1033,7 +1033,7 @@
 </span><span id="line-838">
 </span><span id="line-839">                        <span class="n">img_path</span> <span class="o">=</span> <span class="p">(</span>
 </span><span id="line-840">                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_visualization_folder</span><span class="si">}</span><span class="s2">/voronoi_labels_with_border_</span><span class="si">{</span><span class="n">point_cloud_id</span><span class="si">}</span><span class="s2">_&quot;</span>
-</span><span id="line-841">                            <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{instance_id}</span><span class="s2">.png&quot;</span>
+</span><span id="line-841">                            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">instance_id</span><span class="si">}</span><span class="s2">.png&quot;</span>
 </span><span id="line-842">                        <span class="p">)</span>
 </span><span id="line-843">                        <span class="n">save_tree_map</span><span class="p">(</span>
 </span><span id="line-844">                            <span class="n">voronoi_labels_with_border</span><span class="p">,</span>
@@ -1047,17 +1047,17 @@
 </span><span id="line-852">                    <span class="k">for</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="n">neighbor_instance_ids</span><span class="p">:</span>
 </span><span id="line-853">                        <span class="n">tree_position</span> <span class="o">=</span> <span class="n">tree_positions_grid</span><span class="p">[</span><span class="n">instance_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
 </span><span id="line-854">                        <span class="n">voronoi_id</span> <span class="o">=</span> <span class="n">voronoi_labels_without_border</span><span class="p">[</span><span class="n">tree_position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tree_position</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-</span><span id="line-855">                        <span class="n">voronoi_labels_without_border_remapped</span><span class="p">[</span>
-</span><span id="line-856">                            <span class="n">voronoi_labels_without_border</span> <span class="o">==</span> <span class="n">voronoi_id</span>
-</span><span id="line-857">                        <span class="p">]</span> <span class="o">=</span> <span class="n">instance_id</span>
+</span><span id="line-855">                        <span class="n">voronoi_labels_without_border_remapped</span><span class="p">[</span><span class="n">voronoi_labels_without_border</span> <span class="o">==</span> <span class="n">voronoi_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="line-856">                            <span class="n">instance_id</span>
+</span><span id="line-857">                        <span class="p">)</span>
 </span><span id="line-858">                        <span class="n">voronoi_labels_with_border_remapped</span><span class="p">[</span><span class="n">voronoi_labels_with_border</span> <span class="o">==</span> <span class="n">voronoi_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance_id</span>
 </span><span id="line-859">
 </span><span id="line-860">                    <span class="n">watershed_labels_with_border</span><span class="p">[</span><span class="n">neighborhood_mask_with_border</span><span class="p">]</span> <span class="o">=</span> <span class="n">voronoi_labels_with_border_remapped</span><span class="p">[</span>
 </span><span id="line-861">                        <span class="n">neighborhood_mask_with_border</span>
 </span><span id="line-862">                    <span class="p">]</span>
-</span><span id="line-863">                    <span class="n">watershed_labels_without_border</span><span class="p">[</span>
-</span><span id="line-864">                        <span class="n">neighborhood_mask_without_border</span>
-</span><span id="line-865">                    <span class="p">]</span> <span class="o">=</span> <span class="n">voronoi_labels_without_border_remapped</span><span class="p">[</span><span class="n">neighborhood_mask_without_border</span><span class="p">]</span>
+</span><span id="line-863">                    <span class="n">watershed_labels_without_border</span><span class="p">[</span><span class="n">neighborhood_mask_without_border</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="line-864">                        <span class="n">voronoi_labels_without_border_remapped</span><span class="p">[</span><span class="n">neighborhood_mask_without_border</span><span class="p">]</span>
+</span><span id="line-865">                    <span class="p">)</span>
 </span><span id="line-866">
 </span><span id="line-867">        <span class="k">return</span> <span class="n">watershed_labels_with_border</span><span class="p">,</span> <span class="n">watershed_labels_without_border</span></div>
 

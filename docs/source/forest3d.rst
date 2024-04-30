@@ -7,6 +7,7 @@ forest3d
 
    forest3d.evaluation
    forest3d.instance_segmentation
+   forest3d.visualization
 
 .. automodule:: forest3d
    :members:

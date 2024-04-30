@@ -1,6 +1,5 @@
 __all__ = ["MultiStageAlgorithm"]
 
-import heapq
 import os
 from typing import List, Literal, Optional, Tuple
 
@@ -14,8 +13,9 @@ from skimage.feature import peak_local_max
 from skimage.segmentation import watershed
 
 from forest3d.evaluation import Timer
-from ._utils import remap_instance_ids
 from forest3d.visualization import save_tree_map
+from ._priority_queue import PriorityQueue
+from ._utils import remap_instance_ids
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 
@@ -54,7 +54,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
     Parameters for the construction and maximum filtering of the canopy height model:
         grid_size_canopy_height_model: Width of the 2D grid cells used to create the canopy height model. Defaults to
-            1 m.
+            0.5 m.
         min_distance_crown_tops: Minimum horizontal distance that local maxima of the canopy height model must have in
             order to be considered as separate crown tops. Defaults to 7 m.
         min_points_crown_detection: Minimum number of points that must be contained in a cell of the canopy height model
@@ -79,12 +79,18 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             dense point cloud regions. For this purpose, the average distance of the points to their nearest neighbor is
             determined for each tree. If this average distance is less than :code:`max_point_spacing_region_growing` the
             tree is considered for refining its segmentation using the region growing approach. Defaults to 0.06 m.
-        region_growing_radii: Search radii used for region growing. Must contain the same number of values as
-            :code:`region_growing_min_pts`. Defaults to :code:`None`, which means that a default of
-            :code:`[0.05, 0.05, 0.1, 0.1, 0.5]` is used.
-        region_growing_min_pts: Parameter :math:`MinSamples` used for region growing. Must contain the same number of
-            values as :code:`region_growing_radii`. Defaults to :code:`None`, which means that a default of
-            :code:`[4, 1, 8, 1, 1]` is used.
+        max_radius_region_growing: Maximum radius in which to search for neighboring points during region growing.
+            Defaults to 1m .
+        multiplier_outside_coarse_border: In our region growing approach, the points are processed in a sorted order,
+            with points with the smallest distance to an already assigned tree point being processed first. For points
+            that lie outside the crown boundary, the distance is multiplied by a constant factor to restrict growth in
+            areas outside the crown boundary. This parameter defines this constant factor. The larger the factor, the
+            more growth is restricted in areas outside the crown boundaries. Defaults to 2.
+        num_neighbors_region_growing: In our region growing approach, the k-nearest neighbors of each seed point a are
+            searched and may be added to the same tree instance. This parameter specifies the number of neighbors to
+            search. Defaults to 27.
+        z_scale: Factor by which the z-coordinates are multiplied in region growing. Using a value between zero and one
+            favors upward growth. Defaults to 0.5.
     """
 
     def __init__(
@@ -98,7 +104,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         eps_trunk_clustering: float = 2.5,
         min_samples_trunk_clustering: int = 1,
         min_trunk_points: int = 100,
-        grid_size_canopy_height_model: float = 1,
+        grid_size_canopy_height_model: float = 0.5,
         min_distance_crown_tops: float = 7,
         min_points_crown_detection: float = 100,
         min_tree_height: float = 2.5,
@@ -107,14 +113,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         distance_match_trunk_and_crown_top: float = 5,
         correct_watershed: bool = True,
         max_point_spacing_region_growing: float = 0.06,
-        region_growing_radii: Optional[List[float]] = None,
-        region_growing_min_pts: Optional[List[float]] = None,
+        max_radius_region_growing: float = 1,
+        multiplier_outside_coarse_border: float = 2,
+        num_neighbors_region_growing: int = 27,
+        z_scale: float = 0.5
     ):
-        super().__init__(downsampling_voxel_size=downsampling_voxel_size)
+        super().__init__(trunk_class_id, crown_class_id, branch_class_id=branch_class_id,
+                         downsampling_voxel_size=downsampling_voxel_size)
 
-        self._trunk_class_id = trunk_class_id
-        self._crown_class_id = crown_class_id
-        self._branch_class_id = branch_class_id
         self._algorithm = algorithm
         self._visualization_folder = visualization_folder
 
@@ -139,21 +145,11 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
         # Parameters for the region growing segmentation:
         self._max_point_spacing_region_growing = max_point_spacing_region_growing
+        self._max_radius_region_growing = max_radius_region_growing
+        self._num_neighbors_region_growing = num_neighbors_region_growing
+        self._multiplier_outside_coarse_border = multiplier_outside_coarse_border
+        self._z_scale = z_scale
 
-        if region_growing_radii is not None:
-            self._region_growing_radii = region_growing_radii
-        else:
-            self._region_growing_radii = [0.05, 0.05, 0.1, 0.1, 0.5]
-        if region_growing_min_pts is not None:
-            self._region_growing_min_pts = region_growing_min_pts
-        else:
-            self._region_growing_min_pts = [4, 1, 8, 1, 1]
-
-        if len(self._region_growing_radii) != len(self._region_growing_min_pts):
-            raise ValueError(
-                "The region_growing_radii and region_growing_min_pts parameters for region growing must contain the \
-                 same number of values."
-            )
 
     def _segment_tree_points(
         self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None
@@ -234,6 +230,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             unique_instance_ids,
             canopy_height_model,
             watershed_labels_with_border,
+            watershed_labels_without_border,
         )
 
         instance_ids_to_refine = np.sort(np.unique(instance_ids[seed_mask]))
@@ -242,7 +239,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             watershed_labels_without_border, tree_positions_grid[instance_ids_to_refine]
         )
 
-        return self.grow_trees(tree_coords, instance_ids, grid_origin, crown_distance_fields, seed_mask)
+        return self.grow_trees(tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask)
 
     def cluster_trunks(self, tree_coords: np.ndarray, classification: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         r"""
@@ -442,7 +439,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer("Computation of crown top positions", self._time_tracker, log=True):
+        with Timer("Detection of crown top positions", self._time_tracker, log=True):
             if len(tree_coords) == 0:
                 return (
                     np.empty((0, 0), dtype=np.float64),
@@ -450,13 +447,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                     np.empty((0, 0), dtype=np.float64),
                 )
 
-            with Timer("Height map computation", self._time_tracker):
-                if self._algorithm != "watershed_crown_top_positions":
-                    tree_coords = tree_coords[classification == self._crown_class_id]
-                canopy_height_model, count_map, grid_origin = self.create_height_map(
-                    tree_coords, grid_size=self._grid_size_canopy_height_model
-                )
+        with Timer("Height map computation", self._time_tracker):
+            if self._algorithm != "watershed_crown_top_positions":
+                tree_coords = tree_coords[classification == self._crown_class_id]
+            canopy_height_model, count_map, grid_origin = self.create_height_map(
+                tree_coords, grid_size=self._grid_size_canopy_height_model
+            )
 
+        with Timer("Detection of crown top positions", self._time_tracker, log=True):
             min_distance = int(self._min_distance_crown_tops / self._grid_size_canopy_height_model)
             footprint_size = int(self._min_distance_crown_tops / self._grid_size_canopy_height_model * 0.5)
             footprint = disk(footprint_size)
@@ -701,9 +699,10 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             watershed_labels_with_border = watershed(
                 -canopy_height_model, watershed_markers, mask=foreground_mask, watershed_line=True
             )
-            watershed_labels_without_border = watershed(
-                -canopy_height_model, watershed_markers, mask=foreground_mask, watershed_line=False
-            )
+            border_mask = np.logical_and(watershed_labels_with_border == 0, foreground_mask)
+            watershed_labels_without_border = watershed_labels_with_border.copy()
+            watershed_labels_without_border[border_mask] = dilation(watershed_labels_with_border,
+                                                                    rectangle(3, 3))[border_mask]
 
         return watershed_labels_with_border, watershed_labels_without_border
 
@@ -787,12 +786,10 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                         mask=neighborhood_mask_with_border,
                         watershed_line=True,
                     )
-                    voronoi_labels_without_border = watershed(
-                        np.zeros_like(voronoi_input),
-                        voronoi_input,
-                        mask=neighborhood_mask_without_border,
-                        watershed_line=False,
-                    )
+                    border_mask = np.logical_and(voronoi_labels_with_border == 0, neighborhood_mask_with_border)
+                    voronoi_labels_without_border = voronoi_labels_with_border.copy()
+                    voronoi_labels_without_border[border_mask] = dilation(voronoi_labels_with_border,
+                                                                          rectangle(3, 3))[border_mask]
 
                     if self._visualization_folder is not None and point_cloud_id is not None:
                         save_tree_map(
@@ -842,6 +839,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         unique_instance_ids: np.ndarray,
         canopy_height_model: np.ndarray,
         watershed_labels_with_border: np.ndarray,
+        watershed_labels_without_border: np.ndarray,
     ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Identifies trees whose crowns overlap with neighboring trees. If such trees have sufficient point density and
@@ -889,12 +887,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             mask_background_erosion = np.logical_and(foreground_mask, eroded_watershed_labels == 1)
             eroded_watershed_labels[mask_background_erosion] = watershed_labels_for_erosion[mask_background_erosion]
 
-            seed_mask = np.zeros(len(tree_coords), dtype=bool)
-
             kd_tree = KDTree(tree_coords)
 
             neighbor_distances = kd_tree.query(tree_coords, k=2)[0]
             neighbor_distances = neighbor_distances[:, 1].flatten()
+
+            instances_to_refine = []
+            average_point_spacings = []
+            instance_seed_masks = []
 
             for instance_id in unique_instance_ids:
                 watershed_mask = watershed_labels_with_border == instance_id + 1
@@ -914,12 +914,36 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                 average_point_spacing = neighbor_distances[instance_mask].mean()
 
                 if instance_trunk_mask.sum() > 0 and average_point_spacing <= self._max_point_spacing_region_growing:
-                    self._logger.info(f"Segmentation of {instance_id} will be refined...")
+                    instances_to_refine.append(instance_id)
+                    average_point_spacings.append(average_point_spacing)
+                    instance_seed_masks.append(instance_trunk_mask)
+
+            seed_mask = np.zeros(len(tree_coords), dtype=bool)
+
+            for (instance_id, average_point_spacing, instance_seed_mask) in zip(instances_to_refine,
+                                                                                average_point_spacings,
+                                                                                instance_seed_masks):
+                instance_mask = watershed_labels_without_border == instance_id + 1
+                dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
+                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask]) - 1
+
+                has_neighbor_to_refine = False
+                for neighbor_instance_id in neighbor_instance_ids:
+                    if neighbor_instance_id == instance_id or neighbor_instance_id == -1:
+                        continue
+                    if neighbor_instance_id in instances_to_refine:
+                        has_neighbor_to_refine = True
+                        break
+
+                if has_neighbor_to_refine:
+                    self._logger.info("Segmentation of %d will be refined (Average point spacing: %.3f)...",
+                                      instance_id,
+                                      average_point_spacing)
                     instance_crown_mask = np.logical_and(
                         instance_ids == instance_id, classification == self._crown_class_id
                     )
                     instance_ids[instance_crown_mask] = -1
-                    seed_mask = np.logical_or(seed_mask, instance_trunk_mask)
+                    seed_mask = np.logical_or(seed_mask, instance_seed_mask)
 
         return seed_mask, instance_ids
 
@@ -967,6 +991,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         self,
         tree_coords: np.ndarray,
         instance_ids: np.ndarray,
+        unique_instances_ids: np.ndarray,
         grid_origin: np.ndarray,
         crown_distance_fields,
         seed_mask: np.ndarray,
@@ -1002,75 +1027,70 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
         """
         with Timer("Region growing", self._time_tracker, log=True):
-            growing_mask = np.logical_or(instance_ids == -1, seed_mask)
-            growing_points = tree_coords[growing_mask]
-            growing_instance_ids = instance_ids[growing_mask]
-
             if seed_mask.sum() == 0:
                 return instance_ids
 
-            grid_indices = np.floor((growing_points[:, :2] - grid_origin) / self._grid_size_canopy_height_model).astype(
-                int
-            )
-            distances_to_crown_border = crown_distance_fields[
-                remap_instance_ids(growing_instance_ids)[0], grid_indices[:, 0], grid_indices[:, 1]
-            ]
-            del grid_indices
+            growing_mask = np.logical_or(instance_ids == -1, seed_mask)
+            growing_points = tree_coords[growing_mask]
+            growing_points[:, 2] *= self._z_scale
+            growing_instance_ids = instance_ids[growing_mask]
+            growing_seed_mask = growing_instance_ids != -1
+
+            # the region growing is only executed for certain trees
+            # the following code maps the instance IDs of the trees for which region growing is executed to a
+            # continuous range
+            instance_id_mapping = np.full(len(unique_instances_ids), fill_value=-1, dtype=np.int64)
+            inverse_instance_id_mapping = np.full(len(crown_distance_fields), fill_value=-1, dtype=np.int64)
+
+            region_growing_instance_ids = np.unique(instance_ids[seed_mask])
+
+            remapped_id = 0
+            for instance_id in unique_instances_ids:
+                if instance_id in region_growing_instance_ids:
+                    instance_id_mapping[instance_id] = remapped_id
+                    inverse_instance_id_mapping[remapped_id] = instance_id
+                    remapped_id += 1
 
             point_indices = np.arange(len(growing_points), dtype=np.int64)
 
-            previous_radius = -1
-
             kd_tree = KDTree(growing_points)
+            neighbor_dists, neighbor_indices, _ = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
 
-            for (radius, min_pts) in zip(self._region_growing_radii, self._region_growing_min_pts):
-                use_index_remapping = False
-                print(f"Region growing with radius={radius} and MinPoints={min_pts}.")
-                if radius != previous_radius:
-                    neighbor_indices = kd_tree.query_radius(growing_points, r=radius)
-                    num_neighbors = np.array([len(neighbor_index) for neighbor_index in neighbor_indices])
-                if previous_radius != -1 and min_pts == 1:
-                    unassigned_points_mask = growing_instance_ids == -1
-                    reduced_kd_tree = KDTree(growing_points[unassigned_points_mask])
-                    neighbor_indices = reduced_kd_tree.query_radius(growing_points, r=radius)
-                    unassigned_point_indices = point_indices[unassigned_points_mask]
-                    use_index_remapping = True
-                previous_radius = radius
+            pq = PriorityQueue()
+            for (idx, instance_id) in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):
+                pq.add(idx, instance_id, priority=-1 * np.inf)
 
-                growing_seed_mask = growing_instance_ids != -1
-                if min_pts > 1:
-                    growing_seed_mask = np.logical_and(growing_seed_mask, num_neighbors >= min_pts)
-                seed_queue = list(
-                    zip(
-                        distances_to_crown_border[growing_seed_mask],
-                        point_indices[growing_seed_mask],
-                        growing_instance_ids[growing_seed_mask],
-                    )
-                )
-                heapq.heapify(seed_queue)
+            i = 0
+            while len(pq) > 0:
+                _, seed_index, instance_id = pq.pop()
+                if i % 10000 == 0:
+                    self._logger.info(f"Iteration {i}, seeds to process: {len(pq)}.")
+                growing_instance_ids[seed_index] = instance_id
 
-                i = 0
-                while len(seed_queue) > 0:
-                    if i % 10000 == 0:
-                        self._logger.info(f"Iteration {i}, seeds to process: {len(seed_queue)}.")
-                    seed_weight, seed_index, instance_id = heapq.heappop(seed_queue)
+                current_neighbor_indices = neighbor_indices[seed_index]
+                current_neighbor_dists = neighbor_dists[seed_index]
+                current_neighbor_instance_ids = growing_instance_ids[current_neighbor_indices]
 
-                    if use_index_remapping:
-                        seed_neighbor_indices = unassigned_point_indices[neighbor_indices[seed_index]]
-                    else:
-                        seed_neighbor_indices = neighbor_indices[seed_index]
-                    neighbor_instance_ids = growing_instance_ids[seed_neighbor_indices]
+                neighbor_mask = np.logical_and(current_neighbor_instance_ids == -1,
+                                               current_neighbor_dists <= self._max_radius_region_growing)
+                neighbor_indices_to_add = current_neighbor_indices[neighbor_mask]
+                neighbor_dists_to_add = current_neighbor_dists[neighbor_mask]
 
-                    neighbor_mask = neighbor_instance_ids == -1
-                    neighbor_indices_to_add = seed_neighbor_indices[neighbor_mask]
-                    growing_instance_ids[neighbor_indices_to_add] = instance_id
+                for idx, dist in zip(neighbor_indices_to_add, neighbor_dists_to_add):
+                    grid_index = np.floor((growing_points[idx, :2] - grid_origin) / self._grid_size_canopy_height_model)
+                    grid_index = grid_index.astype(int)
+                    distance_to_crown_border = crown_distance_fields[
+                        instance_id_mapping[instance_id], grid_index[0], grid_index[1]
+                    ]
+                    if distance_to_crown_border > 0:
+                        dist *= self._multiplier_outside_coarse_border
 
-                    for idx in neighbor_indices_to_add:
-                        if len(neighbor_indices[idx]) >= min_pts:
-                            seed_weight = distances_to_crown_border[idx]
-                            heapq.heappush(seed_queue, (seed_weight, idx, instance_id))
-                    i += 1
+                    entry = pq.get(idx)
+                    if entry is None or entry[0] > dist:
+                        pq.add(idx, instance_id, priority=dist)
 
-        instance_ids[growing_mask] = growing_instance_ids
+                i += 1
 
-        return instance_ids
+            instance_ids[growing_mask] = growing_instance_ids
+
+            return instance_ids

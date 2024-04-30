@@ -1,5 +1,6 @@
 """ Evaluation tools. """
 
+from ._metrics import *
 from ._timer import *
 from ._time_tracker import *
 

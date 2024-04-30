@@ -19,13 +19,6 @@ class TestMultiStageAlgorithm:
         yield cache_dir
         shutil.rmtree(cache_dir)
 
-    @pytest.mark.parametrize(
-        "args,kwargs", [([0, 1], {"region_growing_radii": [0.1], "region_growing_min_pts": [1, 2]})]
-    )
-    def test_invalid_parameters(self, args: List[Any], kwargs: Dict[str, Any]):
-        with pytest.raises(ValueError):
-            MultiStageAlgorithm(*args, **kwargs)
-
     def test_cluster_trunk_points_empty(self):
         algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
 
@@ -232,6 +225,7 @@ class TestMultiStageAlgorithm:
             trunk_class_id=0,
             crown_class_id=1,
             algorithm=algorithm,
+            grid_size_canopy_height_model=1,
             min_distance_crown_tops=min_distance_crown_tops,
             min_points_crown_detection=min_points_crown_detection,
             min_tree_height=min_tree_height,
@@ -281,21 +275,13 @@ class TestMultiStageAlgorithm:
         classification = np.ones(len(tree_coords), dtype=np.int64)
         classification[-1] = 0
 
-        # expected_canopy_height_model = np.array([
-        #     [0, 0, 0, 0, 0, 0],
-        #     [0, 1, 1, 1, 0, 0],
-        #     [0, 1, 2, 1, 0, 0],
-        #     [0, 1, 1, 1, 1, 1],
-        #     [0, 1, 1, 1, 6, 1],
-        #     [0, 0, 0, 1, 1, 1],
-        # ], dtype=float)
-
         expected_crown_top_positions = np.array([[4, 4]], dtype=float)
         expected_crown_top_positions += expected_grid_origin
 
         algorithm = MultiStageAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
+            grid_size_canopy_height_model=1,
             min_distance_crown_tops=2,
             min_points_crown_detection=1,
             min_tree_height=1,
@@ -390,7 +376,7 @@ class TestMultiStageAlgorithm:
             dtype=np.int64,
         )
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1)
 
         watershed_mask_with_border, watershed_mask_without_border = algorithm.watershed_segmentation(
             canopy_height_model, tree_positions
@@ -450,8 +436,8 @@ class TestMultiStageAlgorithm:
                 [0, 3, 3, 3, 3, 3],
                 [0, 3, 3, 3, 3, 3],
                 [0, 3, 3, 3, 3, 3],
-                [0, 1, 1, 1, 1, 1],
-                [0, 1, 1, 1, 1, 1],
+                [0, 3, 3, 1, 3, 3],
+                [0, 3, 1, 1, 1, 3],
                 [0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0],
@@ -462,7 +448,7 @@ class TestMultiStageAlgorithm:
 
         tree_positions_grid = np.array([[3, 3], [8, 4], [2, 3]], dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, visualization_folder=cache_dir)
+        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1, visualization_folder=cache_dir)
 
         corrected_watershed_mask_with_border, corrected_watershed_mask_without_border = algorithm.watershed_correction(
             watershed_mask_with_border, watershed_mask_without_border, tree_positions_grid, "test"
@@ -471,6 +457,7 @@ class TestMultiStageAlgorithm:
         np.testing.assert_array_equal(
             expected_corrected_watershed_mask_with_border, corrected_watershed_mask_with_border
         )
+        print("corrected_watershed_mask_without_border", corrected_watershed_mask_without_border)
         np.testing.assert_array_equal(
             expected_corrected_watershed_mask_without_border, corrected_watershed_mask_without_border
         )
@@ -557,7 +544,7 @@ class TestMultiStageAlgorithm:
                 [0, 2, 2, 2, 0, 0],
                 [0, 2, 2, 2, 0, 0],
                 [0, 2, 2, 2, 0, 0],
-                [0, 3, 2, 3, 0, 0],
+                [0, 3, 3, 3, 0, 0],
                 [0, 3, 3, 3, 3, 0],
                 [0, 3, 3, 3, 3, 0],
                 [0, 3, 3, 3, 3, 0],
@@ -584,7 +571,7 @@ class TestMultiStageAlgorithm:
         )
 
         expected_instance_ids = np.array(
-            [3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
+            [3, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0],
             dtype=np.int64,
         )
 
@@ -614,10 +601,10 @@ class TestMultiStageAlgorithm:
             point_cloud_id="test",
         )
 
-        np.testing.assert_array_equal(expected_instance_ids, instance_ids)
-        np.testing.assert_array_equal(expected_unique_instance_ids, unique_instance_ids)
         np.testing.assert_array_equal(expected_watershed_mask_without_border, watershed_mask_without_border)
         np.testing.assert_array_equal(expected_watershed_mask_with_border, watershed_mask_with_border)
+        np.testing.assert_array_equal(expected_instance_ids, instance_ids)
+        np.testing.assert_array_equal(expected_unique_instance_ids, unique_instance_ids)
         np.testing.assert_array_equal(expected_tree_positions_grid, tree_positions_grid)
 
         assert os.path.exists(os.path.join(cache_dir, "watershed_with_border_test.png"))
@@ -666,7 +653,24 @@ class TestMultiStageAlgorithm:
         )
 
         watershed_labels_with_border = np.array(
-            [[2, 2, 2, 0], [2, 2, 2, 0], [2, 2, 0, 0], [0, 0, 3, 3], [0, 3, 3, 3], [0, 0, 0, 0], [0, 1, 0, 0]],
+            [[2, 2, 2, 0],
+             [2, 2, 2, 0],
+             [2, 2, 0, 0],
+             [0, 0, 3, 3],
+             [0, 3, 3, 3],
+             [0, 0, 0, 0],
+             [0, 1, 0, 0]],
+            dtype=np.int64,
+        )
+
+        watershed_labels_without_border = np.array(
+            [[2, 2, 2, 0],
+             [2, 2, 2, 0],
+             [2, 2, 3, 0],
+             [0, 3, 3, 3],
+             [0, 3, 3, 3],
+             [0, 0, 0, 0],
+             [0, 1, 0, 0]],
             dtype=np.int64,
         )
 
@@ -685,6 +689,7 @@ class TestMultiStageAlgorithm:
             unique_instance_ids,
             canopy_height_model,
             watershed_labels_with_border,
+            watershed_labels_without_border
         )
 
         np.testing.assert_array_equal(expected_updated_instance_ids, updated_instance_ids)
@@ -726,29 +731,19 @@ class TestMultiStageAlgorithm:
     def test_grow_trees_no_seeds(self):
         tree_coords = np.random.randn(20, 3)
         input_instance_ids = np.zeros(len(tree_coords), dtype=np.int64)
+        unique_input_instance_ids = np.zeros(1, dtype=np.int64)
         grid_origin = np.array([0, 0], dtype=np.float64)
         crown_distance_fields = np.zeros((0, 0, 0), dtype=np.float64)
         seed_mask = np.zeros(len(tree_coords), dtype=bool)
 
         algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
         output_instance_ids = algorithm.grow_trees(
-            tree_coords, input_instance_ids, grid_origin, crown_distance_fields, seed_mask
+            tree_coords, input_instance_ids, unique_input_instance_ids, grid_origin, crown_distance_fields, seed_mask
         )
 
         np.testing.assert_array_equal(input_instance_ids, output_instance_ids)
 
-    @pytest.mark.parametrize(
-        "region_growing_radii,region_growing_min_pts,expected_instance_ids",
-        [
-            ([0.5], [4], np.array([0] * 4 + [-1] * 11 + [1] * 4 + [-1] * 11)),
-            ([1], [1], np.array([0] * 15 + [1] * 15)),
-            ([4.5], [1], np.array([0] * 15 + [1] * 15)),
-            ([0.5, 4.5], [4, 1], np.array([0] * 15 + [1] * 15)),
-        ],
-    )
-    def test_grow_trees(
-        self, region_growing_radii: List[float], region_growing_min_pts: List[int], expected_instance_ids: np.ndarray
-    ):
+    def test_grow_trees(self):
         tree_coords = np.array(
             [
                 [2, 2, 0],
@@ -787,6 +782,7 @@ class TestMultiStageAlgorithm:
         instance_ids = np.ones(len(tree_coords), dtype=np.int64) * -1
         instance_ids[0] = 0
         instance_ids[15] = 1
+        unique_instance_ids = np.array([0, 1], dtype=np.int64)
 
         crown_distance_fields = np.array(
             [
@@ -823,10 +819,11 @@ class TestMultiStageAlgorithm:
         algorithm = MultiStageAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
-            region_growing_radii=region_growing_radii,
-            region_growing_min_pts=region_growing_min_pts,
+            grid_size_canopy_height_model=1
         )
-        instance_ids = algorithm.grow_trees(tree_coords, instance_ids, grid_origin, crown_distance_fields, seed_mask)
+        instance_ids = algorithm.grow_trees(tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask)
+
+        expected_instance_ids = np.array([0] * 15 + [1] * 15, dtype=np.int64)
 
         np.testing.assert_array_equal(expected_instance_ids, instance_ids)
 

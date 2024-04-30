@@ -1,6 +1,7 @@
 import abc
 import logging
 from typing import Optional
+import sys
 
 from numba_kdtree import KDTree
 import numpy as np
@@ -11,38 +12,68 @@ from forest3d.evaluation import Timer, TimeTracker
 
 
 class InstanceSegmentationAlgorithm(abc.ABC):
-    def __init__(self, downsampling_voxel_size: Optional[float] = None):
+    def __init__(self,
+                 trunk_class_id: int,
+                 crown_class_id: int,
+                 branch_class_id: Optional[int] = None,
+                 downsampling_voxel_size: Optional[float] = None):
+        """"
+        Args:
+            trunk_class_id: Integer class ID that designates the tree trunk points.
+            crown_class_id: Integer class ID that designates the tree crown points.
+            branch_class_id: Integer class ID that designates the tree branch points. Defaults to `None`, assuming that
+                branch points are not separately labeled.
+        downsampling_voxel_size: Voxel size for the voxel-based downsampling of the tree points before performing the
+            tree instance segmentation. Defaults to :code:`None`, which means that the tree instance segmentation is
+            performed with the full resolution of the point cloud.
+        """
+
+        self._trunk_class_id = trunk_class_id
+        self._crown_class_id = crown_class_id
+        self._branch_class_id = branch_class_id
+
         self._downsampling_voxel_size = downsampling_voxel_size
         self._time_tracker = TimeTracker()
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s:%(levelname)s: %(message)s",
+            datefmt='%Y-%m-%d %H:%M:%S',
+            handlers=[logging.StreamHandler(sys.stdout)])
         self._logger = logging.getLogger(__name__)
+        self._logger.setLevel(logging.INFO)
 
-    def __call__(self, point_cloud: pd.DataFrame, point_cloud_id: Optional[str] = None) -> np.ndarray:
+    def __call__(self,
+                 point_cloud: pd.DataFrame,
+                 point_cloud_id: Optional[str] = None,
+                 semantic_segmentation_column: str = "classification") -> np.ndarray:
         r"""
         Segments tree instances in a point cloud.
 
         Args:
-            tree_coords: Coordinates of all tree points.
-            classification: Class IDs of each tree point.
+            point_cloud: Point cloud to be segmented.
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 `None`, which means that no visualizations are created.
+            semantic_segmentation_column: Point cloud column containing the semantic segmentation class IDs. Defaults to
+                `"classification"`.
 
         Returns:
             Instance IDs of each point. Points that do not belong to any instance are assigned the ID :math:`-1`.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`point_cloud`: :math:`(N, D)`
             - :code:`classification`: :math:`(N)`
             - Output: :math:`(N)`.
 
             | where
             |
             | :math:`N = \text{ number of tree points}`
+            | :math:`N = \text{ number of feature channels per point}`
         """
 
         self._time_tracker.reset()
         with Timer("Total", self._time_tracker):
             # check that point cloud contains all required variables
-            required_columns = ["x", "y", "z", "classification"]
+            required_columns = ["x", "y", "z", semantic_segmentation_column]
             missing_columns = list(set(required_columns).difference(point_cloud.columns))
             if len(missing_columns) > 0:
                 if len(missing_columns) > 1:
@@ -54,45 +85,44 @@ class InstanceSegmentationAlgorithm(abc.ABC):
             point_cloud_size = len(point_cloud)
 
             tree_mask = np.logical_or(
-                point_cloud["classification"] == self._trunk_class_id,
-                point_cloud["classification"] == self._crown_class_id,
+                point_cloud[semantic_segmentation_column] == self._trunk_class_id,
+                point_cloud[semantic_segmentation_column] == self._crown_class_id,
             )
             if self._branch_class_id is not None:
-                tree_mask = np.logical_or(tree_mask, point_cloud["classification"] == self._branch_class_id)
+                tree_mask = np.logical_or(tree_mask, point_cloud[semantic_segmentation_column] == self._branch_class_id)
 
             if tree_mask.sum() == 0:
                 return np.full(len(point_cloud), fill_value=-1, dtype=np.int64)
 
             tree_points = point_cloud[tree_mask]
             del point_cloud
-
+        
             if self._downsampling_voxel_size is not None:
-                with Timer("Grid subsampling", self._time_tracker):
+                with Timer("Voxel-based downsampling", self._time_tracker):
                     self._logger.info("Downsample point cloud...")
-                    print("start downsampling")
                     _, predicted_point_indices = voxel_downsampling(tree_points.to_numpy(), self._downsampling_voxel_size, point_aggregation="nearest_neighbor")
                     downsampled_tree_points = tree_points.iloc[predicted_point_indices]
-                    self._logger.info("Points after downsampling:", len(downsampled_tree_points))
-                    print("downsampled_tree_points", downsampled_tree_points)
+                    self._logger.info("Points after downsampling: %d", len(downsampled_tree_points))
                 point_indices = np.arange(len(tree_points), dtype=np.int64)
                 non_predicted_point_indices = np.setdiff1d(point_indices, predicted_point_indices)
             else:
                 downsampled_tree_points = tree_points
 
             tree_coords = downsampled_tree_points[["x", "y", "z"]].to_numpy()
-            classification = downsampled_tree_points["classification"].to_numpy()
+            classification = downsampled_tree_points[semantic_segmentation_column].to_numpy()
             del downsampled_tree_points
 
             instance_ids = self._segment_tree_points(tree_coords, classification, point_cloud_id=point_cloud_id)
 
             if self._downsampling_voxel_size is not None:
-                instance_ids = self.upsample_instance_ids(
-                    tree_points[["x", "y", "z"]].to_numpy(),
-                    tree_coords,
-                    instance_ids,
-                    non_predicted_point_indices,
-                    predicted_point_indices,
-                )
+                with Timer("Upsampling of labels", self._time_tracker):
+                    instance_ids = self.upsample_instance_ids(
+                        tree_points[["x", "y", "z"]].to_numpy(),
+                        tree_coords,
+                        instance_ids,
+                        non_predicted_point_indices,
+                        predicted_point_indices,
+                    )
 
             full_instance_ids = np.full(point_cloud_size, fill_value=-1, dtype=np.int64)
             full_instance_ids[tree_mask] = instance_ids
@@ -100,7 +130,7 @@ class InstanceSegmentationAlgorithm(abc.ABC):
         return full_instance_ids
 
     @abc.abstractmethod
-    def _segment_tree_points(self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None):
+    def _segment_tree_points(self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None) -> np.ndarray:
         r"""
         Performs tree instance segmentation. Has to be overridden by subclasses.
 

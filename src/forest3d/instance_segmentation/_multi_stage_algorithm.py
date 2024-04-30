@@ -80,7 +80,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         max_point_spacing_region_growing: The results of the Watershed segmentation are only refined in sufficiently
             dense point cloud regions. For this purpose, the average distance of the points to their nearest neighbor is
             determined for each tree. If this average distance is less than :code:`max_point_spacing_region_growing` the
-            tree is considered for refining its segmentation using the region growing approach. Defaults to 0.06 m.
+            tree is considered for refining its segmentation using the region growing approach. Defaults to 0.08 m.
         max_radius_region_growing: Maximum radius in which to search for neighboring points during region growing.
             Defaults to 1m .
         multiplier_outside_coarse_border: In our region growing approach, the points are processed in a sorted order,
@@ -114,7 +114,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         smooth_sigma: float = 1,
         distance_match_trunk_and_crown_top: float = 5,
         correct_watershed: bool = True,
-        max_point_spacing_region_growing: float = 0.06,
+        max_point_spacing_region_growing: float = 0.08,
         max_radius_region_growing: float = 1,
         multiplier_outside_coarse_border: float = 2,
         num_neighbors_region_growing: int = 27,

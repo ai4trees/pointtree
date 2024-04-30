@@ -21,6 +21,14 @@ Get started
    .. literalinclude:: how-to/install/includes/clone.sh
       :language: sh
 
+#. Install `PyTorch <https://pytorch.org/get-started/locally>`__
+
+#. Install `torch-scatter <https://github.com/rusty1s/pytorch_scatter>`__
+
+#. Install `torch-cluster <https://pypi.org/project/torch-cluster>`__
+
+#. Install `PyTorch3D <https://pytorch3d.org/#quickstart>`__ (optional)
+
 #. Install the package:
 
    .. literalinclude:: how-to/install/includes/install.sh

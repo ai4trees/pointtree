@@ -781,8 +781,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     neighbor_instance_ids = neighbor_instance_ids[neighbor_instance_ids != 0]
 
                     self._logger.info(
-                        "Detected inaccurate watershed segmentation for tree %d. Falling back to Voronoi \
-                          segmentation.",
+                        "Detected inaccurate watershed segmentation for tree %d. Falling back to Voronoi"
+                        + " segmentation.",
                         instance_id,
                     )
 

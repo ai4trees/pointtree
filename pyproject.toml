@@ -24,7 +24,11 @@ dependencies = [
     "pandas",
     "pyclesperanto-prototype",
     "scipy",
-    "scikit-image"
+    "scikit-image",
+    "scikit-learn",
+    "torch",
+    "torch-cluster",
+    "torch-scatter"
 ]
 [project.optional-dependencies]
 dev = [
@@ -36,6 +40,7 @@ dev = [
     "parameterized",
     "pylint",
     "pytest",
+    "types-Pillow",
 ]
 docs = [
     "sphinx",

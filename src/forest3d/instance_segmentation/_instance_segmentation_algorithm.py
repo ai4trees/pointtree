@@ -8,9 +8,9 @@ import sys
 from numba_kdtree import KDTree
 import numpy as np
 import pandas as pd
-from pointtorch.operations.numpy import voxel_downsampling
 
 from forest3d.evaluation import Timer, TimeTracker
+from forest3d.operations import voxel_downsampling
 
 
 class InstanceSegmentationAlgorithm(abc.ABC):

@@ -80,8 +80,10 @@ class LasWriter(BasePointCloudWriter):
             z_max_resolution: Maximum resolution of the point cloud's z-coordinates in meter. Defaults to `None`.
         """
 
-        if len(set(["r", "g", "b"]).intersection(point_cloud.columns)) == 3 and \
-            len(set(["red", "green", "blue"]).intersection(point_cloud.columns)) == 0:
+        if (
+            len(set(["r", "g", "b"]).intersection(point_cloud.columns)) == 3
+            and len(set(["red", "green", "blue"]).intersection(point_cloud.columns)) == 0
+        ):
             point_cloud = point_cloud.rename({"r": "red", "g": "green", "b": "blue"}, axis=1)
 
         las_data = laspy.create(point_format=self._select_point_format(point_cloud))

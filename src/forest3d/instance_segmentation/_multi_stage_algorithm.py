@@ -827,7 +827,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
                         img_path = (
                             f"{self._visualization_folder}/voronoi_labels_without_border_{point_cloud_id}_"
-                            + "{instance_id}.png"
+                            + f"{instance_id}.png"
                         )
                         save_tree_map(
                             voronoi_labels_without_border,
@@ -838,7 +838,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
                         img_path = (
                             f"{self._visualization_folder}/voronoi_labels_with_border_{point_cloud_id}_"
-                            + "{instance_id}.png"
+                            + f"{instance_id}.png"
                         )
                         save_tree_map(
                             voronoi_labels_with_border,
@@ -852,17 +852,17 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     for instance_id in neighbor_instance_ids:
                         tree_position = tree_positions_grid[instance_id - 1]
                         voronoi_id = voronoi_labels_without_border[tree_position[0], tree_position[1]]
-                        voronoi_labels_without_border_remapped[
-                            voronoi_labels_without_border == voronoi_id
-                        ] = instance_id
+                        voronoi_labels_without_border_remapped[voronoi_labels_without_border == voronoi_id] = (
+                            instance_id
+                        )
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
                     watershed_labels_with_border[neighborhood_mask_with_border] = voronoi_labels_with_border_remapped[
                         neighborhood_mask_with_border
                     ]
-                    watershed_labels_without_border[
-                        neighborhood_mask_without_border
-                    ] = voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
+                    watershed_labels_without_border[neighborhood_mask_without_border] = (
+                        voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
+                    )
 
         return watershed_labels_with_border, watershed_labels_without_border
 

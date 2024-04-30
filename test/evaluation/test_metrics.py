@@ -1,3 +1,5 @@
+""" Tests for the metric calculation methods in forest3d.evaluation. """
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -5,21 +7,25 @@ import pytest
 
 from forest3d.evaluation import match_instances, instance_segmentation_metrics, semantic_segmentation_metrics
 
+
 class TestMetrics:
+    """Tests for the metric calculation methods in forest3d.evaluation."""
+
     def test_match_instances(self):
-        target = np.array(    [1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3], dtype=np.int64)
+        target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3], dtype=np.int64)
         prediction = np.array([2, 2, 2, 2, -1, 3, 1, 0, 0, 1, 2, -1, -1, -1, -1], dtype=np.int64)
 
         expected_matched_target_ids = np.array([0, -1, 1, -1], dtype=np.int64)
-        expected_matched_predicted_ids = np.array([0, 2, -1,  -1], dtype=np.int64)
-        expected_metrics = pd.DataFrame([[1, 2, 4/5, 4/5, 1], 
-                                         [0, 0, 2/3, 1, 2/3]],
-                                         columns=["Target", "Prediction", "IoU", "Precision", "Recall"])
-        expected_metrics = expected_metrics.sort_values(by="IoU")
+        expected_matched_predicted_ids = np.array([0, 2, -1, -1], dtype=np.int64)
+        expected_metrics = pd.DataFrame(
+            [[1, 2, 4 / 5, 4 / 5, 1], [0, 0, 2 / 3, 1, 2 / 3]],
+            columns=["Target", "Prediction", "IoU", "Precision", "Recall"],
+        )
+        expected_metrics.sort_values(by="IoU", inplace=True)
 
         matched_target_ids, matched_predicted_ids, metrics = match_instances(target, prediction)
 
-        metrics = metrics.sort_values(by="IoU")
+        metrics.sort_values(by="IoU", inplace=True)
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
@@ -60,18 +66,20 @@ class TestMetrics:
     def test_instance_segmentation_metrics(self):
         matched_target_ids = np.array([1, 0, -1, 2], dtype=np.int64)
         matched_predicted_ids = np.array([0, 1, 3, -1, -1], dtype=np.int64)
-        segmentation_metrics = pd.DataFrame([[1, 0, 0.6, 0.5, 0.7], [0, 1, 0.7, 0.6, 0.8], [2, 3, 0.8, 0.7, 0.9]],
-                            columns=["Target", "Prediction", "IoU", "Precision", "Recall"])
+        segmentation_metrics = pd.DataFrame(
+            [[1, 0, 0.6, 0.5, 0.7], [0, 1, 0.7, 0.6, 0.8], [2, 3, 0.8, 0.7, 0.9]],
+            columns=["Target", "Prediction", "IoU", "Precision", "Recall"],
+        )
 
         metrics = instance_segmentation_metrics(matched_target_ids, matched_predicted_ids, segmentation_metrics)
 
         expected_f1_score = 2 * 3 / (2 * 3 + 1 + 2)
-        expected_m_iou= 0.7
+        expected_m_iou = 0.7
         expected_m_precision = 0.6
         expected_m_recall = 0.8
 
-        assert metrics["detection_recall"] == 3/5
-        assert metrics["detection_precision"] == 3/4
+        assert metrics["detection_recall"] == 3 / 5
+        assert metrics["detection_precision"] == 3 / 4
         assert metrics["detection_f1_score"] == pytest.approx(expected_f1_score)
         assert metrics["segmentation_m_iou"] == pytest.approx(expected_m_iou)
         assert metrics["segmentation_m_precision"] == pytest.approx(expected_m_precision)
@@ -81,7 +89,9 @@ class TestMetrics:
     def test_instance_segmentation_metrics_all_correct(self):
         matched_target_ids = np.arange(10, dtype=np.int64)
         matched_predicted_ids = np.arange(10, dtype=np.int64)
-        segmentation_metrics = pd.DataFrame(np.column_stack([matched_target_ids, matched_predicted_ids]), columns=["Target", "Prediction"])
+        segmentation_metrics = pd.DataFrame(
+            np.column_stack([matched_target_ids, matched_predicted_ids]), columns=["Target", "Prediction"]
+        )
         segmentation_metrics["IoU"] = 1
         segmentation_metrics["Precision"] = 1
         segmentation_metrics["Recall"] = 1
@@ -99,14 +109,16 @@ class TestMetrics:
     def test_instance_segmentation_metrics_invalid(self):
         matched_target_ids = np.array([1, 0, -1], dtype=np.int64)
         matched_predicted_ids = np.array([0, 1, 3, -1, -1], dtype=np.int64)
-        segmentation_metrics = pd.DataFrame([[1, 0, 0.6, 0.5, 0.7], [0, 1, 0.7, 0.6, 0.8], [2, 3, 0.8, 0.7, 0.9]],
-                            columns=["Target", "Prediction", "IoU", "Precision", "Recall"])
+        segmentation_metrics = pd.DataFrame(
+            [[1, 0, 0.6, 0.5, 0.7], [0, 1, 0.7, 0.6, 0.8], [2, 3, 0.8, 0.7, 0.9]],
+            columns=["Target", "Prediction", "IoU", "Precision", "Recall"],
+        )
 
         with pytest.raises(ValueError):
             instance_segmentation_metrics(matched_target_ids, matched_predicted_ids, segmentation_metrics)
 
-    def test_semantic_segmentation_metrics(self):
-        target = np.array(    [1, 1, 1, 0, 0, 2, 1, 1, 3, 2], dtype=np.int64)
+    def test_semantic_segmentation_metrics(self):  # pylint: disable=too-many-locals
+        target = np.array([1, 1, 1, 0, 0, 2, 1, 1, 3, 2], dtype=np.int64)
         prediction = np.array([1, 1, 0, 2, 0, 2, 2, 1, 3, 3], dtype=np.int64)
         class_map = {"ground": 0, "tree": 1, "low_vegetation": 2, "building": 3}
         aggregate_classes = {"vegetation": [1, 2], "other": [0, 3]}
@@ -140,12 +152,15 @@ class TestMetrics:
         assert metrics["low_vegetation_precision"] == low_vegetation_precision
         assert metrics["vegetation_precision"] == vegetation_precision
         assert metrics["building_precision"] == building_precision
-        assert metrics["m_precision"] == (ground_precision + tree_precision + low_vegetation_precision + building_precision) / 4
+        assert (
+            metrics["m_precision"]
+            == (ground_precision + tree_precision + low_vegetation_precision + building_precision) / 4
+        )
         assert metrics["m_precision_aggregated"] == (vegetation_precision + other_precision) / 2
 
         ground_recall = 1 / 2
         tree_recall = 3 / 5
-        low_vegetation_recall = 1/2
+        low_vegetation_recall = 1 / 2
         vegetation_recall = 5 / 7
         building_recall = 1
         other_recall = 2 / 3
@@ -159,7 +174,7 @@ class TestMetrics:
         assert metrics["m_recall_aggregated"] == (vegetation_recall + other_recall) / 2
 
     def test_semantic_segmentation_metrics_all_correct(self):
-        target = np.random.randint(0, 3, (20, ), dtype=np.int64)
+        target = np.random.randint(0, 3, (20,), dtype=np.int64)
         class_map = {"ground": 0, "tree": 1, "low_vegetation": 2}
         aggregate_classes = {"vegetation": [1, 2]}
 
@@ -181,8 +196,8 @@ class TestMetrics:
         assert metrics["vegetation_recall"] == 1
 
     def test_semantic_segmentation_metrics_invalid(self):
-        target = np.random.randint(0, 3, (20, ), dtype=np.int64)
-        prediction = np.random.randint(0, 3, (21, ), dtype=np.int64)
+        target = np.random.randint(0, 3, (20,), dtype=np.int64)
+        prediction = np.random.randint(0, 3, (21,), dtype=np.int64)
         class_map = {}
 
         with pytest.raises(ValueError):

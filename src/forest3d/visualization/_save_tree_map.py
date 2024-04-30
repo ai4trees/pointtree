@@ -1,4 +1,6 @@
-__all__ = ['save_tree_map']
+""" Visualization of 2D maps. """
+
+__all__ = ["save_tree_map"]
 
 import os
 from typing import Optional
@@ -6,10 +8,10 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 
-from ._color_palette import color_palette
+from ._color_palette import acm_red, acm_blue, tree_color, color_palette
 
 
-def save_tree_map(
+def save_tree_map(  # pylint: disable=too-many-branches
     image: np.ndarray,
     output_path: str,
     is_label_image: bool = False,
@@ -63,10 +65,6 @@ def save_tree_map(
         image[crown_borders, 2] = 0
 
     pil_image = Image.fromarray(image).convert("RGB")
-
-    acm_red = (255, 25, 36)
-    acm_blue = (0, 85, 201)
-    tree_color = (63, 162, 84)
 
     if trunk_positions is not None:
         for coord in trunk_positions:

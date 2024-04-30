@@ -1,3 +1,5 @@
+""" Color conversion. """
+
 __all__ = ["hex_to_rgb"]
 
 from typing import Tuple
@@ -24,6 +26,4 @@ def hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
         rgb_color.append(decimal)
     rgb_color.append(255)
 
-    rgb_color = (np.array(rgb_color).astype(float) / 255)
-
-    return rgb_color
+    return tuple((np.array(rgb_color).astype(float) / 255))

@@ -1,7 +1,7 @@
 """ Tests for forest3d.instance_segmentation.MultiStageSegmentationAlgorithm. """
 
 import os
-from typing import Any, Callable, Dict, List, Literal, Optional
+from typing import Callable, List, Literal, Optional
 import shutil
 
 import numpy as np
@@ -11,7 +11,9 @@ import pytest
 from forest3d.instance_segmentation import MultiStageAlgorithm
 
 
-class TestMultiStageAlgorithm:
+class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
+    """Tests for forest3d.instance_segmentation.MultiStageSegmentationAlgorithm."""
+
     @pytest.fixture
     def cache_dir(self):
         cache_dir = "./tmp/test/io/TestMultiStageAlgorithm"
@@ -106,7 +108,6 @@ class TestMultiStageAlgorithm:
         "create_height_map", [MultiStageAlgorithm.create_height_map, MultiStageAlgorithm.create_height_map.py_func]
     )
     def test_create_height_map(self, create_height_map: Callable):
-
         points = np.array(
             [
                 [1, 1, 1],
@@ -448,7 +449,9 @@ class TestMultiStageAlgorithm:
 
         tree_positions_grid = np.array([[3, 3], [8, 4], [2, 3]], dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1, visualization_folder=cache_dir)
+        algorithm = MultiStageAlgorithm(
+            trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1, visualization_folder=cache_dir
+        )
 
         corrected_watershed_mask_with_border, corrected_watershed_mask_without_border = algorithm.watershed_correction(
             watershed_mask_with_border, watershed_mask_without_border, tree_positions_grid, "test"
@@ -467,7 +470,7 @@ class TestMultiStageAlgorithm:
         assert os.path.exists(os.path.join(cache_dir, "voronoi_labels_without_border_test_3.png"))
 
     @pytest.mark.parametrize("correct_watershed", [True, False])
-    def test_coarse_segmentation(self, correct_watershed: bool, cache_dir: str):
+    def test_coarse_segmentation(self, correct_watershed: bool, cache_dir: str):  # pylint: disable=too-many-locals
         grid_size = 0.5
         grid_origin = np.array([0, 0], dtype=np.float64)
 
@@ -653,24 +656,12 @@ class TestMultiStageAlgorithm:
         )
 
         watershed_labels_with_border = np.array(
-            [[2, 2, 2, 0],
-             [2, 2, 2, 0],
-             [2, 2, 0, 0],
-             [0, 0, 3, 3],
-             [0, 3, 3, 3],
-             [0, 0, 0, 0],
-             [0, 1, 0, 0]],
+            [[2, 2, 2, 0], [2, 2, 2, 0], [2, 2, 0, 0], [0, 0, 3, 3], [0, 3, 3, 3], [0, 0, 0, 0], [0, 1, 0, 0]],
             dtype=np.int64,
         )
 
         watershed_labels_without_border = np.array(
-            [[2, 2, 2, 0],
-             [2, 2, 2, 0],
-             [2, 2, 3, 0],
-             [0, 3, 3, 3],
-             [0, 3, 3, 3],
-             [0, 0, 0, 0],
-             [0, 1, 0, 0]],
+            [[2, 2, 2, 0], [2, 2, 2, 0], [2, 2, 3, 0], [0, 3, 3, 3], [0, 3, 3, 3], [0, 0, 0, 0], [0, 1, 0, 0]],
             dtype=np.int64,
         )
 
@@ -689,14 +680,13 @@ class TestMultiStageAlgorithm:
             unique_instance_ids,
             canopy_height_model,
             watershed_labels_with_border,
-            watershed_labels_without_border
+            watershed_labels_without_border,
         )
 
         np.testing.assert_array_equal(expected_updated_instance_ids, updated_instance_ids)
         np.testing.assert_array_equal(expected_seed_mask, seed_mask)
 
     def test_compute_crown_distance_fields(self):
-
         watershed_labels_without_border = np.array(
             [
                 [0, 0, 0, 0, 0],
@@ -816,12 +806,10 @@ class TestMultiStageAlgorithm:
         seed_mask[[0, 15]] = True
 
         grid_origin = np.array([0, 0], dtype=np.float64)
-        algorithm = MultiStageAlgorithm(
-            trunk_class_id=0,
-            crown_class_id=1,
-            grid_size_canopy_height_model=1
+        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1)
+        instance_ids = algorithm.grow_trees(
+            tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask
         )
-        instance_ids = algorithm.grow_trees(tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask)
 
         expected_instance_ids = np.array([0] * 15 + [1] * 15, dtype=np.int64)
 
@@ -836,26 +824,33 @@ class TestMultiStageAlgorithm:
 
         expected_upsampled_instance_ids = np.array([1, 1, 0, 0], dtype=np.int64)
 
-        upsampled_instance_ids = MultiStageAlgorithm.upsample_instance_ids(original_coords, downsampled_coords,
-                                                                           instance_ids, non_predicted_point_indices,
-                                                                           predicted_point_indices)
+        upsampled_instance_ids = MultiStageAlgorithm.upsample_instance_ids(
+            original_coords, downsampled_coords, instance_ids, non_predicted_point_indices, predicted_point_indices
+        )
 
         np.testing.assert_array_equal(expected_upsampled_instance_ids, upsampled_instance_ids)
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     @pytest.mark.parametrize("branch_class_id", [None, 2])
     @pytest.mark.parametrize("downsampling_voxel_size", [None, 0.05])
-    def test_algorithm(self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"], branch_class_id: Optional[int], downsampling_voxel_size: Optional[float]):
+    def test_algorithm(
+        self,
+        algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"],
+        branch_class_id: Optional[int],
+        downsampling_voxel_size: Optional[float],
+    ):
         num_tree_points = 30
         tree_coords = np.random.rand(num_tree_points, 3)
         classification = np.zeros(num_tree_points, dtype=np.int64)
         point_indices = np.arange(num_tree_points, dtype=np.int64)
         np.random.shuffle(point_indices)
-        classification[point_indices[:int(num_tree_points/2)]] = 1
+        classification[point_indices[: int(num_tree_points / 2)]] = 1
         if branch_class_id is not None:
-            classification[point_indices[int(num_tree_points/2):int(num_tree_points*3/4)]] = 2
+            classification[point_indices[int(num_tree_points / 2) : int(num_tree_points * 3 / 4)]] = 2
 
-        point_cloud = pd.DataFrame(np.column_stack([tree_coords, classification]), columns=["x", "y", "z", "classification"])
+        point_cloud = pd.DataFrame(
+            np.column_stack([tree_coords, classification]), columns=["x", "y", "z", "classification"]
+        )
 
         point_cloud_id = "test"
 
@@ -864,7 +859,7 @@ class TestMultiStageAlgorithm:
             crown_class_id=1,
             branch_class_id=branch_class_id,
             algorithm=algorithm,
-            downsampling_voxel_size=downsampling_voxel_size
+            downsampling_voxel_size=downsampling_voxel_size,
         )
         instance_ids = algorithm(point_cloud, point_cloud_id)
 
@@ -873,27 +868,28 @@ class TestMultiStageAlgorithm:
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     @pytest.mark.parametrize("missing_columns", [["x"], ["x", "classification"]])
-    def test_invalid_inputs(self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"], missing_columns: List[str]):
+    def test_invalid_inputs(
+        self,
+        algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"],
+        missing_columns: List[str],
+    ):
         point_cloud = pd.DataFrame(np.random.rand(20, 4), columns=["x", "y", "z", "classification"])
         point_cloud = point_cloud.drop(missing_columns, axis=1)
 
-        algorithm = MultiStageAlgorithm(
-            trunk_class_id=0,
-            crown_class_id=1,
-            algorithm=algorithm
-        )
+        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
         with pytest.raises(ValueError):
             algorithm(point_cloud)
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
-    def test_no_tree_points(self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"]):
-        point_cloud = pd.DataFrame(np.column_stack([np.random.rand(20, 3), np.zeros(20, dtype=np.int64)]), columns=["x", "y", "z", "classification"])
-
-        algorithm = MultiStageAlgorithm(
-            trunk_class_id=1,
-            crown_class_id=2,
-            algorithm=algorithm
+    def test_no_tree_points(
+        self, algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"]
+    ):
+        point_cloud = pd.DataFrame(
+            np.column_stack([np.random.rand(20, 3), np.zeros(20, dtype=np.int64)]),
+            columns=["x", "y", "z", "classification"],
         )
+
+        algorithm = MultiStageAlgorithm(trunk_class_id=1, crown_class_id=2, algorithm=algorithm)
 
         instance_ids = algorithm(point_cloud)
 

@@ -1,3 +1,5 @@
+""" Base class for implementing tree instance segmentation algorithms. """
+
 import abc
 import logging
 from typing import Optional
@@ -12,22 +14,26 @@ from forest3d.evaluation import Timer, TimeTracker
 
 
 class InstanceSegmentationAlgorithm(abc.ABC):
-    def __init__(self,
-                 trunk_class_id: int,
-                 crown_class_id: int,
-                 branch_class_id: Optional[int] = None,
-                 downsampling_voxel_size: Optional[float] = None):
-        """"
-        Args:
-            trunk_class_id: Integer class ID that designates the tree trunk points.
-            crown_class_id: Integer class ID that designates the tree crown points.
-            branch_class_id: Integer class ID that designates the tree branch points. Defaults to `None`, assuming that
-                branch points are not separately labeled.
-        downsampling_voxel_size: Voxel size for the voxel-based downsampling of the tree points before performing the
-            tree instance segmentation. Defaults to :code:`None`, which means that the tree instance segmentation is
-            performed with the full resolution of the point cloud.
-        """
+    """
+    Base class for implementing tree instance segmentation algorithms.
 
+    Args:
+        trunk_class_id: Integer class ID that designates the tree trunk points.
+        crown_class_id: Integer class ID that designates the tree crown points.
+        branch_class_id: Integer class ID that designates the tree branch points. Defaults to `None`, assuming that
+            branch points are not separately labeled.
+    downsampling_voxel_size: Voxel size for the voxel-based downsampling of the tree points before performing the
+        tree instance segmentation. Defaults to :code:`None`, which means that the tree instance segmentation is
+        performed with the full resolution of the point cloud.
+    """
+
+    def __init__(
+        self,
+        trunk_class_id: int,
+        crown_class_id: int,
+        branch_class_id: Optional[int] = None,
+        downsampling_voxel_size: Optional[float] = None,
+    ):
         self._trunk_class_id = trunk_class_id
         self._crown_class_id = crown_class_id
         self._branch_class_id = branch_class_id
@@ -37,15 +43,18 @@ class InstanceSegmentationAlgorithm(abc.ABC):
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s:%(levelname)s: %(message)s",
-            datefmt='%Y-%m-%d %H:%M:%S',
-            handlers=[logging.StreamHandler(sys.stdout)])
+            datefmt="%Y-%m-%d %H:%M:%S",
+            handlers=[logging.StreamHandler(sys.stdout)],
+        )
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(logging.INFO)
 
-    def __call__(self,
-                 point_cloud: pd.DataFrame,
-                 point_cloud_id: Optional[str] = None,
-                 semantic_segmentation_column: str = "classification") -> np.ndarray:
+    def __call__(  # pylint: disable=too-many-locals
+        self,
+        point_cloud: pd.DataFrame,
+        point_cloud_id: Optional[str] = None,
+        semantic_segmentation_column: str = "classification",
+    ) -> np.ndarray:
         r"""
         Segments tree instances in a point cloud.
 
@@ -96,15 +105,18 @@ class InstanceSegmentationAlgorithm(abc.ABC):
 
             tree_points = point_cloud[tree_mask]
             del point_cloud
-        
+
             if self._downsampling_voxel_size is not None:
                 with Timer("Voxel-based downsampling", self._time_tracker):
                     self._logger.info("Downsample point cloud...")
-                    _, predicted_point_indices = voxel_downsampling(tree_points.to_numpy(), self._downsampling_voxel_size, point_aggregation="nearest_neighbor")
+                    _, predicted_point_indices = voxel_downsampling(
+                        tree_points.to_numpy(), self._downsampling_voxel_size, point_aggregation="nearest_neighbor"
+                    )
                     downsampled_tree_points = tree_points.iloc[predicted_point_indices]
                     self._logger.info("Points after downsampling: %d", len(downsampled_tree_points))
-                point_indices = np.arange(len(tree_points), dtype=np.int64)
-                non_predicted_point_indices = np.setdiff1d(point_indices, predicted_point_indices)
+                non_predicted_point_indices = np.setdiff1d(
+                    np.arange(len(tree_points), dtype=np.int64), predicted_point_indices
+                )
             else:
                 downsampled_tree_points = tree_points
 
@@ -130,7 +142,9 @@ class InstanceSegmentationAlgorithm(abc.ABC):
         return full_instance_ids
 
     @abc.abstractmethod
-    def _segment_tree_points(self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None) -> np.ndarray:
+    def _segment_tree_points(
+        self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None
+    ) -> np.ndarray:
         r"""
         Performs tree instance segmentation. Has to be overridden by subclasses.
 
@@ -199,7 +213,9 @@ class InstanceSegmentationAlgorithm(abc.ABC):
 
         return upsampled_instance_ids
 
-    def runtime_stats(self,) -> pd.DataFrame:
+    def runtime_stats(
+        self,
+    ) -> pd.DataFrame:
         """
         Returns:
             Tracked execution times as

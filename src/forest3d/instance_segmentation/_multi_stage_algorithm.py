@@ -1,16 +1,18 @@
+""" Multi-stage algorithm for tree instance segmentation. """  # pylint: disable=too-many-lines
+
 __all__ = ["MultiStageAlgorithm"]
 
 import os
-from typing import List, Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple, cast
 
 from numba import njit, prange, float64
 from numba_kdtree import KDTree
 import numpy as np
 import scipy.ndimage as ndi
 from skimage.morphology import disk, rectangle, dilation, erosion
-from sklearn.cluster import DBSCAN
-from skimage.feature import peak_local_max
+from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
 from skimage.segmentation import watershed
+from sklearn.cluster import DBSCAN
 
 from forest3d.evaluation import Timer
 from forest3d.visualization import save_tree_map
@@ -19,9 +21,9 @@ from ._utils import remap_instance_ids
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 
-class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
+class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many-instance-attributes
     r"""
-    Multi-stage algorithm for tree instance segmentation from ... .
+    Multi-stage algorithm for tree instance segmentation.
 
     Args:
         trunk_class_id: Integer class ID that designates the tree trunk points.
@@ -93,7 +95,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             favors upward growth. Defaults to 0.5.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         trunk_class_id: int,
         crown_class_id: int,
@@ -116,10 +118,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         max_radius_region_growing: float = 1,
         multiplier_outside_coarse_border: float = 2,
         num_neighbors_region_growing: int = 27,
-        z_scale: float = 0.5
+        z_scale: float = 0.5,
     ):
-        super().__init__(trunk_class_id, crown_class_id, branch_class_id=branch_class_id,
-                         downsampling_voxel_size=downsampling_voxel_size)
+        super().__init__(
+            trunk_class_id,
+            crown_class_id,
+            branch_class_id=branch_class_id,
+            downsampling_voxel_size=downsampling_voxel_size,
+        )
 
         self._algorithm = algorithm
         self._visualization_folder = visualization_folder
@@ -150,8 +156,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
         self._multiplier_outside_coarse_border = multiplier_outside_coarse_border
         self._z_scale = z_scale
 
-
-    def _segment_tree_points(
+    def _segment_tree_points(  # pylint: disable=too-many-locals
         self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None
     ):
         r"""
@@ -186,7 +191,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                 unique_instance_ids,
                 watershed_labels_with_border,
                 watershed_labels_without_border,
-                tree_positions_grid
+                tree_positions_grid,
             ) = self.coarse_segmentation(
                 tree_coords,
                 classification,
@@ -194,7 +199,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                 crown_top_positions,
                 canopy_height_model,
                 grid_origin,
-                point_cloud_id=point_cloud_id
+                point_cloud_id=point_cloud_id,
             )
 
             return instance_ids
@@ -210,7 +215,13 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             crown_top_positions,
         )
 
-        instance_ids, unique_instance_ids, watershed_labels_with_border, watershed_labels_without_border, tree_positions_grid = self.coarse_segmentation(
+        (
+            instance_ids,
+            unique_instance_ids,
+            watershed_labels_with_border,
+            watershed_labels_without_border,
+            tree_positions_grid,
+        ) = self.coarse_segmentation(
             tree_coords,
             classification,
             instance_ids,
@@ -239,7 +250,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             watershed_labels_without_border, tree_positions_grid[instance_ids_to_refine]
         )
 
-        return self.grow_trees(tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask)
+        return self.grow_trees(
+            tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask
+        )
 
     def cluster_trunks(self, tree_coords: np.ndarray, classification: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         r"""
@@ -266,7 +279,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`T = \text{ number of trunk instances}`
         """
 
-        with Timer("Clustering of trunk points", self._time_tracker, log=True):
+        with Timer("Clustering of trunk points", self._time_tracker):
+            self._logger.info("Cluster trunk points...")
             trunk_mask = classification == self._trunk_class_id
             if self._branch_class_id is not None:
                 trunk_mask = np.logical_or(trunk_mask, classification == self._branch_class_id)
@@ -284,7 +298,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
             return remap_instance_ids(instance_ids)
 
-    def filter_trunk_clusters(self, instance_ids: np.ndarray, unique_instance_ids: np.ndarray, min_points: int) -> None:
+    def filter_trunk_clusters(
+        self, instance_ids: np.ndarray, unique_instance_ids: np.ndarray, min_points: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Removes trunk instances with less than :code:`min_points` from the set of trunk instances.
 
@@ -309,13 +325,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`T' = \text{ number of trunk instances after filtering}`
         """
 
-        with Timer("Filtering of trunk clusters", self._time_tracker, log=True):
+        with Timer("Filtering of trunk clusters", self._time_tracker):
+            self._logger.info("Filter trunk clusters...")
             for instance_id in unique_instance_ids:
                 instance_mask = instance_ids == instance_id
                 instance_points = instance_mask.sum()
                 if instance_points < min_points:
                     instance_ids[instance_mask] = -1
-                    self._logger.info(f"Discard trunk cluster {instance_id}")
+                    self._logger.info("Discard trunk cluster %d", instance_id)
         return remap_instance_ids(instance_ids)
 
     def compute_trunk_positions(
@@ -344,7 +361,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`N = \text{ number of tree points}`
             | :math:`T = \text{ number of trunk instances}`
         """
-        with Timer("Computation of trunk positions", self._time_tracker, log=True):
+        with Timer("Computation of trunk positions", self._time_tracker):
+            self._logger.info("Detect trunk positions...")
             trunk_positions = np.empty((len(unique_instance_ids), 2))
 
             for instance_id in unique_instance_ids:
@@ -439,7 +457,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer("Detection of crown top positions", self._time_tracker, log=True):
+        with Timer("Detection of crown top positions", self._time_tracker):
+            self._logger.info("Detect crown positions...")
             if len(tree_coords) == 0:
                 return (
                     np.empty((0, 0), dtype=np.float64),
@@ -454,7 +473,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                 tree_coords, grid_size=self._grid_size_canopy_height_model
             )
 
-        with Timer("Detection of crown top positions", self._time_tracker, log=True):
+        with Timer("Detection of crown top positions", self._time_tracker):
+            self._logger.info("Detect crown positions...")
             min_distance = int(self._min_distance_crown_tops / self._grid_size_canopy_height_model)
             footprint_size = int(self._min_distance_crown_tops / self._grid_size_canopy_height_model * 0.5)
             footprint = disk(footprint_size)
@@ -519,7 +539,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`C = \text{ number of crown instances}`
             | :math:`I = \text{ number of merged tree instances}`
         """
-        with Timer("Position matching", self._time_tracker, log=True):
+        with Timer("Position matching", self._time_tracker):
+            self._logger.info("Match trunk and crown top positions...")
             if len(trunk_positions) == 0:
                 return crown_top_positions
             if len(crown_top_positions) == 0:
@@ -548,7 +569,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
         return np.array(tree_positions)
 
-    def coarse_segmentation(
+    def coarse_segmentation(  # pylint: disable=too-many-locals
         self,
         tree_coords: np.ndarray,
         classification: np.ndarray,
@@ -596,7 +617,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
 
-        with Timer("Coarse segmentation", self._time_tracker, log=True):
+        with Timer("Coarse segmentation", self._time_tracker):
+            self._logger.info("Coarse segmentation...")
             # convert tree coordinates to grid indices for height map
             tree_positions_grid = np.copy(tree_positions)
             tree_positions_grid -= grid_origin
@@ -701,18 +723,19 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             )
             border_mask = np.logical_and(watershed_labels_with_border == 0, foreground_mask)
             watershed_labels_without_border = watershed_labels_with_border.copy()
-            watershed_labels_without_border[border_mask] = dilation(watershed_labels_with_border,
-                                                                    rectangle(3, 3))[border_mask]
+            watershed_labels_without_border[border_mask] = dilation(watershed_labels_with_border, rectangle(3, 3))[
+                border_mask
+            ]
 
         return watershed_labels_with_border, watershed_labels_without_border
 
-    def watershed_correction(
+    def watershed_correction(  # pylint: disable=too-many-locals
         self,
         watershed_labels_with_border: np.ndarray,
         watershed_labels_without_border: np.ndarray,
         tree_positions_grid: np.ndarray,
         point_cloud_id: Optional[str] = None,
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Detects erroneous parts within a Watershed segmentation mask and replaces them by a Voronoi segmentation.
 
@@ -742,7 +765,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer('"Watershed correction', self._time_tracker, log=True):
+        with Timer('"Watershed correction', self._time_tracker):
+            self._logger.info("Correct Watershed segmentation...")
             for instance_id in np.unique(watershed_labels_without_border):
                 if instance_id == 0:  # background
                     continue
@@ -757,8 +781,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                     neighbor_instance_ids = neighbor_instance_ids[neighbor_instance_ids != 0]
 
                     self._logger.info(
-                        f"Detected inaccurate watershed segmentation for tree {instance_id}. Falling back to Voronoi \
+                        "Detected inaccurate watershed segmentation for tree %d. Falling back to Voronoi \
                           segmentation.",
+                        instance_id,
                     )
 
                     neighborhood_mask_without_border = instance_mask.copy()
@@ -788,26 +813,36 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
                     )
                     border_mask = np.logical_and(voronoi_labels_with_border == 0, neighborhood_mask_with_border)
                     voronoi_labels_without_border = voronoi_labels_with_border.copy()
-                    voronoi_labels_without_border[border_mask] = dilation(voronoi_labels_with_border,
-                                                                          rectangle(3, 3))[border_mask]
+                    voronoi_labels_without_border[border_mask] = dilation(voronoi_labels_with_border, rectangle(3, 3))[
+                        border_mask
+                    ]
 
                     if self._visualization_folder is not None and point_cloud_id is not None:
+                        img_path = f"{self._visualization_folder}/voronoi_input_{point_cloud_id}_{instance_id}.png"
                         save_tree_map(
                             voronoi_input,
-                            output_path=f"{self._visualization_folder}/voronoi_input_{point_cloud_id}_{instance_id}.png",
+                            output_path=img_path,
                             is_label_image=True,
                         )
 
+                        img_path = (
+                            f"{self._visualization_folder}/voronoi_labels_without_border_{point_cloud_id}_"
+                            + "{instance_id}.png"
+                        )
                         save_tree_map(
                             voronoi_labels_without_border,
-                            output_path=f"{self._visualization_folder}/voronoi_labels_without_border_{point_cloud_id}_{instance_id}.png",
+                            output_path=img_path,
                             is_label_image=True,
                             tree_positions=current_tree_positions,
                         )
 
+                        img_path = (
+                            f"{self._visualization_folder}/voronoi_labels_with_border_{point_cloud_id}_"
+                            + "{instance_id}.png"
+                        )
                         save_tree_map(
                             voronoi_labels_with_border,
-                            output_path=f"{self._visualization_folder}/voronoi_labels_with_border_{point_cloud_id}_{instance_id}.png",
+                            output_path=img_path,
                             is_label_image=True,
                             tree_positions=current_tree_positions,
                         )
@@ -831,7 +866,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
         return watershed_labels_with_border, watershed_labels_without_border
 
-    def determine_overlapping_crowns(
+    def determine_overlapping_crowns(  # pylint: disable=too-many-locals
         self,
         tree_coords: np.ndarray,
         classification: np.ndarray,
@@ -877,7 +912,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer("Seed Mask computation", self._time_tracker, log=True):
+        with Timer("Seed Mask computation", self._time_tracker):
+            self._logger.info("Compute region growing masks...")
             foreground_mask = canopy_height_model > 0
 
             watershed_labels_for_erosion = watershed_labels_with_border + 1
@@ -920,25 +956,27 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
 
             seed_mask = np.zeros(len(tree_coords), dtype=bool)
 
-            for (instance_id, average_point_spacing, instance_seed_mask) in zip(instances_to_refine,
-                                                                                average_point_spacings,
-                                                                                instance_seed_masks):
+            for instance_id, average_point_spacing, instance_seed_mask in zip(
+                instances_to_refine, average_point_spacings, instance_seed_masks
+            ):
                 instance_mask = watershed_labels_without_border == instance_id + 1
                 dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
                 neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask]) - 1
 
                 has_neighbor_to_refine = False
                 for neighbor_instance_id in neighbor_instance_ids:
-                    if neighbor_instance_id == instance_id or neighbor_instance_id == -1:
+                    if neighbor_instance_id in (instance_id, -1):
                         continue
                     if neighbor_instance_id in instances_to_refine:
                         has_neighbor_to_refine = True
                         break
 
                 if has_neighbor_to_refine:
-                    self._logger.info("Segmentation of %d will be refined (Average point spacing: %.3f)...",
-                                      instance_id,
-                                      average_point_spacing)
+                    self._logger.info(
+                        "Segmentation of %d will be refined (Average point spacing: %.3f)...",
+                        instance_id,
+                        average_point_spacing,
+                    )
                     instance_crown_mask = np.logical_and(
                         instance_ids == instance_id, classification == self._crown_class_id
                     )
@@ -975,19 +1013,22 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`W = \text{ extent of the distance fields in x-direction}`
             | :math:`H = \text{ extent of the distance fields in y-direction}`
         """
-        with Timer("Computation of crown distance fields", self._time_tracker, log=True):
+        with Timer("Computation of crown distance fields", self._time_tracker):
+            self._logger.info("Compute crown distance fields...")
             crown_distance_fields = np.empty((len(tree_positions_grid), *watershed_labels_without_border.shape))
             for idx, tree_position in enumerate(tree_positions_grid):
                 instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]
                 mask = watershed_labels_without_border == instance_id
                 inverse_mask = np.logical_not(mask)
-                distance_mask = -ndi.distance_transform_edt(mask)
+                distance_mask = -cast(  # pylint: disable=invalid-unary-operand-type
+                    np.ndarray, ndi.distance_transform_edt(mask)
+                )
                 distance_mask[inverse_mask] = ndi.distance_transform_edt(inverse_mask)[inverse_mask]
                 crown_distance_fields[idx] = distance_mask
 
         return crown_distance_fields
 
-    def grow_trees(
+    def grow_trees(  # pylint: disable=too-many-locals
         self,
         tree_coords: np.ndarray,
         instance_ids: np.ndarray,
@@ -1026,7 +1067,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             | :math:`H = \text{ extent of the distance fields in y-direction}`
 
         """
-        with Timer("Region growing", self._time_tracker, log=True):
+        with Timer("Region growing", self._time_tracker):
+            self._logger.info("Region growing...")
             if seed_mask.sum() == 0:
                 return instance_ids
 
@@ -1057,22 +1099,24 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):
             neighbor_dists, neighbor_indices, _ = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
 
             pq = PriorityQueue()
-            for (idx, instance_id) in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):
+            for idx, instance_id in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):
                 pq.add(idx, instance_id, priority=-1 * np.inf)
 
             i = 0
             while len(pq) > 0:
-                _, seed_index, instance_id = pq.pop()
+                seed_index: int
+                _, seed_index, instance_id = pq.pop()  # type: ignore[assignment]
                 if i % 10000 == 0:
-                    self._logger.info(f"Iteration {i}, seeds to process: {len(pq)}.")
+                    self._logger.info("Iteration %d, seeds to process: %d.", i, len(pq))
                 growing_instance_ids[seed_index] = instance_id
 
                 current_neighbor_indices = neighbor_indices[seed_index]
                 current_neighbor_dists = neighbor_dists[seed_index]
                 current_neighbor_instance_ids = growing_instance_ids[current_neighbor_indices]
 
-                neighbor_mask = np.logical_and(current_neighbor_instance_ids == -1,
-                                               current_neighbor_dists <= self._max_radius_region_growing)
+                neighbor_mask = np.logical_and(
+                    current_neighbor_instance_ids == -1, current_neighbor_dists <= self._max_radius_region_growing
+                )
                 neighbor_indices_to_add = current_neighbor_indices[neighbor_mask]
                 neighbor_dists_to_add = current_neighbor_dists[neighbor_mask]
 

@@ -1,7 +1,9 @@
+""" Methods for coloring point clouds. """
+
 __all__ = ["color_semantic_segmentation", "color_instance_segmentation"]
 
 import math
-from typing import Dict, Optional
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -22,7 +24,7 @@ def color_instance_segmentation(point_cloud: pd.DataFrame, instance_id_column: s
         pandas.DataFrame: Point cloud with added or modified "r", "g", "b", "a" attributes.
     """
 
-    instance_ids = np.unique(point_cloud[instance_id_column].values)
+    instance_ids = np.unique(point_cloud[instance_id_column].to_numpy())
     instance_ids = instance_ids[instance_ids >= 0]
 
     colors = color_palette * math.ceil(len(instance_ids) / len(color_palette))  # pylint: disable=c-extension-no-member
@@ -31,7 +33,7 @@ def color_instance_segmentation(point_cloud: pd.DataFrame, instance_id_column: s
 
     for instance_id in instance_ids:
         point_cloud.loc[
-            point_cloud[instance_id_column] == instance_id,  # type: ignore [type-var]
+            point_cloud[instance_id_column] == instance_id,
             ["r", "g", "b", "a"],
         ] = colors[color_idx]
 
@@ -39,10 +41,9 @@ def color_instance_segmentation(point_cloud: pd.DataFrame, instance_id_column: s
 
     return point_cloud
 
+
 def color_semantic_segmentation(
-    point_cloud: pd.DataFrame,
-    classes_to_colors: Optional[Dict[int, str]],
-    semantic_segmentation_column: str = "classification"
+    point_cloud: pd.DataFrame, classes_to_colors: Dict[int, str], semantic_segmentation_column: str = "classification"
 ) -> pd.DataFrame:
     """
     Sets the color of each point based on its semantic class.
@@ -66,7 +67,7 @@ def color_semantic_segmentation(
         point_cloud.loc[
             point_cloud[semantic_segmentation_column] == class_id,
             ["r", "g", "b", "a"],
-        ] = rgb_color
+        ] = list(rgb_color)
 
     point_cloud[["r", "g", "b", "a"]] = (point_cloud[["r", "g", "b", "a"]] * 255).astype(int)
 

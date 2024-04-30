@@ -1,4 +1,6 @@
-__all__ = ['color_palette']
+""" Color palette. """
+
+__all__ = ["acm_red", "acm_blue", "tree_color", "color_palette"]
 
 
 color_palette = [
@@ -30,3 +32,7 @@ color_palette = [
     [238, 215, 197, 255],  # champagne pink
     [86, 53, 30, 255],  # van dyke brown
 ]
+
+acm_red = (255, 25, 36)
+acm_blue = (0, 85, 201)
+tree_color = (63, 162, 84)

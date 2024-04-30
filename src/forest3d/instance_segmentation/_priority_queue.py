@@ -1,3 +1,5 @@
+""" Priority queue. """
+
 __all__ = ["PriorityQueue"]
 
 
@@ -10,7 +12,7 @@ class PriorityQueue:
     Priority queue that allows to update the priority of items in the queue.
     """
 
-    REMOVED = '_REMOVED_TASK'
+    REMOVED = "_REMOVED_TASK"
 
     def __init__(self):
         self._pq = []
@@ -53,7 +55,7 @@ class PriorityQueue:
     def update(self, key: Hashable, new_entry: Any) -> None:
         """
         Updates the data entry of an item in the queue without changing its priority.
-    
+
         Args:
             key: The key of the item to update.
             new_entry: New data entry for the item.
@@ -63,7 +65,7 @@ class PriorityQueue:
         """
         if key not in self._entry_map:
             raise KeyError(f"The key {key} does not exist.")
-    
+
         self._entry_map[key][-1] = new_entry
 
     def remove(self, key: Hashable) -> None:
@@ -85,7 +87,7 @@ class PriorityQueue:
 
         Returns:
             The priority, key, and data entry of the lowest priority item.
-        
+
         Raises:
             KeyError: If the queue is empty.
         """

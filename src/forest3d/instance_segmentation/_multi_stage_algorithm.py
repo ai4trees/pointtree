@@ -458,8 +458,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
         with Timer("Detection of crown top positions", self._time_tracker):
-            self._logger.info("Detect crown positions...")
             if len(tree_coords) == 0:
+                self._logger.info("Detect crown positions...")
                 return (
                     np.empty((0, 0), dtype=np.float64),
                     np.empty((0, 0), dtype=np.float64),

@@ -113,7 +113,7 @@ class LasWriter(BasePointCloudWriter):
                 default_value = LasWriter._standard_field_defaults.get(column_name, 0)
                 las_data[column_name] = numpy.full_like(las_data[column_name], fill_value=default_value)
 
-        if column_name in extra_columns:
+        for column_name in extra_columns:
             las_data.add_extra_dim(laspy.point.ExtraBytesParams(column_name, point_cloud[column_name].dtype))
             las_data.update_header()
             las_data[column_name] = point_cloud[column_name]

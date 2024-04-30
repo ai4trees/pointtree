@@ -3,7 +3,6 @@
 __all__ = [
     "CsvReader",
     "CsvWriter",
-    "DownloadProgressBar",
     "LasReader",
     "LasWriter",
     "PointCloudIoData",

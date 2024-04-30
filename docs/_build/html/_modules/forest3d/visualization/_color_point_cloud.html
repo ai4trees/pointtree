@@ -12,15 +12,15 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
   
-    <title>forest3d.instance_segmentation._utils | Forest3D</title>
-    <meta property="og:title" content="forest3d.instance_segmentation._utils | Forest3D" />
-    <meta name="twitter:title" content="forest3d.instance_segmentation._utils | Forest3D" />
+    <title>forest3d.visualization._color_point_cloud | Forest3D</title>
+    <meta property="og:title" content="forest3d.visualization._color_point_cloud | Forest3D" />
+    <meta name="twitter:title" content="forest3d.visualization._color_point_cloud | Forest3D" />
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8d216cef" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=caad1007" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=8958d2b4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/autoclass.css?v=497c207f" />
       <link rel="stylesheet" type="text/css" href="../../../_static/awesome-sphinx-design.css?v=a54cf077" />
-    <link rel="canonical" href="https://josafatburmeister.github.io/forest3d/_modules/forest3d/instance_segmentation/_utils.html" />
+    <link rel="canonical" href="https://josafatburmeister.github.io/forest3d/_modules/forest3d/visualization/_color_point_cloud.html" />
         <link rel="search" title="Search" href="../../../search.html" />
 
     <script>
@@ -117,6 +117,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../forest3d.html">forest3d</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../forest3d.evaluation.html">forest3d.evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../forest3d.visualization.html">forest3d.visualization</a></li>
 </ul>
 </li>
 </ul>
@@ -156,58 +157,90 @@
        href="../../index.html">Module code</a>
     
 <div class="mr-1">/</div><span aria-current="page"
-        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.instance_segmentation._utils</span>
+        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.visualization._color_point_cloud</span>
 </nav>
 
     <div id="content" role="main">
-      <h1>Source code for forest3d.instance_segmentation._utils</h1><div class="highlight"><pre>
-<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Utilities for tree instance segmentation. &quot;&quot;&quot;</span>
+      <h1>Source code for forest3d.visualization._color_point_cloud</h1><div class="highlight"><pre>
+<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Methods for coloring point clouds. &quot;&quot;&quot;</span>
 </span><span id="line-2">
-</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;remap_instance_ids&quot;</span><span class="p">]</span>
+</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;color_semantic_segmentation&quot;</span><span class="p">,</span> <span class="s2">&quot;color_instance_segmentation&quot;</span><span class="p">]</span>
 </span><span id="line-4">
-</span><span id="line-5"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
-</span><span id="line-6">
-</span><span id="line-7"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-</span><span id="line-8">
-</span><span id="line-9">
-<div class="viewcode-block" id="remap_instance_ids">
-<a class="viewcode-back" href="../../../forest3d.instance_segmentation.html#forest3d.instance_segmentation.remap_instance_ids">[docs]</a>
-</span><span id="line-10"><span class="k">def</span> <span class="nf">remap_instance_ids</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-</span><span id="line-11"><span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-12"><span class="sd">    Remaps instance IDs that may not be continuous to a continuous range.</span>
+</span><span id="line-5"><span class="kn">import</span> <span class="nn">math</span>
+</span><span id="line-6"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+</span><span id="line-7">
+</span><span id="line-8"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="line-9"><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</span><span id="line-10">
+</span><span id="line-11"><span class="kn">from</span> <span class="nn">._color_palette</span> <span class="kn">import</span> <span class="n">color_palette</span>
+</span><span id="line-12"><span class="kn">from</span> <span class="nn">._hex_to_rgb</span> <span class="kn">import</span> <span class="n">hex_to_rgb</span>
 </span><span id="line-13">
-</span><span id="line-14"><span class="sd">    Args:</span>
-</span><span id="line-15"><span class="sd">        instance_ids: Instance IDs to remap.</span>
-</span><span id="line-16">
-</span><span id="line-17"><span class="sd">    Returns:</span>
-</span><span id="line-18"><span class="sd">        Tuple of two arrays. The first contains the remapped instance IDs. The second contains the unique instance IDs</span>
-</span><span id="line-19"><span class="sd">        after remapping.</span>
-</span><span id="line-20">
-</span><span id="line-21"><span class="sd">    Shape:</span>
-</span><span id="line-22"><span class="sd">        - :code:`instance_ids`: :math:`(N)`</span>
-</span><span id="line-23"><span class="sd">        - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I)`</span>
-</span><span id="line-24">
-</span><span id="line-25"><span class="sd">        | where</span>
-</span><span id="line-26"><span class="sd">        |</span>
-</span><span id="line-27"><span class="sd">        | :math:`N = \text{ number of points}`</span>
-</span><span id="line-28"><span class="sd">        | :math:`I = \text{ number of instances}`</span>
-</span><span id="line-29"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="line-30">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="line-31">        <span class="k">return</span> <span class="n">instance_ids</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-</span><span id="line-32">
-</span><span id="line-33">    <span class="n">unique_instance_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span>
-</span><span id="line-34">    <span class="n">unique_instance_ids</span> <span class="o">=</span> <span class="n">unique_instance_ids</span><span class="p">[</span><span class="n">unique_instance_ids</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span id="line-35">
-</span><span id="line-36">    <span class="c1"># map to continuous range of IDs</span>
-</span><span id="line-37">    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_instance_ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">unique_instance_ids</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_instance_ids</span><span class="p">):</span>
-</span><span id="line-38">        <span class="n">updated_instance_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span>
-</span><span id="line-39">        <span class="k">for</span> <span class="n">new_istance_id</span><span class="p">,</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_instance_ids</span><span class="p">):</span>
-</span><span id="line-40">            <span class="n">updated_instance_ids</span><span class="p">[</span><span class="n">instance_ids</span> <span class="o">==</span> <span class="n">instance_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_istance_id</span>
-</span><span id="line-41">        <span class="n">unique_instance_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_instance_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-</span><span id="line-42">    <span class="k">else</span><span class="p">:</span>
-</span><span id="line-43">        <span class="n">updated_instance_ids</span> <span class="o">=</span> <span class="n">instance_ids</span>
+</span><span id="line-14">
+<div class="viewcode-block" id="color_instance_segmentation">
+<a class="viewcode-back" href="../../../forest3d.visualization.html#forest3d.visualization.color_instance_segmentation">[docs]</a>
+</span><span id="line-15"><span class="k">def</span> <span class="nf">color_instance_segmentation</span><span class="p">(</span><span class="n">point_cloud</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">instance_id_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="line-16"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-17"><span class="sd">    Sets the color of each point based on its instance ID.</span>
+</span><span id="line-18">
+</span><span id="line-19"><span class="sd">    Args:</span>
+</span><span id="line-20"><span class="sd">        point_cloud: Point cloud to be colored.</span>
+</span><span id="line-21"><span class="sd">        instance_id_column: Name of the column containing the instance IDs.</span>
+</span><span id="line-22">
+</span><span id="line-23"><span class="sd">    Returns:</span>
+</span><span id="line-24"><span class="sd">        pandas.DataFrame: Point cloud with added or modified &quot;r&quot;, &quot;g&quot;, &quot;b&quot;, &quot;a&quot; attributes.</span>
+</span><span id="line-25"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-26">
+</span><span id="line-27">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+</span><span id="line-28">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="n">instance_ids</span><span class="p">[</span><span class="n">instance_ids</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+</span><span id="line-29">
+</span><span id="line-30">    <span class="n">colors</span> <span class="o">=</span> <span class="n">color_palette</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">color_palette</span><span class="p">))</span>  <span class="c1"># pylint: disable=c-extension-no-member</span>
+</span><span id="line-31">
+</span><span id="line-32">    <span class="n">color_idx</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="line-33">
+</span><span id="line-34">    <span class="k">for</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="n">instance_ids</span><span class="p">:</span>
+</span><span id="line-35">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+</span><span id="line-36">            <span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">instance_id</span><span class="p">,</span>
+</span><span id="line-37">            <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+</span><span id="line-38">        <span class="p">]</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">color_idx</span><span class="p">]</span>
+</span><span id="line-39">
+</span><span id="line-40">        <span class="n">color_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="line-41">
+</span><span id="line-42">    <span class="k">return</span> <span class="n">point_cloud</span></div>
+
+</span><span id="line-43">
 </span><span id="line-44">
-</span><span id="line-45">    <span class="k">return</span> <span class="n">updated_instance_ids</span><span class="p">,</span> <span class="n">unique_instance_ids</span></div>
+<div class="viewcode-block" id="color_semantic_segmentation">
+<a class="viewcode-back" href="../../../forest3d.visualization.html#forest3d.visualization.color_semantic_segmentation">[docs]</a>
+</span><span id="line-45"><span class="k">def</span> <span class="nf">color_semantic_segmentation</span><span class="p">(</span>
+</span><span id="line-46">    <span class="n">point_cloud</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">classes_to_colors</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">semantic_segmentation_column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;classification&quot;</span>
+</span><span id="line-47"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="line-48"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-49"><span class="sd">    Sets the color of each point based on its semantic class.</span>
+</span><span id="line-50">
+</span><span id="line-51"><span class="sd">    Args:</span>
+</span><span id="line-52"><span class="sd">        point_cloud: Point cloud to be colored.</span>
+</span><span id="line-53"><span class="sd">        classes_to_colors: Mapping of class IDs to hex color codes.</span>
+</span><span id="line-54"><span class="sd">        semantic_segmentation_column: Name of the column containing semantic class IDs. Defaults to `&quot;classification&quot;`.</span>
+</span><span id="line-55">
+</span><span id="line-56"><span class="sd">    Returns:</span>
+</span><span id="line-57"><span class="sd">        Point cloud with added or modified &quot;r&quot;, &quot;g&quot;, &quot;b&quot;, &quot;a&quot; attributes.</span>
+</span><span id="line-58"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-59">
+</span><span id="line-60">    <span class="n">background_gray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">143</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">127</span><span class="p">])</span> <span class="o">/</span> <span class="mi">255</span>
+</span><span id="line-61">
+</span><span id="line-62">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">background_gray</span>
+</span><span id="line-63">
+</span><span id="line-64">    <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">hex_color</span> <span class="ow">in</span> <span class="n">classes_to_colors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="line-65">        <span class="n">rgb_color</span> <span class="o">=</span> <span class="n">hex_to_rgb</span><span class="p">(</span><span class="n">hex_color</span><span class="p">)</span>
+</span><span id="line-66">
+</span><span id="line-67">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+</span><span id="line-68">            <span class="n">point_cloud</span><span class="p">[</span><span class="n">semantic_segmentation_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">class_id</span><span class="p">,</span>
+</span><span id="line-69">            <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+</span><span id="line-70">        <span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rgb_color</span><span class="p">)</span>
+</span><span id="line-71">
+</span><span id="line-72">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+</span><span id="line-73">
+</span><span id="line-74">    <span class="k">return</span> <span class="n">point_cloud</span></div>
 
 </span></code></pre></div>
     </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
@@ -217,7 +250,7 @@
     </div><footer class="py-6 border-t border-border md:py-0">
     <div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
       <div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-        <p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2024, Josafat-Mattias Burmeister.&nbsp;Last updated: Apr 19, 2024.&nbsp;Built with <a class="font-medium underline underline-offset-4"
+        <p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2024, Josafat-Mattias Burmeister.&nbsp;Last updated: Apr 30, 2024.&nbsp;Built with <a class="font-medium underline underline-offset-4"
     href="https://www.sphinx-doc.org"
     rel="noreferrer">Sphinx 7.2.6</a></p>
 </div>
@@ -228,7 +261,7 @@
     <script src="../../../_static/documentation_options.js?v=a12e3537"></script>
     <script src="../../../_static/doctools.js?v=888ff710"></script>
     <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script defer="defer" src="../../../_static/theme.js?v=ab60c18a"></script>
+    <script defer="defer" src="../../../_static/theme.js?v=8dc3ddfe"></script>
     <script src="../../../_static/design-tabs.js?v=36754332"></script>
   
 </body>

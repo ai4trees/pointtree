@@ -11,7 +11,7 @@
 <meta content="forest3d.evaluation | Forest3D" property="og:title"/>
 <meta content="forest3d.evaluation | Forest3D" name="twitter:title"/>
 <link href="_static/pygments.css?v=8d216cef" rel="stylesheet" type="text/css"/>
-<link href="_static/theme.css?v=caad1007" rel="stylesheet" type="text/css"/>
+<link href="_static/theme.css?v=8958d2b4" rel="stylesheet" type="text/css"/>
 <link href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" rel="stylesheet" type="text/css"/>
 <link href="_static/autoclass.css?v=497c207f" rel="stylesheet" type="text/css"/>
 <link href="_static/awesome-sphinx-design.css?v=a54cf077" rel="stylesheet" type="text/css"/>
@@ -84,6 +84,7 @@
 <li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="forest3d.html">forest3d<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">forest3d.evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
 </ul>
 </li>
 </ul>
@@ -162,6 +163,115 @@ summed.</p></li>
 </dd>
 </dl>
 </dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="forest3d.evaluation.instance_segmentation_metrics">
+<span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">instance_segmentation_metrics</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">matched_target_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">matched_predicted_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">segmentation_metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">invalid_tree_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_metrics.html#instance_segmentation_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.instance_segmentation_metrics" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.instance_segmentation_metrics'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Calculates instance segmentation metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>matched_target_ids</strong> – ID of the matching target instance for each predicted instance.</p></li>
+<li><p><strong>matched_predicted_ids</strong> – ID of the matching predicted instance for each target instance.</p></li>
+<li><p><strong>segmentation_metrics</strong> – Segmentation metrics for each pair of matched target and predicted instance.</p></li>
+<li><p><strong>invalid_tree_id</strong> – ID that is assigned to instances that could not be matched. Defaults to -1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">"tp"</span></code>, <code class="docutils literal notranslate"><span class="pre">"fp"</span></code>, <code class="docutils literal notranslate"><span class="pre">"fn"</span></code>, <code class="docutils literal notranslate"><span class="pre">"panoptic_quality"</span></code>,
+<code class="docutils literal notranslate"><span class="pre">"detection_f1_score"</span></code>, <code class="docutils literal notranslate"><span class="pre">"detection_precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"detection_recall"</span></code>, <code class="docutils literal notranslate"><span class="pre">"segmentation_m_iou"</span></code>,
+<code class="docutils literal notranslate"><span class="pre">"segmentation_m_precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"segmentation_m_recall"</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the following instance segmentation keys</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="forest3d.evaluation.match_instances">
+<span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">match_instances</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">invalid_tree_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">iou_treshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_metrics.html#match_instances"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.match_instances" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.match_instances'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Matches tree instances from the ground truth and the prediction based on their intersection over union (IoU).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – Ground truth instance ID for each point.</p></li>
+<li><p><strong>prediction</strong> – Predicted instance ID for each point.</p></li>
+<li><p><strong>invalid_tree_id</strong> – Instance ID that is assigned to points not belonging to any tree instance. Defaults to -1.</p></li>
+<li><p><strong>iou_treshold</strong> – Minimum IoU score that a ground truth and a predicted tree instance must exceed in order to be
+matched. The value must be greater than 0.5 in order to achieve a unique matching. Defaults to 0.5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of two numpy arrays and one pandas.DataFrame. The first array contains the ID of the matching target
+instance for each predicted instance. Predicted instances that are not matched to a target instance are
+assigned <code class="code docutils literal notranslate"><span class="pre">invalid_tree_id</span></code>. The second array contains the ID of the matching predicted instance for
+each target instance. Target instances that are not matched to a predicted instance are assigned
+<code class="code docutils literal notranslate"><span class="pre">invalid_tree_id</span></code>. The DataFrame contains one row per matched instance. It contains five columns
+<code class="docutils literal notranslate"><span class="pre">"Target"</span></code>, <code class="docutils literal notranslate"><span class="pre">"Prediction"</span></code>, <code class="docutils literal notranslate"><span class="pre">"IoU"</span></code>, <code class="docutils literal notranslate"><span class="pre">"Precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"Recall"</span></code> that contain the target ID and the predicted ID
+that match, and the IoU, precision, and recall between the two instances.</p>
+</dd>
+</dl>
+<dl>
+<dt>Shape:</dt><dd><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">target</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">prediction</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
+<li><p>Output: The first array in the output tuple has shape <span class="math notranslate nohighlight">\((P)\)</span> and the second shape <span class="math notranslate nohighlight">\((T)\)</span>.</p></li>
+</ul>
+<div class="line-block">
+<div class="line">where</div>
+<div class="line"><br/></div>
+<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(P = \text{ number of predicted tree instances}\)</span></div>
+<div class="line"><span class="math notranslate nohighlight">\(T = \text{ number of target tree instances}\)</span></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="forest3d.evaluation.semantic_segmentation_metrics">
+<span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">semantic_segmentation_metrics</span></span><span class="sig-paren">(</span>
+<dl>
+<dd><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">class_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>,</dd>
+<dd><em class="sig-param"><span class="n"><span class="pre">aggregate_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
+</dl>
+<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_metrics.html#semantic_segmentation_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.semantic_segmentation_metrics" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.semantic_segmentation_metrics'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
+<dd><p>Calculates semantic segmentation metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> – Ground truth semantic class IDs for each point.</p></li>
+<li><p><strong>prediction</strong> – Predicted semantic class IDs for each point.</p></li>
+<li><p><strong>class_map</strong> – A dictionary mapping class names to numeric class IDs.</p></li>
+<li><p><strong>aggregate_classes</strong> – A dictionary with which aggregations of classes can be defined. The keys are the names of the
+aggregated classes and the values are lists of the IDs of the classes to be aggregated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_iou"</span></code>,
+<code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_recall"</span></code>. For each aggregated class, the keys
+<code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_iou_aggregated"</span></code>, <code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_precision_aggregated"</span></code>, <code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_recall_aggregated"</span></code> are
+provided.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the following keys for each semantic class</p>
+</dd>
+</dl>
+</dd></dl>
 </section>
 </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
 <div class="mr-auto">
@@ -181,7 +291,7 @@ summed.</p></li>
 </a>
 </div>
 </div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
-<div class="sticky top-16 -mt-10 max-h-[calc(var(100vh)-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
 <ul>
 <li><a :data-current="activeSection === '#forest3d.evaluation.TimeTracker'" class="reference internal" href="#forest3d.evaluation.TimeTracker"><code class="docutils literal notranslate"><span class="pre">TimeTracker</span></code></a><ul>
 <li><a :data-current="activeSection === '#forest3d.evaluation.TimeTracker.reset'" class="reference internal" href="#forest3d.evaluation.TimeTracker.reset"><code class="docutils literal notranslate"><span class="pre">TimeTracker.reset()</span></code></a></li>
@@ -190,6 +300,9 @@ summed.</p></li>
 </ul>
 </li>
 <li><a :data-current="activeSection === '#forest3d.evaluation.Timer'" class="reference internal" href="#forest3d.evaluation.Timer"><code class="docutils literal notranslate"><span class="pre">Timer</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.evaluation.instance_segmentation_metrics'" class="reference internal" href="#forest3d.evaluation.instance_segmentation_metrics"><code class="docutils literal notranslate"><span class="pre">instance_segmentation_metrics()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.evaluation.match_instances'" class="reference internal" href="#forest3d.evaluation.match_instances"><code class="docutils literal notranslate"><span class="pre">match_instances()</span></code></a></li>
+<li><a :data-current="activeSection === '#forest3d.evaluation.semantic_segmentation_metrics'" class="reference internal" href="#forest3d.evaluation.semantic_segmentation_metrics"><code class="docutils literal notranslate"><span class="pre">semantic_segmentation_metrics()</span></code></a></li>
 </ul>
 </div>
 </aside>
@@ -198,7 +311,7 @@ summed.</p></li>
 </div><footer class="py-6 border-t border-border md:py-0">
 <div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
 <div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2024, Josafat-Mattias Burmeister. Last updated: Apr 19, 2024. Built with <a class="font-medium underline underline-offset-4" href="https://www.sphinx-doc.org" rel="noreferrer">Sphinx 7.2.6</a></p>
+<p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2024, Josafat-Mattias Burmeister. Last updated: Apr 30, 2024. Built with <a class="font-medium underline underline-offset-4" href="https://www.sphinx-doc.org" rel="noreferrer">Sphinx 7.2.6</a></p>
 </div>
 </div>
 </footer>
@@ -206,7 +319,8 @@ summed.</p></li>
 <script src="_static/documentation_options.js?v=a12e3537"></script>
 <script src="_static/doctools.js?v=888ff710"></script>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-<script defer="defer" src="_static/theme.js?v=ab60c18a"></script>
+<script defer="defer" src="_static/theme.js?v=8dc3ddfe"></script>
 <script src="_static/design-tabs.js?v=36754332"></script>
+<script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </body>
 </html>

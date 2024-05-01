@@ -4,8 +4,8 @@ __all__ = ["voxel_downsampling"]
 
 from typing import Literal, Optional, Tuple
 
+from numba_kdtree import KDTree
 import numpy
-from scipy.spatial import KDTree
 import torch
 
 from ._knn_search import knn_search
@@ -92,7 +92,8 @@ def voxel_downsampling(  # pylint: disable=too-many-locals, too-many-statements
 
     kd_tree = KDTree(shifted_points)
     voxel_centers = filled_voxel_indices.astype(float) * voxel_size + 0.5 * voxel_size
-    _, selected_indices = kd_tree.query(voxel_centers, k=1)
+    _, selected_indices, _ = kd_tree.query(voxel_centers, k=1)
+    selected_indices = selected_indices.flatten()
 
     # test which neighbors are within the voxel
     invalid_selection_mask = (voxel_indices[selected_indices] != filled_voxel_indices).any(axis=1)

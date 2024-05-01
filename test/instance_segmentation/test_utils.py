@@ -15,7 +15,6 @@ class TestUtils:
         assert len(unique_instance_ids) == 0
 
     def test_remap_instance_ids_no_remapping_necessary(self):
-
         num_instances = 10
         instance_ids = np.arange(num_instances, dtype=np.int64)
 
@@ -25,7 +24,6 @@ class TestUtils:
         np.testing.assert_array_equal(instance_ids, unique_instance_ids)
 
     def test_remap_instance_ids_remapping_necessary(self):
-
         offset = 5
         num_instances = 10
         instance_ids = np.concatenate(

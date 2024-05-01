@@ -2,7 +2,7 @@
    :description: A Python package for deriving information about vegetation from 3D point clouds.
    :twitter:description: A Python package for deriving information about vegetation from 3D point clouds.
 
-Forest3D
+PointTree
 ====================
 
 .. rst-class:: lead
@@ -41,4 +41,4 @@ Package Documentation
    :maxdepth: 4
    :titlesonly:
 
-   forest3d
+   pointtree

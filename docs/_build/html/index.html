@@ -9,9 +9,9 @@
 <meta content="Docutils 0.18.1: http://docutils.sourceforge.net/" name="generator"/>
 <meta content="A Python package for deriving information about vegetation from 3D point clouds." name="description"/>
 <meta content="A Python package for deriving information about vegetation from 3D point clouds." name="twitter:description"/>
-<title>Forest3D | PointTree</title>
-<meta content="Forest3D | PointTree" property="og:title"/>
-<meta content="Forest3D | PointTree" name="twitter:title"/>
+<title>PointTree</title>
+<meta content="PointTree" property="og:title"/>
+<meta content="PointTree" name="twitter:title"/>
 <link href="_static/pygments.css?v=8d216cef" rel="stylesheet" type="text/css"/>
 <link href="_static/theme.css?v=8958d2b4" rel="stylesheet" type="text/css"/>
 <link href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" rel="stylesheet" type="text/css"/>
@@ -19,7 +19,7 @@
 <link href="_static/awesome-sphinx-design.css?v=a54cf077" rel="stylesheet" type="text/css"/>
 <link href="https://josafatburmeister.github.io/pointtree/index.html" rel="canonical"/>
 <link href="search.html" rel="search" title="Search"/>
-<link href="forest3d.html" rel="next" title="forest3d"/>
+<link href="pointtree.html" rel="next" title="pointtree"/>
 <script>
     <!-- Prevent Flash of wrong theme -->
       const userPreference = localStorage.getItem('darkMode');
@@ -82,13 +82,13 @@
 <a href="/pointtree/index.html">Docs</a>
 </nav><nav class="table w-full min-w-full my-6 lg:my-8">
 <ul>
-<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="forest3d.html">forest3d<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
-<li class="toctree-l2"><a class="reference internal" href="forest3d.config.html">forest3d.config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.evaluation.html">forest3d.evaluation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.io.html">forest3d.io</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.operations.html">forest3d.operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
+<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="pointtree.html">pointtree<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
+<li class="toctree-l2"><a class="reference internal" href="pointtree.config.html">pointtree.config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.evaluation.html">pointtree.evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.instance_segmentation.html">pointtree.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.io.html">pointtree.io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.operations.html">pointtree.operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.visualization.html">pointtree.visualization</a></li>
 </ul>
 </li>
 </ul>
@@ -104,8 +104,8 @@
 <main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
 <div class="w-full min-w-0 mx-auto">
 <div id="content" role="main">
-<section id="forest3d">
-<h1>Forest3D<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
+<section id="pointtree">
+<h1>PointTree<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#pointtree"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
 <p class="lead">A Python package for deriving information about vegetation from 3D point clouds.</p>
 <hr class="docutils"/>
 <p>This is the documentation for version 1.0.0 of the PointTree package.</p>
@@ -113,7 +113,7 @@
 <h2>Get started<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#get-started" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#get-started'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
 <ol class="arabic">
 <li><p>Clone the repository:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">git<span class="w"> </span>clone<span class="w"> </span>https://github.com/josafatburmeister/forest3d
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><code><span id="line-1">git<span class="w"> </span>clone<span class="w"> </span>https://github.com/josafatburmeister/pointtorch
 </span></code></pre></div>
 </div>
 </li>
@@ -132,13 +132,13 @@
 <h2>Package Documentation<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#package-documentation" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#package-documentation'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="forest3d.html">forest3d</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.config.html">forest3d.config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.evaluation.html">forest3d.evaluation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.io.html">forest3d.io</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.operations.html">forest3d.operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pointtree.html">pointtree</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.config.html">pointtree.config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.evaluation.html">pointtree.evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.instance_segmentation.html">pointtree.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.io.html">pointtree.io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.operations.html">pointtree.operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.visualization.html">pointtree.visualization</a></li>
 </ul>
 </li>
 </ul>
@@ -147,8 +147,8 @@
 </section>
 </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
 <div class="ml-auto">
-<a class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-accent hover:text-accent-foreground py-2 px-4" href="forest3d.html">
-        forest3d
+<a class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-accent hover:text-accent-foreground py-2 px-4" href="pointtree.html">
+        pointtree
         <svg class="ml-2 h-4 w-4" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
 <polyline points="9 18 15 12 9 6"></polyline>
 </svg>

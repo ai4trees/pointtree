@@ -17,6 +17,8 @@
 <link href="_static/awesome-sphinx-design.css?v=a54cf077" rel="stylesheet" type="text/css"/>
 <link href="https://josafatburmeister.github.io/pointtree/pointtree.config.html" rel="canonical"/>
 <link href="search.html" rel="search" title="Search"/>
+<link href="pointtree.evaluation.html" rel="next" title="pointtree.evaluation"/>
+<link href="pointtree.html" rel="prev" title="pointtree"/>
 <script>
     <!-- Prevent Flash of wrong theme -->
       const userPreference = localStorage.getItem('darkMode');
@@ -78,14 +80,14 @@
 <div class="overflow-y-auto h-full w-full relative pr-6"><nav class="flex md:hidden flex-col font-medium mt-4">
 <a href="/pointtree/index.html">Docs</a>
 </nav><nav class="table w-full min-w-full my-6 lg:my-8">
-<ul>
-<li class="toctree-l1" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="forest3d.html">forest3d<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-show="expanded">
-<li class="toctree-l2"><a class="reference internal" href="forest3d.config.html">forest3d.config</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.evaluation.html">forest3d.evaluation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.instance_segmentation.html">forest3d.instance_segmentation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.io.html">forest3d.io</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.operations.html">forest3d.operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="forest3d.visualization.html">forest3d.visualization</a></li>
+<ul class="current">
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="pointtree.html">pointtree<button @click.prevent.stop="expanded = !expanded" type="button"><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">pointtree.config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.evaluation.html">pointtree.evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.instance_segmentation.html">pointtree.instance_segmentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.io.html">pointtree.io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.operations.html">pointtree.operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pointtree.visualization.html">pointtree.visualization</a></li>
 </ul>
 </li>
 </ul>
@@ -107,6 +109,7 @@
 <path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
 </svg>
 </a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="pointtree.html">pointtree</a>
 <div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">pointtree.config</span>
 </nav>
 <div id="content" role="main">
@@ -120,6 +123,22 @@
 </dd></dl>
 </section>
 </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
+<div class="mr-auto">
+<a class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-accent hover:text-accent-foreground py-2 px-4" href="pointtree.html">
+<svg class="mr-2 h-4 w-4" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<polyline points="15 18 9 12 15 6"></polyline>
+</svg>
+        pointtree
+      </a>
+</div>
+<div class="ml-auto">
+<a class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-input hover:bg-accent hover:text-accent-foreground py-2 px-4" href="pointtree.evaluation.html">
+        pointtree.evaluation
+        <svg class="ml-2 h-4 w-4" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<polyline points="9 18 15 12 9 6"></polyline>
+</svg>
+</a>
+</div>
 </div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
 <div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
 <ul>

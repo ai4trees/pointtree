@@ -2,7 +2,7 @@
 
 import abc
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 import sys
 
 from numba_kdtree import KDTree
@@ -124,7 +124,9 @@ class InstanceSegmentationAlgorithm(abc.ABC):
             classification = downsampled_tree_points[semantic_segmentation_column].to_numpy()
             del downsampled_tree_points
 
-            instance_ids = self._segment_tree_points(tree_coords, classification, point_cloud_id=point_cloud_id)
+            instance_ids, unique_instance_ids = self._segment_tree_points(
+                tree_coords, classification, point_cloud_id=point_cloud_id
+            )
 
             if self._downsampling_voxel_size is not None:
                 with Timer("Upsampling of labels", self._time_tracker):
@@ -139,12 +141,14 @@ class InstanceSegmentationAlgorithm(abc.ABC):
             full_instance_ids = np.full(point_cloud_size, fill_value=-1, dtype=np.int64)
             full_instance_ids[tree_mask] = instance_ids
 
+        self._logger.info("Detected %d trees.", len(unique_instance_ids))
+
         return full_instance_ids
 
     @abc.abstractmethod
     def _segment_tree_points(
         self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r"""
         Performs tree instance segmentation. Has to be overridden by subclasses.
 
@@ -155,16 +159,18 @@ class InstanceSegmentationAlgorithm(abc.ABC):
                 `None`, which means that no visualizations are created.
 
         Returns:
-            Instance IDs of each point. Points that do not belong to any instance are assigned the ID :math:`-1`.
+            Instance IDs of each point and unique instance IDs. Points that do not belong to any instance are assigned
+            the ID :math:`-1`.
 
         Shape:
             - :code:`tree_coords`: :math:`(N, 3)`
             - :code:`classification`: :math:`(N)`
-            - Output: :math:`(N)`.
+            - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I)`.
 
             | where
             |
             | :math:`N = \text{ number of tree points}`
+            | :math:`I = \text{ number of tree instances}`
         """
 
     @staticmethod

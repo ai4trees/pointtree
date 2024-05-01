@@ -80,14 +80,18 @@ class LasWriter(BasePointCloudWriter):
             z_max_resolution: Maximum resolution of the point cloud's z-coordinates in meter. Defaults to `None`.
         """
 
-        if (
-            len(set(["r", "g", "b"]).intersection(point_cloud.columns)) == 3
-            and len(set(["red", "green", "blue"]).intersection(point_cloud.columns)) == 0
+        if set(["x", "x", "z"]).issubset(point_cloud.columns) and not set(["X", "Y", "Z"]).issubset(
+            point_cloud.columns
+        ):
+            point_cloud = point_cloud.rename({"x": "X", "y": "Y", "z": "Z"}, axis=1)
+
+        if set(["r", "g", "b"]).issubset(point_cloud.columns) and not set(["red", "green", "blue"]).issubset(
+            point_cloud.columns
         ):
             point_cloud = point_cloud.rename({"r": "red", "g": "green", "b": "blue"}, axis=1)
 
         las_data = laspy.create(point_format=self._select_point_format(point_cloud))
-        point_coords = point_cloud[["x", "y", "z"]].values
+        point_coords = point_cloud[["X", "Y", "Z"]].values
         offsets = point_coords.min(axis=0)
         scales = [self.maximum_resolution] * 3
         if x_max_resolution is not None:
@@ -103,7 +107,7 @@ class LasWriter(BasePointCloudWriter):
         extra_columns = list(point_cloud.columns)
 
         for column_name in las_data.header.point_format.standard_dimension_names:
-            if column_name in ["X", "Y", "Z"]:
+            if column_name.lower() in ["x", "y", "z"]:
                 continue
 
             if column_name.lower() in point_cloud.columns:
@@ -114,6 +118,8 @@ class LasWriter(BasePointCloudWriter):
                 las_data[column_name] = numpy.full_like(las_data[column_name], fill_value=default_value)
 
         for column_name in extra_columns:
+            if column_name.lower() in ["x", "y", "z"]:
+                continue
             las_data.add_extra_dim(laspy.point.ExtraBytesParams(column_name, point_cloud[column_name].dtype))
             las_data.update_header()
             las_data[column_name] = point_cloud[column_name]

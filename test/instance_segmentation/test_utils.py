@@ -1,12 +1,12 @@
-""" Tests for utility methods in forest3d.instance_segmentation. """
+""" Tests for utility methods in pointtree.instance_segmentation. """
 
 import numpy as np
 
-from forest3d.instance_segmentation import remap_instance_ids
+from pointtree.instance_segmentation import remap_instance_ids
 
 
 class TestUtils:
-    """Tests for utility methods in forest3d.instance_segmentation."""
+    """Tests for utility methods in pointtree.instance_segmentation."""
 
     def test_remap_instance_ids_empty(self):
         remapped_instance_ids, unique_instance_ids = remap_instance_ids(np.array([], dtype=np.int64))

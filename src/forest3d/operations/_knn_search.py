@@ -7,7 +7,7 @@ from typing import Tuple
 import torch
 import torch_cluster
 
-from forest3d.config import pytorch3d_is_available
+from pointtree.config import pytorch3d_is_available
 from ._pack_batch import pack_batch
 
 

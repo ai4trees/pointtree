@@ -14,8 +14,8 @@ from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
 from skimage.segmentation import watershed
 from sklearn.cluster import DBSCAN
 
-from forest3d.evaluation import Timer
-from forest3d.visualization import save_tree_map
+from pointtree.evaluation import Timer
+from pointtree.visualization import save_tree_map
 from ._priority_queue import PriorityQueue
 from ._utils import remap_instance_ids
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm

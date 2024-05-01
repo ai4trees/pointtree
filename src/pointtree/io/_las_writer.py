@@ -80,15 +80,13 @@ class LasWriter(BasePointCloudWriter):
             z_max_resolution: Maximum resolution of the point cloud's z-coordinates in meter. Defaults to `None`.
         """
 
-        if (
-            set(["x", "x", "z"]).issubset(point_cloud.columns)
-            and not set(["X", "Y", "Z"]).issubset(point_cloud.columns)
+        if set(["x", "x", "z"]).issubset(point_cloud.columns) and not set(["X", "Y", "Z"]).issubset(
+            point_cloud.columns
         ):
             point_cloud = point_cloud.rename({"x": "X", "y": "Y", "z": "Z"}, axis=1)
 
-        if (
-        set(["r", "g", "b"]).issubset(point_cloud.columns)
-            and not set(["red", "green", "blue"]).issubset(point_cloud.columns)
+        if set(["r", "g", "b"]).issubset(point_cloud.columns) and not set(["red", "green", "blue"]).issubset(
+            point_cloud.columns
         ):
             point_cloud = point_cloud.rename({"r": "red", "g": "green", "b": "blue"}, axis=1)
 

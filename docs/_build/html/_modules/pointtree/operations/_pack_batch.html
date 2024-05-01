@@ -12,15 +12,15 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
   
-    <title>forest3d.io._csv_writer | PointTree</title>
-    <meta property="og:title" content="forest3d.io._csv_writer | PointTree" />
-    <meta name="twitter:title" content="forest3d.io._csv_writer | PointTree" />
+    <title>pointtree.operations._pack_batch | PointTree</title>
+    <meta property="og:title" content="pointtree.operations._pack_batch | PointTree" />
+    <meta name="twitter:title" content="pointtree.operations._pack_batch | PointTree" />
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8d216cef" />
       <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=8958d2b4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/autoclass.css?v=497c207f" />
       <link rel="stylesheet" type="text/css" href="../../../_static/awesome-sphinx-design.css?v=a54cf077" />
-    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/forest3d/io/_csv_writer.html" />
+    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/pointtree/operations/_pack_batch.html" />
         <link rel="search" title="Search" href="../../../search.html" />
 
     <script>
@@ -160,94 +160,74 @@
        href="../../index.html">Module code</a>
     
 <div class="mr-1">/</div><span aria-current="page"
-        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.io._csv_writer</span>
+        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">pointtree.operations._pack_batch</span>
 </nav>
 
     <div id="content" role="main">
-      <h1>Source code for forest3d.io._csv_writer</h1><div class="highlight"><pre>
-<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Point cloud file writer for csv and txt files. &quot;&quot;&quot;</span>
+      <h1>Source code for pointtree.operations._pack_batch</h1><div class="highlight"><pre>
+<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Packing of batches containing point clouds of varying size into a regular batch structures. &quot;&quot;&quot;</span>
 </span><span id="line-2">
-</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;CsvWriter&quot;</span><span class="p">]</span>
+</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pack_batch&quot;</span><span class="p">]</span>
 </span><span id="line-4">
-</span><span id="line-5"><span class="kn">import</span> <span class="nn">math</span>
-</span><span id="line-6"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
-</span><span id="line-7">
-</span><span id="line-8"><span class="kn">import</span> <span class="nn">pandas</span>
+</span><span id="line-5"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+</span><span id="line-6">
+</span><span id="line-7"><span class="kn">import</span> <span class="nn">torch</span>
+</span><span id="line-8">
 </span><span id="line-9">
-</span><span id="line-10"><span class="kn">from</span> <span class="nn">._base_point_cloud_writer</span> <span class="kn">import</span> <span class="n">BasePointCloudWriter</span>
-</span><span id="line-11"><span class="kn">from</span> <span class="nn">._point_cloud_io_data</span> <span class="kn">import</span> <span class="n">PointCloudIoData</span>
-</span><span id="line-12">
-</span><span id="line-13">
-<div class="viewcode-block" id="CsvWriter">
-<a class="viewcode-back" href="../../../forest3d.io.html#forest3d.io.CsvWriter">[docs]</a>
-</span><span id="line-14"><span class="k">class</span> <span class="nc">CsvWriter</span><span class="p">(</span><span class="n">BasePointCloudWriter</span><span class="p">):</span>
-</span><span id="line-15"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Point cloud file writer for csv and txt files.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="pack_batch">
+<a class="viewcode-back" href="../../../pointtree.operations.html#pointtree.operations.pack_batch">[docs]</a>
+</span><span id="line-10"><span class="k">def</span> <span class="nf">pack_batch</span><span class="p">(</span>
+</span><span id="line-11">    <span class="n">input_batch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">point_cloud_sizes</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">inf</span>
+</span><span id="line-12"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+</span><span id="line-13"><span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-14"><span class="sd">    Packs a batch containing point clouds of varying size into a regular batch structure by padding all point clouds to</span>
+</span><span id="line-15"><span class="sd">    the same size.</span>
 </span><span id="line-16">
-<div class="viewcode-block" id="CsvWriter.supported_file_formats">
-<a class="viewcode-back" href="../../../forest3d.io.html#forest3d.io.CsvWriter.supported_file_formats">[docs]</a>
-</span><span id="line-17">    <span class="k">def</span> <span class="nf">supported_file_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span id="line-18"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-19"><span class="sd">        Returns:</span>
-</span><span id="line-20"><span class="sd">            File formats supported by the point cloud file writer.</span>
-</span><span id="line-21"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="line-17"><span class="sd">    Args:</span>
+</span><span id="line-18"><span class="sd">        input_batch: Batch to be packed.</span>
+</span><span id="line-19"><span class="sd">        point_cloud_sizes: Number of points in each point cloud in the batch.</span>
+</span><span id="line-20"><span class="sd">        fill_value: Value to be used to pad point clouds that contain less points than the largest point cloud in the</span>
+</span><span id="line-21"><span class="sd">            batch. Defaults to `torch.inf`.</span>
 </span><span id="line-22">
-</span><span id="line-23">        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span> <span class="s2">&quot;txt&quot;</span><span class="p">]</span></div>
-
-</span><span id="line-24">
-<div class="viewcode-block" id="CsvWriter.write">
-<a class="viewcode-back" href="../../../forest3d.io.html#forest3d.io.CsvWriter.write">[docs]</a>
-</span><span id="line-25">    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point_cloud</span><span class="p">:</span> <span class="n">PointCloudIoData</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="line-26"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-27"><span class="sd">        Writes a point cloud to a file.</span>
-</span><span id="line-28">
-</span><span id="line-29"><span class="sd">        Args:</span>
-</span><span id="line-30"><span class="sd">            point_cloud: Point cloud to be written.</span>
-</span><span id="line-31"><span class="sd">            file_path: Path of the output file.</span>
-</span><span id="line-32"><span class="sd">            columns: Point cloud columns to be written. The x, y, and z columns are always written.</span>
-</span><span id="line-33">
-</span><span id="line-34"><span class="sd">        Raises:</span>
-</span><span id="line-35"><span class="sd">            ValueError: If the point cloud format is not supported by the writer or if `columns` contains a column name</span>
-</span><span id="line-36"><span class="sd">                that is not existing in the point cloud.</span>
-</span><span id="line-37"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="line-38">        <span class="c1"># The method from the base is called explicitly so that the read method appears in the documentation of this</span>
-</span><span id="line-39">        <span class="c1"># class.</span>
-</span><span id="line-40">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">point_cloud</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span></div>
-
-</span><span id="line-41">
-</span><span id="line-42">    <span class="k">def</span> <span class="nf">_write_data</span><span class="p">(</span>
-</span><span id="line-43">        <span class="bp">self</span><span class="p">,</span>
-</span><span id="line-44">        <span class="n">point_cloud</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-</span><span id="line-45">        <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="line-46">        <span class="n">x_max_resolution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="line-47">        <span class="n">y_max_resolution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="line-48">        <span class="n">z_max_resolution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="line-49">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="line-50"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-51"><span class="sd">        Writes a point cloud to a file.</span>
-</span><span id="line-52">
-</span><span id="line-53"><span class="sd">        Args:</span>
-</span><span id="line-54"><span class="sd">            point_cloud: Point cloud to be written.</span>
-</span><span id="line-55"><span class="sd">            file_path: Path of the output file.</span>
-</span><span id="line-56"><span class="sd">            x_max_resolution: Maximum resolution of the point cloud&#39;s x-coordinates in meter. Defaults to `None`.</span>
-</span><span id="line-57"><span class="sd">            y_max_resolution: Maximum resolution of the point cloud&#39;s y-coordinates in meter. Defaults to `None`.</span>
-</span><span id="line-58"><span class="sd">            z_max_resolution: Maximum resolution of the point cloud&#39;s z-coordinates in meter. Defaults to `None`.</span>
-</span><span id="line-59"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="line-23"><span class="sd">    Returns:</span>
+</span><span id="line-24"><span class="sd">        Tuple of two tensors. The first tensor is the packed batch. Point clouds containing less than :math:`N_{max}`</span>
+</span><span id="line-25"><span class="sd">        points are padded with :attr:`fill_value`. The second tensor is a boolean mask, which is `True` in all positions</span>
+</span><span id="line-26"><span class="sd">        where the packed batch contains valid points and `False` in all positions filled with :attr:`fill_value`.</span>
+</span><span id="line-27">
+</span><span id="line-28"><span class="sd">    Shape:</span>
+</span><span id="line-29"><span class="sd">        - | :attr:`input_batch`: :math:`(N_1 + ... + N_B, D)`</span>
+</span><span id="line-30"><span class="sd">        - | :attr:`point_cloud_sizes`: :math:`(B)`</span>
+</span><span id="line-31"><span class="sd">        - | Output: Tuple of two tensors with shape :math:`(B, N_{max}, D)` and :math:`(B, N_{max})`.</span>
+</span><span id="line-32"><span class="sd">          |</span>
+</span><span id="line-33"><span class="sd">          | where</span>
+</span><span id="line-34"><span class="sd">          |</span>
+</span><span id="line-35"><span class="sd">          | :math:`B = \text{ batch size}`</span>
+</span><span id="line-36"><span class="sd">          | :math:`D = \text{ number of feature channels}`</span>
+</span><span id="line-37"><span class="sd">          | :math:`N_i = \text{ number of points in the i-th point cloud}`</span>
+</span><span id="line-38"><span class="sd">          | :math:`N_{max} = \text{ number of points in the largest point cloud in the batch}`</span>
+</span><span id="line-39"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-40">
+</span><span id="line-41">    <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">point_cloud_sizes</span><span class="p">)</span>
+</span><span id="line-42">    <span class="n">max_point_cloud_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">point_cloud_sizes</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+</span><span id="line-43">    <span class="n">num_channels</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="line-44">
+</span><span id="line-45">    <span class="k">if</span> <span class="p">(</span><span class="n">point_cloud_sizes</span> <span class="o">==</span> <span class="n">max_point_cloud_size</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+</span><span id="line-46">        <span class="c1"># in this case, all point clouds already have the same size and no padding is needed</span>
+</span><span id="line-47">
+</span><span id="line-48">        <span class="n">mask</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">new_ones</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_point_cloud_size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+</span><span id="line-49">
+</span><span id="line-50">        <span class="k">return</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_point_cloud_size</span><span class="p">,</span> <span class="n">num_channels</span><span class="p">),</span> <span class="n">mask</span>
+</span><span id="line-51">
+</span><span id="line-52">    <span class="n">packed_batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">new_full</span><span class="p">((</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">max_point_cloud_size</span><span class="p">,</span> <span class="n">num_channels</span><span class="p">),</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">fill_value</span><span class="p">)</span>
+</span><span id="line-53">
+</span><span id="line-54">    <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_point_cloud_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="line-55">    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">mask</span> <span class="o">&lt;</span> <span class="n">point_cloud_sizes</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="line-56">
+</span><span id="line-57">    <span class="n">packed_batch</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span>
+</span><span id="line-58">    <span class="n">packed_batch</span> <span class="o">=</span> <span class="n">packed_batch</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_point_cloud_size</span><span class="p">,</span> <span class="n">num_channels</span><span class="p">)</span>
+</span><span id="line-59">    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_point_cloud_size</span><span class="p">)</span>
 </span><span id="line-60">
-</span><span id="line-61">        <span class="n">num_decimals</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="line-62">
-</span><span id="line-63">        <span class="k">if</span> <span class="n">x_max_resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="line-64">            <span class="n">num_decimals</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x_max_resolution</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
-</span><span id="line-65">        <span class="k">if</span> <span class="n">y_max_resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="line-66">            <span class="n">num_decimals_y</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y_max_resolution</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
-</span><span id="line-67">            <span class="n">num_decimals</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">num_decimals</span><span class="p">,</span> <span class="n">num_decimals_y</span><span class="p">)</span> <span class="k">if</span> <span class="n">num_decimals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">num_decimals_y</span>
-</span><span id="line-68">        <span class="k">if</span> <span class="n">z_max_resolution</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="line-69">            <span class="n">num_decimals_z</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">z_max_resolution</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
-</span><span id="line-70">            <span class="n">num_decimals</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">num_decimals</span><span class="p">,</span> <span class="n">num_decimals_z</span><span class="p">)</span> <span class="k">if</span> <span class="n">num_decimals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">num_decimals_z</span>
-</span><span id="line-71">
-</span><span id="line-72">        <span class="n">float_format</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;%.</span><span class="si">{</span><span class="n">num_decimals</span><span class="si">}</span><span class="s2">f&quot;</span> <span class="k">if</span> <span class="n">num_decimals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-</span><span id="line-73">
-</span><span id="line-74">        <span class="n">file_format</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span id="line-75">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,&quot;</span> <span class="k">if</span> <span class="n">file_format</span> <span class="o">==</span> <span class="s2">&quot;csv&quot;</span> <span class="k">else</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">float_format</span><span class="o">=</span><span class="n">float_format</span><span class="p">)</span></div>
+</span><span id="line-61">    <span class="k">return</span> <span class="n">packed_batch</span><span class="p">,</span> <span class="n">mask</span></div>
 
 </span></code></pre></div>
     </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">

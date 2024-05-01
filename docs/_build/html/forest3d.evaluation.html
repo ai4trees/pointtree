@@ -113,168 +113,8 @@
 <div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.evaluation</span>
 </nav>
 <div id="content" role="main">
-<section id="module-forest3d.evaluation">
-<span id="forest3d-evaluation"></span><h1>forest3d.evaluation<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#module-forest3d.evaluation"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
-<p>Evaluation tools.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="forest3d.evaluation.TimeTracker">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">TimeTracker</span></span><a class="reference internal" href="_modules/forest3d/evaluation/_time_tracker.html#TimeTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.TimeTracker" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.TimeTracker'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>A tracker that stores the execution times of different code sections.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="forest3d.evaluation.TimeTracker.reset">
-<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/forest3d/evaluation/_time_tracker.html#TimeTracker.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.TimeTracker.reset" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.TimeTracker.reset'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Deletes all tracked execution times.</p>
-</dd></dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="forest3d.evaluation.TimeTracker.save">
-<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">desc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/forest3d/evaluation/_time_tracker.html#TimeTracker.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.TimeTracker.save" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.TimeTracker.save'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Save the execution time of a certain code section.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>desc</strong> – Description of the tracked code. If a value has already been saved for the description, the values are
-summed.</p></li>
-<li><p><strong>value</strong> – Execution time of the tracked code.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="forest3d.evaluation.TimeTracker.to_pandas">
-<span class="sig-name descname"><span class="pre">to_pandas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_time_tracker.html#TimeTracker.to_pandas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.TimeTracker.to_pandas" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.TimeTracker.to_pandas'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tracked execution times as
-<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html" rel="nofollow noopener">pandas.DataFrame<svg fill="currentColor" height="1em" stroke="none" viewbox="0 96 960 960" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M188 868q-11-11-11-28t11-28l436-436H400q-17 0-28.5-11.5T360 336q0-17 11.5-28.5T400 296h320q17 0 28.5 11.5T760 336v320q0 17-11.5 28.5T720 696q-17 0-28.5-11.5T680 656V432L244 868q-11 11-28 11t-28-11Z"></path></svg></a> with the columns
-<code class="code docutils literal notranslate"><span class="pre">"Description"</span></code> and <code class="code docutils literal notranslate"><span class="pre">"Runtime"</span></code>.</p>
-</dd>
-</dl>
-</dd></dl>
-</dd></dl>
-<dl class="py class">
-<dt class="sig sig-object py" id="forest3d.evaluation.Timer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">Timer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">desc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_tracker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#forest3d.evaluation.TimeTracker" title="forest3d.evaluation._time_tracker.TimeTracker"><span class="pre">TimeTracker</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/forest3d/evaluation/_timer.html#Timer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.Timer" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.Timer'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>A context manager that tracks the execution time of the contained code.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>desc</strong> – Description of the tracked code.</p></li>
-<li><p><strong>time_tracker</strong> – Time tracker in which the measured execution time is to be stored.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-<dl class="py function">
-<dt class="sig sig-object py" id="forest3d.evaluation.instance_segmentation_metrics">
-<span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">instance_segmentation_metrics</span></span><span class="sig-paren">(</span>
-<dl>
-<dd><em class="sig-param"><span class="n"><span class="pre">matched_target_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">matched_predicted_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">segmentation_metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">invalid_tree_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>,</dd>
-</dl>
-<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_metrics.html#instance_segmentation_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.instance_segmentation_metrics" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.instance_segmentation_metrics'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Calculates instance segmentation metrics.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>matched_target_ids</strong> – ID of the matching target instance for each predicted instance.</p></li>
-<li><p><strong>matched_predicted_ids</strong> – ID of the matching predicted instance for each target instance.</p></li>
-<li><p><strong>segmentation_metrics</strong> – Segmentation metrics for each pair of matched target and predicted instance.</p></li>
-<li><p><strong>invalid_tree_id</strong> – ID that is assigned to instances that could not be matched. Defaults to -1.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">"tp"</span></code>, <code class="docutils literal notranslate"><span class="pre">"fp"</span></code>, <code class="docutils literal notranslate"><span class="pre">"fn"</span></code>, <code class="docutils literal notranslate"><span class="pre">"panoptic_quality"</span></code>,
-<code class="docutils literal notranslate"><span class="pre">"detection_f1_score"</span></code>, <code class="docutils literal notranslate"><span class="pre">"detection_precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"detection_recall"</span></code>, <code class="docutils literal notranslate"><span class="pre">"segmentation_m_iou"</span></code>,
-<code class="docutils literal notranslate"><span class="pre">"segmentation_m_precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"segmentation_m_recall"</span></code>.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A dictionary containing the following instance segmentation keys</p>
-</dd>
-</dl>
-</dd></dl>
-<dl class="py function">
-<dt class="sig sig-object py" id="forest3d.evaluation.match_instances">
-<span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">match_instances</span></span><span class="sig-paren">(</span>
-<dl>
-<dd><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">invalid_tree_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">iou_treshold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>,</dd>
-</dl>
-<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_metrics.html#match_instances"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.match_instances" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.match_instances'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Matches tree instances from the ground truth and the prediction based on their intersection over union (IoU).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> – Ground truth instance ID for each point.</p></li>
-<li><p><strong>prediction</strong> – Predicted instance ID for each point.</p></li>
-<li><p><strong>invalid_tree_id</strong> – Instance ID that is assigned to points not belonging to any tree instance. Defaults to -1.</p></li>
-<li><p><strong>iou_treshold</strong> – Minimum IoU score that a ground truth and a predicted tree instance must exceed in order to be
-matched. The value must be greater than 0.5 in order to achieve a unique matching. Defaults to 0.5.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of two numpy arrays and one pandas.DataFrame. The first array contains the ID of the matching target
-instance for each predicted instance. Predicted instances that are not matched to a target instance are
-assigned <code class="code docutils literal notranslate"><span class="pre">invalid_tree_id</span></code>. The second array contains the ID of the matching predicted instance for
-each target instance. Target instances that are not matched to a predicted instance are assigned
-<code class="code docutils literal notranslate"><span class="pre">invalid_tree_id</span></code>. The DataFrame contains one row per matched instance. It contains five columns
-<code class="docutils literal notranslate"><span class="pre">"Target"</span></code>, <code class="docutils literal notranslate"><span class="pre">"Prediction"</span></code>, <code class="docutils literal notranslate"><span class="pre">"IoU"</span></code>, <code class="docutils literal notranslate"><span class="pre">"Precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"Recall"</span></code> that contain the target ID and the predicted ID
-that match, and the IoU, precision, and recall between the two instances.</p>
-</dd>
-</dl>
-<dl>
-<dt>Shape:</dt><dd><ul class="simple">
-<li><p><code class="code docutils literal notranslate"><span class="pre">target</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">prediction</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
-<li><p>Output: The first array in the output tuple has shape <span class="math notranslate nohighlight">\((P)\)</span> and the second shape <span class="math notranslate nohighlight">\((T)\)</span>.</p></li>
-</ul>
-<div class="line-block">
-<div class="line">where</div>
-<div class="line"><br/></div>
-<div class="line"><span class="math notranslate nohighlight">\(N = \text{ number of tree points}\)</span></div>
-<div class="line"><span class="math notranslate nohighlight">\(P = \text{ number of predicted tree instances}\)</span></div>
-<div class="line"><span class="math notranslate nohighlight">\(T = \text{ number of target tree instances}\)</span></div>
-</div>
-</dd>
-</dl>
-</dd></dl>
-<dl class="py function">
-<dt class="sig sig-object py" id="forest3d.evaluation.semantic_segmentation_metrics">
-<span class="sig-prename descclassname"><span class="pre">forest3d.evaluation.</span></span><span class="sig-name descname"><span class="pre">semantic_segmentation_metrics</span></span><span class="sig-paren">(</span>
-<dl>
-<dd><em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">class_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">aggregate_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>,</dd>
-</dl>
-<span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/forest3d/evaluation/_metrics.html#semantic_segmentation_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d.evaluation.semantic_segmentation_metrics" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#forest3d.evaluation.semantic_segmentation_metrics'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></dt>
-<dd><p>Calculates semantic segmentation metrics.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> – Ground truth semantic class IDs for each point.</p></li>
-<li><p><strong>prediction</strong> – Predicted semantic class IDs for each point.</p></li>
-<li><p><strong>class_map</strong> – A dictionary mapping class names to numeric class IDs.</p></li>
-<li><p><strong>aggregate_classes</strong> – A dictionary with which aggregations of classes can be defined. The keys are the names of the
-aggregated classes and the values are lists of the IDs of the classes to be aggregated.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_iou"</span></code>,
-<code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_precision"</span></code>, <code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_recall"</span></code>. For each aggregated class, the keys
-<code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_iou_aggregated"</span></code>, <code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_precision_aggregated"</span></code>, <code class="docutils literal notranslate"><span class="pre">"&lt;class_name&gt;_recall_aggregated"</span></code> are
-provided.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A dictionary containing the following keys for each semantic class</p>
-</dd>
-</dl>
-</dd></dl>
+<section id="forest3d-evaluation">
+<h1>forest3d.evaluation<a @click.prevent="window.navigator.clipboard.writeText($el.href); $el.setAttribute('data-tooltip', 'Copied!'); setTimeout(() =&gt; $el.setAttribute('data-tooltip', 'Copy link to this element'), 2000)" aria-label="Copy link to this element" class="headerlink" data-tooltip="Copy link to this element" href="#forest3d-evaluation"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
 </section>
 </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
 <div class="mr-auto">
@@ -293,22 +133,7 @@ provided.</p>
 </svg>
 </a>
 </div>
-</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
-<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
-<ul>
-<li><a :data-current="activeSection === '#forest3d.evaluation.TimeTracker'" class="reference internal" href="#forest3d.evaluation.TimeTracker"><code class="docutils literal notranslate"><span class="pre">TimeTracker</span></code></a><ul>
-<li><a :data-current="activeSection === '#forest3d.evaluation.TimeTracker.reset'" class="reference internal" href="#forest3d.evaluation.TimeTracker.reset"><code class="docutils literal notranslate"><span class="pre">TimeTracker.reset()</span></code></a></li>
-<li><a :data-current="activeSection === '#forest3d.evaluation.TimeTracker.save'" class="reference internal" href="#forest3d.evaluation.TimeTracker.save"><code class="docutils literal notranslate"><span class="pre">TimeTracker.save()</span></code></a></li>
-<li><a :data-current="activeSection === '#forest3d.evaluation.TimeTracker.to_pandas'" class="reference internal" href="#forest3d.evaluation.TimeTracker.to_pandas"><code class="docutils literal notranslate"><span class="pre">TimeTracker.to_pandas()</span></code></a></li>
-</ul>
-</li>
-<li><a :data-current="activeSection === '#forest3d.evaluation.Timer'" class="reference internal" href="#forest3d.evaluation.Timer"><code class="docutils literal notranslate"><span class="pre">Timer</span></code></a></li>
-<li><a :data-current="activeSection === '#forest3d.evaluation.instance_segmentation_metrics'" class="reference internal" href="#forest3d.evaluation.instance_segmentation_metrics"><code class="docutils literal notranslate"><span class="pre">instance_segmentation_metrics()</span></code></a></li>
-<li><a :data-current="activeSection === '#forest3d.evaluation.match_instances'" class="reference internal" href="#forest3d.evaluation.match_instances"><code class="docutils literal notranslate"><span class="pre">match_instances()</span></code></a></li>
-<li><a :data-current="activeSection === '#forest3d.evaluation.semantic_segmentation_metrics'" class="reference internal" href="#forest3d.evaluation.semantic_segmentation_metrics"><code class="docutils literal notranslate"><span class="pre">semantic_segmentation_metrics()</span></code></a></li>
-</ul>
-</div>
-</aside>
+</div></div>
 </main>
 </div>
 </div><footer class="py-6 border-t border-border md:py-0">
@@ -324,6 +149,5 @@ provided.</p>
 <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
 <script defer="defer" src="_static/theme.js?v=8dc3ddfe"></script>
 <script src="_static/design-tabs.js?v=36754332"></script>
-<script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </body>
 </html>

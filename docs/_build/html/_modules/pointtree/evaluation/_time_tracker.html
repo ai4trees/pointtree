@@ -12,15 +12,15 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
   
-    <title>forest3d.config._config | PointTree</title>
-    <meta property="og:title" content="forest3d.config._config | PointTree" />
-    <meta name="twitter:title" content="forest3d.config._config | PointTree" />
+    <title>pointtree.evaluation._time_tracker | PointTree</title>
+    <meta property="og:title" content="pointtree.evaluation._time_tracker | PointTree" />
+    <meta name="twitter:title" content="pointtree.evaluation._time_tracker | PointTree" />
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8d216cef" />
       <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=8958d2b4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/autoclass.css?v=497c207f" />
       <link rel="stylesheet" type="text/css" href="../../../_static/awesome-sphinx-design.css?v=a54cf077" />
-    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/forest3d/config/_config.html" />
+    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/pointtree/evaluation/_time_tracker.html" />
         <link rel="search" title="Search" href="../../../search.html" />
 
     <script>
@@ -160,32 +160,67 @@
        href="../../index.html">Module code</a>
     
 <div class="mr-1">/</div><span aria-current="page"
-        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.config._config</span>
+        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">pointtree.evaluation._time_tracker</span>
 </nav>
 
     <div id="content" role="main">
-      <h1>Source code for forest3d.config._config</h1><div class="highlight"><pre>
-<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Utilities for configuring the package setup. &quot;&quot;&quot;</span>
+      <h1>Source code for pointtree.evaluation._time_tracker</h1><div class="highlight"><pre>
+<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; A tracker that stores the execution times of different code sections. &quot;&quot;&quot;</span>
 </span><span id="line-2">
-</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pytorch3d_is_available&quot;</span><span class="p">]</span>
+</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TimeTracker&quot;</span><span class="p">]</span>
 </span><span id="line-4">
-</span><span id="line-5">
-<div class="viewcode-block" id="pytorch3d_is_available">
-<a class="viewcode-back" href="../../../forest3d.config.html#forest3d.config.pytorch3d_is_available">[docs]</a>
-</span><span id="line-6"><span class="k">def</span> <span class="nf">pytorch3d_is_available</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="line-7"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-8"><span class="sd">    Returns: `True` if PyTorch3D is installed and `False` otherwise.</span>
-</span><span id="line-9"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-5"><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</span><span id="line-6">
+</span><span id="line-7">
+<div class="viewcode-block" id="TimeTracker">
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.TimeTracker">[docs]</a>
+</span><span id="line-8"><span class="k">class</span> <span class="nc">TimeTracker</span><span class="p">:</span>
+</span><span id="line-9"><span class="w">    </span><span class="sd">&quot;&quot;&quot;A tracker that stores the execution times of different code sections.&quot;&quot;&quot;</span>
 </span><span id="line-10">
-</span><span id="line-11">    <span class="n">pytorch3d_available</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="line-12">    <span class="k">try</span><span class="p">:</span>
-</span><span id="line-13">        <span class="kn">import</span> <span class="nn">pytorch3d</span> <span class="k">as</span> <span class="nn">_</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
-</span><span id="line-14">
-</span><span id="line-15">        <span class="n">pytorch3d_available</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span id="line-16">    <span class="k">except</span> <span class="p">(</span><span class="ne">ModuleNotFoundError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-</span><span id="line-17">        <span class="k">pass</span>
+</span><span id="line-11">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="line-12">        <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracking_results</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="line-13">
+<div class="viewcode-block" id="TimeTracker.reset">
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.TimeTracker.reset">[docs]</a>
+</span><span id="line-14">    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="line-15"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-16"><span class="sd">        Deletes all tracked execution times.</span>
+</span><span id="line-17"><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="line-18">
-</span><span id="line-19">    <span class="k">return</span> <span class="n">pytorch3d_available</span></div>
+</span><span id="line-19">        <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracking_results</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+</span><span id="line-20">
+<div class="viewcode-block" id="TimeTracker.save">
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.TimeTracker.save">[docs]</a>
+</span><span id="line-21">    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+</span><span id="line-22"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-23"><span class="sd">        Save the execution time of a certain code section.</span>
+</span><span id="line-24">
+</span><span id="line-25"><span class="sd">        Args:</span>
+</span><span id="line-26"><span class="sd">            desc: Description of the tracked code. If a value has already been saved for the description, the values are</span>
+</span><span id="line-27"><span class="sd">                summed.</span>
+</span><span id="line-28"><span class="sd">            value: Execution time of the tracked code.</span>
+</span><span id="line-29"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="line-30">
+</span><span id="line-31">        <span class="k">if</span> <span class="n">desc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracking_results</span><span class="p">:</span>
+</span><span id="line-32">            <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracking_results</span><span class="p">[</span><span class="n">desc</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
+</span><span id="line-33">        <span class="k">else</span><span class="p">:</span>
+</span><span id="line-34">            <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracking_results</span><span class="p">[</span><span class="n">desc</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+</span><span id="line-35">
+<div class="viewcode-block" id="TimeTracker.to_pandas">
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.TimeTracker.to_pandas">[docs]</a>
+</span><span id="line-36">    <span class="k">def</span> <span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="line-37"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-38"><span class="sd">        Returns:</span>
+</span><span id="line-39"><span class="sd">            Tracked execution times as</span>
+</span><span id="line-40"><span class="sd">            `pandas.DataFrame &lt;https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html&gt;`__ with the columns</span>
+</span><span id="line-41"><span class="sd">            :code:`&quot;Description&quot;` and :code:`&quot;Runtime&quot;`.</span>
+</span><span id="line-42"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="line-43">
+</span><span id="line-44">        <span class="n">time_tracking_list</span> <span class="o">=</span> <span class="p">[[</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracking_results</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+</span><span id="line-45">        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">time_tracking_list</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Description&quot;</span><span class="p">,</span> <span class="s2">&quot;Runtime&quot;</span><span class="p">])</span></div>
+</div>
 
 </span></code></pre></div>
     </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">

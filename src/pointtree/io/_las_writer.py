@@ -81,8 +81,14 @@ class LasWriter(BasePointCloudWriter):
         """
 
         if (
-            len(set(["r", "g", "b"]).intersection(point_cloud.columns)) == 3
-            and len(set(["red", "green", "blue"]).intersection(point_cloud.columns)) == 0
+            set(["x", "x", "z"]).issubset(point_cloud.columns)
+            and not set(["X", "Y", "Z"]).issubset(point_cloud.columns)
+        ):
+            point_cloud = point_cloud.rename({"x": "X", "y": "Y", "z": "Z"}, axis=1)
+
+        if (
+        set(["r", "g", "b"]).issubset(point_cloud.columns)
+            and not set(["red", "green", "blue"]).issubset(point_cloud.columns)
         ):
             point_cloud = point_cloud.rename({"r": "red", "g": "green", "b": "blue"}, axis=1)
 

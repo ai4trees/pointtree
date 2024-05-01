@@ -268,7 +268,6 @@ the same unique instance ID to the points belonging to the same cluster.</p>
 <span class="sig-name descname"><span class="pre">coarse_segmentation</span></span><span class="sig-paren">(</span>
 <dl>
 <dd><em class="sig-param"><span class="n"><span class="pre">tree_coords</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
-<dd><em class="sig-param"><span class="n"><span class="pre">classification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
 <dd><em class="sig-param"><span class="n"><span class="pre">instance_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
 <dd><em class="sig-param"><span class="n"><span class="pre">tree_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
 <dd><em class="sig-param"><span class="n"><span class="pre">canopy_height_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>,</dd>
@@ -281,7 +280,6 @@ the same unique instance ID to the points belonging to the same cluster.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tree_coords</strong> – Coordinates of all tree points.</p></li>
-<li><p><strong>classification</strong> – Class ID of all tree points.</p></li>
 <li><p><strong>instance_ids</strong> – Instance IDs of each tree point.</p></li>
 <li><p><strong>tree_positions</strong> – The 2D positions of all tree instances.</p></li>
 <li><p><strong>canopy_height_model</strong> – The canopy height model to segment.</p></li>
@@ -301,7 +299,6 @@ contains the integer positions of each tree in the grid coordinate system of the
 <dl>
 <dt>Shape:</dt><dd><ul class="simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">tree_coords</span></code>: <span class="math notranslate nohighlight">\((N, 3)\)</span></p></li>
-<li><p><code class="code docutils literal notranslate"><span class="pre">classification</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">instance_ids</span></code>: <span class="math notranslate nohighlight">\((N)\)</span></p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">tree_positions</span></code>: <span class="math notranslate nohighlight">\((N, 2)\)</span></p></li>
 <li><p><code class="code docutils literal notranslate"><span class="pre">canopy_height_model</span></code>: <span class="math notranslate nohighlight">\((W, H)\)</span></p></li>

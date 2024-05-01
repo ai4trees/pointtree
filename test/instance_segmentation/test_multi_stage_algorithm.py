@@ -1,7 +1,7 @@
 """ Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm. """
 
 import os
-from typing import Callable, List, Literal, Optional
+from typing import List, Literal, Optional
 import shutil
 
 import numpy as np
@@ -92,22 +92,16 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         np.testing.assert_array_equal(expected_trunk_positions, trunk_positions)
 
-    @pytest.mark.parametrize(
-        "create_height_map", [MultiStageAlgorithm.create_height_map, MultiStageAlgorithm.create_height_map.py_func]
-    )
-    def test_create_height_map_empty(self, create_height_map: Callable):
+    def test_create_height_map_empty(self):
         points = np.empty((0, 0), dtype=float)
         grid_size = 1
-        height_map, count_map, grid_origin = create_height_map(points, grid_size)
+        height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(points, grid_size)
 
         assert len(height_map) == 0
         assert len(count_map) == 0
         assert len(grid_origin) == 0
 
-    @pytest.mark.parametrize(
-        "create_height_map", [MultiStageAlgorithm.create_height_map, MultiStageAlgorithm.create_height_map.py_func]
-    )
-    def test_create_height_map(self, create_height_map: Callable):
+    def test_create_height_map(self):
         points = np.array(
             [
                 [1, 1, 1],
@@ -125,7 +119,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         expected_count_map = np.array([[3, 1], [2, 0]], dtype=np.int64)
         expected_grid_origin = np.array([1, 1], dtype=float)
 
-        height_map, count_map, grid_origin = create_height_map(points, grid_size)
+        height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(points, grid_size)
 
         np.testing.assert_array_equal(expected_height_map, height_map)
         np.testing.assert_array_equal(expected_count_map, count_map)

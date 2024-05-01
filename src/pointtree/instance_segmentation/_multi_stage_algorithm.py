@@ -5,7 +5,6 @@ __all__ = ["MultiStageAlgorithm"]
 import os
 from typing import Literal, Optional, Tuple, cast
 
-from numba import njit, prange, float64
 from numba_kdtree import KDTree
 import numpy as np
 import scipy.ndimage as ndi
@@ -13,6 +12,8 @@ from skimage.morphology import disk, rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
 from skimage.segmentation import watershed
 from sklearn.cluster import DBSCAN
+import torch
+from torch_scatter import scatter_max
 
 from pointtree.evaluation import Timer
 from pointtree.visualization import save_tree_map
@@ -372,8 +373,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         return trunk_positions
 
     @staticmethod
-    @njit((float64[:, :], float64), cache=True, parallel=True)
-    def create_height_map(points: np.ndarray, grid_size: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def create_height_map(  # pylint: disable=too-many-locals
+        points: np.ndarray, grid_size: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Creates a 2D height map from a given point cloud. For this purpose, the 3D point cloud is projected onto a 2D
         grid and the maximum z-coordinate within each grid cell is recorded. The value of grid cells that do not contain
@@ -403,29 +405,46 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         if len(points) == 0:
             return np.empty((0, 0), dtype=np.float64), np.empty((0, 0), dtype=np.float64), np.empty(0, dtype=np.float64)
 
-        points[:, 2] -= points[:, 2].min()
+        points[:, 2] -= points[:, 2].min(axis=0)
 
-        to_bin = np.floor(points[:, :2] / grid_size).astype(np.int64)
+        device = torch.device("cpu")
 
-        first_bin_x = to_bin[:, 0].min()
-        first_bin_y = to_bin[:, 1].min()
-        last_bin_x = to_bin[:, 0].max()
-        last_bin_y = to_bin[:, 1].max()
+        # check if there is a GPU with sufficient memory to run the processing on GPU
+        if torch.cuda.is_available():
+            available_memory = torch.cuda.mem_get_info(device=torch.device("cuda:0"))[0]
+            float_size = torch.empty((0,)).float().element_size()
+            long_size = torch.empty((0,)).long().element_size()
+            approx_required_memory = len(points) * (4 * float_size + 6 * long_size)
 
-        bins_x = last_bin_x - first_bin_x + 1
-        bins_y = last_bin_y - first_bin_y + 1
+            if available_memory > approx_required_memory:
+                device = torch.device("cuda:0")
 
-        height_map = np.zeros((bins_x, bins_y))
-        point_counts = np.zeros((bins_x, bins_y))
+        points_torch = torch.from_numpy(points).to(device)
+        grid_indices = torch.floor(points_torch[:, :2] / grid_size).long()
+        first_cell = grid_indices.amin(dim=0).cpu().numpy()
+        last_cell = grid_indices.amax(dim=0).cpu().numpy()
 
-        for bin_x in prange(first_bin_x, last_bin_x + 1):
-            for bin_y in prange(first_bin_y, last_bin_y + 1):
-                bin_points = points[np.logical_and(to_bin[:, 0] == bin_x, to_bin[:, 1] == bin_y)]
-                if len(bin_points) > 0:
-                    height_map[bin_x - first_bin_x, bin_y - first_bin_y] = bin_points[:, 2].max()
-                    point_counts[bin_x - first_bin_x, bin_y - first_bin_y] = len(bin_points)
+        num_cells = last_cell - first_cell + 1
 
-        return height_map, point_counts, np.array([first_bin_x, first_bin_y]) * grid_size
+        unique_grid_indices, inverse_indices, point_counts_per_grid_cell = torch.unique(
+            grid_indices, sorted=True, return_counts=True, return_inverse=True, dim=0
+        )
+        del grid_indices
+        inverse_indices, sorting_indices = torch.sort(inverse_indices)
+
+        max_height, _ = scatter_max(points_torch[sorting_indices, 2], inverse_indices, dim=0)
+
+        unique_grid_indices_np = unique_grid_indices.cpu().numpy() - first_cell
+        del unique_grid_indices
+
+        height_map = np.zeros(num_cells)
+        height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
+        point_counts = np.zeros(num_cells)
+        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
+            point_counts_per_grid_cell.cpu().numpy()
+        )
+
+        return height_map, point_counts, first_cell * grid_size
 
     def compute_crown_top_positions(
         self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None

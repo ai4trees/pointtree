@@ -71,7 +71,7 @@ class LasReader(BasePointCloudReader):
         point_cloud_df = pandas.DataFrame(data, columns=["x", "y", "z"])
 
         for column_name in las_data.header.point_format.standard_dimension_names:
-            if column_name in ["X", "Y", "Z"] or columns is not None and column_name not in columns:
+            if column_name.lower() in ["x", "y", "z"] or columns is not None and column_name not in columns:
                 continue
             column_values = numpy.array(las_data[column_name])
             default_value = LasReader._standard_field_defaults.get(column_name, 0)
@@ -79,7 +79,7 @@ class LasReader(BasePointCloudReader):
                 point_cloud_df[column_name] = column_values
 
         for column_name in las_data.header.point_format.extra_dimension_names:
-            if columns is not None and column_name not in columns:
+            if column_name.lower() in ["x", "y", "z"] or columns is not None and column_name not in columns:
                 continue
             point_cloud_df[column_name] = las_data[column_name]
 

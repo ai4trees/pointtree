@@ -1,1 +1,1 @@
-python -m pip install -e forest3d
+python -m pip install -e pointtree

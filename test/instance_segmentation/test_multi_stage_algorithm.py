@@ -1,4 +1,4 @@
-""" Tests for forest3d.instance_segmentation.MultiStageSegmentationAlgorithm. """
+""" Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm. """
 
 import os
 from typing import Callable, List, Literal, Optional
@@ -8,11 +8,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from forest3d.instance_segmentation import MultiStageAlgorithm
+from pointtree.instance_segmentation import MultiStageAlgorithm
 
 
 class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
-    """Tests for forest3d.instance_segmentation.MultiStageSegmentationAlgorithm."""
+    """Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm."""
 
     @pytest.fixture
     def cache_dir(self):

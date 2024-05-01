@@ -1,13 +1,13 @@
-""" Tests for forest3d.evaluation.Timer. """
+""" Tests for pointtree.evaluation.Timer. """
 
 import time
 
 
-from forest3d.evaluation import Timer, TimeTracker
+from pointtree.evaluation import Timer, TimeTracker
 
 
 def test_timer():
-    """Test for forest3d.evaluation.Timer."""
+    """Test for pointtree.evaluation.Timer."""
 
     time_tracker = TimeTracker()
     timer = Timer("test", time_tracker)

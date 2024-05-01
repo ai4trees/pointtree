@@ -1,12 +1,12 @@
-""" Tests for forest3d.instance_segmentation.PriorityQueue """
+""" Tests for pointtree.instance_segmentation.PriorityQueue """
 
 import pytest
 
-from forest3d.instance_segmentation import PriorityQueue
+from pointtree.instance_segmentation import PriorityQueue
 
 
 class TestPriorityQueue:
-    """Tests for forest3d.instance_segmentation.PriorityQueue"""
+    """Tests for pointtree.instance_segmentation.PriorityQueue"""
 
     def test_valid_queue(self):
         pq = PriorityQueue()

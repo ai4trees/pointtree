@@ -1,15 +1,15 @@
-""" Tests for the metric calculation methods in forest3d.evaluation. """
+""" Tests for the metric calculation methods in pointtree.evaluation. """
 
 import numpy as np
 import pandas as pd
 import pytest
 
 
-from forest3d.evaluation import match_instances, instance_segmentation_metrics, semantic_segmentation_metrics
+from pointtree.evaluation import match_instances, instance_segmentation_metrics, semantic_segmentation_metrics
 
 
 class TestMetrics:
-    """Tests for the metric calculation methods in forest3d.evaluation."""
+    """Tests for the metric calculation methods in pointtree.evaluation."""
 
     def test_match_instances(self):
         target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3], dtype=np.int64)

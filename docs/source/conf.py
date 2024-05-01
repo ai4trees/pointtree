@@ -11,7 +11,7 @@ from sphinxawesome_theme.postprocess import Icons
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "Forest3D"
+project = "PointTree"
 author = "Josafat-Mattias Burmeister"
 copyright = f"2024, {author}."
 release = "1.0.0"
@@ -59,10 +59,10 @@ exclude_patterns = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/forest3d/index"},
+    main_nav_links={"Docs": "/pointtree/index"},
     extra_header_link_icons={
         "repository on GitHub": {
-            "link": "https://github.com/josafatburmeister/forest3d",
+            "link": "https://github.com/josafatburmeister/pointtree",
             "icon": (
                 '<svg height="26px" style="margin-top:-2px;display:inline" '
                 'viewBox="0 0 45 44" '
@@ -101,7 +101,7 @@ html_copy_source = False
 html_logo = ""
 html_favicon = ""
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = "https://josafatburmeister.github.io/forest3d/"
+html_baseurl = "https://josafatburmeister.github.io/pointtree/"
 html_extra_path = ["robots.txt", "_redirects"]
 
 # Add any paths that contain custom static files (such as style sheets) here,

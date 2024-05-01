@@ -28,7 +28,7 @@ def save_tree_map(  # pylint: disable=too-many-branches
     """
 
     if is_label_image:
-        color_image = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
+        color_image = np.full((image.shape[0], image.shape[1], 3), fill_value=255, dtype=np.uint8)
         for instance_id in np.unique(image):
             if instance_id <= 0:
                 continue
@@ -40,6 +40,7 @@ def save_tree_map(  # pylint: disable=too-many-branches
         image -= image.min()
         image /= image.max()
         image *= 255
+        image = 255 - image
         image = np.expand_dims(image, axis=-1)
         image = np.tile(image, (1, 1, 3))
         image = image.astype(np.uint8)

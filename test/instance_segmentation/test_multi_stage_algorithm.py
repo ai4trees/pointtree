@@ -131,11 +131,12 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
 
-        crown_top_positions, canopy_height_model, grid_origin = algorithm.compute_crown_top_positions(
-            tree_coords, classification
+        crown_top_positions, crown_top_positions_grid, canopy_height_model, grid_origin = (
+            algorithm.compute_crown_top_positions(tree_coords, classification)
         )
 
         assert len(crown_top_positions) == 0
+        assert len(crown_top_positions_grid) == 0
         assert len(canopy_height_model) == 0
         assert len(grid_origin) == 0
 
@@ -143,7 +144,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
     @pytest.mark.parametrize("min_distance_crown_tops", [1.0, 3.0, 10.0])
     @pytest.mark.parametrize("min_points_crown_detection", [1, 3])
     @pytest.mark.parametrize("min_tree_height", [1.0, 3.0, 10.0])
-    def test_compute_crown_top_positions(
+    def test_compute_crown_top_positions(  # pylint: disable=too-many-locals
         self,
         algorithm: Literal["full", "watershed_crown_top_positions"],
         min_distance_crown_tops: float,
@@ -193,28 +194,28 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         if min_points_crown_detection <= 1:
             if min_distance_crown_tops <= 2:
-                expected_crown_top_positions = [[1, 1], [3, 1], [5, 4]]
+                expected_crown_top_positions_grid = [[1, 1], [3, 1], [5, 4]]
                 tree_heights = [2, 3, 4]
             elif min_distance_crown_tops <= np.linalg.norm([2, 3]):
-                expected_crown_top_positions = [[3, 1], [5, 4]]
+                expected_crown_top_positions_grid = [[3, 1], [5, 4]]
                 tree_heights = [3, 4]
             else:
-                expected_crown_top_positions = [[5, 4]]
+                expected_crown_top_positions_grid = [[5, 4]]
                 tree_heights = [4]
         else:
-            expected_crown_top_positions = [[3, 1]]
+            expected_crown_top_positions_grid = [[3, 1]]
             tree_heights = [3]
 
         if algorithm == "watershed_crown_top_positions":
             expected_canopy_height_model[5, 0] = 1
             if min_tree_height <= 1 and min_distance_crown_tops <= np.linalg.norm([1, 2]):
-                expected_crown_top_positions.append([5, 0])
+                expected_crown_top_positions_grid.append([5, 0])
                 tree_heights.append(1)
 
         tree_heights = np.array(tree_heights, dtype=float)
-        expected_crown_top_positions = np.array(expected_crown_top_positions, dtype=float)
-        expected_crown_top_positions = expected_crown_top_positions[tree_heights > min_tree_height]
-        expected_crown_top_positions += expected_grid_origin
+        expected_crown_top_positions_grid = np.array(expected_crown_top_positions_grid, dtype=np.int64)
+        expected_crown_top_positions_grid = expected_crown_top_positions_grid[tree_heights > min_tree_height]
+        expected_crown_top_positions = expected_crown_top_positions_grid.astype(np.float64) + expected_grid_origin
 
         algorithm = MultiStageAlgorithm(
             trunk_class_id=0,
@@ -227,12 +228,15 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             smooth_canopy_height_model=False,
         )
 
-        crown_top_positions, canopy_height_model, grid_origin = algorithm.compute_crown_top_positions(
-            tree_coords, classification
+        crown_top_positions, crown_top_positions_grid, canopy_height_model, grid_origin = (
+            algorithm.compute_crown_top_positions(tree_coords, classification)
         )
 
         np.testing.assert_array_equal(
             np.unique(expected_crown_top_positions, axis=0), np.unique(crown_top_positions, axis=0)
+        )
+        np.testing.assert_array_equal(
+            np.unique(expected_crown_top_positions_grid, axis=0), np.unique(crown_top_positions_grid, axis=0)
         )
         np.testing.assert_array_equal(expected_canopy_height_model, canopy_height_model)
         np.testing.assert_array_equal(expected_grid_origin, grid_origin)
@@ -270,8 +274,8 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         classification = np.ones(len(tree_coords), dtype=np.int64)
         classification[-1] = 0
 
-        expected_crown_top_positions = np.array([[4, 4]], dtype=float)
-        expected_crown_top_positions += expected_grid_origin
+        expected_crown_top_positions_grid = np.array([[4, 4]], dtype=np.int64)
+        expected_crown_top_positions = expected_crown_top_positions_grid.astype(np.float64) + expected_grid_origin
 
         algorithm = MultiStageAlgorithm(
             trunk_class_id=0,
@@ -283,22 +287,17 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             smooth_canopy_height_model=True,
         )
 
-        crown_top_positions, _, grid_origin = algorithm.compute_crown_top_positions(tree_coords, classification)
+        crown_top_positions, crown_top_positions_grid, _, grid_origin = algorithm.compute_crown_top_positions(
+            tree_coords, classification
+        )
 
         np.testing.assert_array_equal(
             np.unique(expected_crown_top_positions, axis=0), np.unique(crown_top_positions, axis=0)
         )
+        np.testing.assert_array_equal(
+            np.unique(expected_crown_top_positions_grid, axis=0), np.unique(crown_top_positions_grid, axis=0)
+        )
         np.testing.assert_array_equal(expected_grid_origin, grid_origin)
-
-    def test_compute_crown_top_positions_visualization(self, cache_dir: str):
-        tree_coords = np.random.randn(20, 3)
-        classification = np.ones(20, dtype=np.int64)
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, visualization_folder=cache_dir)
-
-        algorithm.compute_crown_top_positions(tree_coords, classification, point_cloud_id="test")
-
-        assert os.path.exists(os.path.join(cache_dir, "canopy_height_model_test.png"))
-        assert os.path.exists(os.path.join(cache_dir, "canopy_height_model_with_crown_tops_test.png"))
 
     def test_match_trunk_and_crown_tops_no_trunks(self):
         trunk_positions = np.empty(0, dtype=np.float64)
@@ -528,8 +527,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             dtype=np.float64,
         )
 
-        expected_tree_positions_grid = np.array([[9, 1], [2, 2], [6, 3], [0, 0]], dtype=np.int64)
-        tree_positions = expected_tree_positions_grid.astype(np.float64) * grid_size
+        tree_positions_grid = np.array([[9, 1], [2, 2], [6, 3], [0, 0]], dtype=np.int64)
 
         expected_watershed_mask_without_border = np.array(
             [
@@ -583,11 +581,10 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             unique_instance_ids,
             watershed_mask_with_border,
             watershed_mask_without_border,
-            tree_positions_grid,
         ) = algorithm.coarse_segmentation(
             tree_coords,
             instance_ids,
-            tree_positions,
+            tree_positions_grid,
             canopy_height_model,
             grid_origin,
             point_cloud_id="test",
@@ -597,7 +594,6 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         np.testing.assert_array_equal(expected_watershed_mask_with_border, watershed_mask_with_border)
         np.testing.assert_array_equal(expected_instance_ids, instance_ids)
         np.testing.assert_array_equal(expected_unique_instance_ids, unique_instance_ids)
-        np.testing.assert_array_equal(expected_tree_positions_grid, tree_positions_grid)
 
         assert os.path.exists(os.path.join(cache_dir, "watershed_with_border_test.png"))
         assert os.path.exists(os.path.join(cache_dir, "watershed_without_border_test.png"))

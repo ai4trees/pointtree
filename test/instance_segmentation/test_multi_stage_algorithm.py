@@ -508,10 +508,6 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             * grid_size
         )
 
-        classification = np.ones(len(tree_coords), dtype=np.int64)
-        classification[1] = 0
-        classification[-3:] = 0
-
         instance_ids = np.ones(len(tree_coords), dtype=np.int64) * -1
         instance_ids[1] = 3
         instance_ids[-1] = 0
@@ -590,7 +586,6 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             tree_positions_grid,
         ) = algorithm.coarse_segmentation(
             tree_coords,
-            classification,
             instance_ids,
             tree_positions,
             canopy_height_model,

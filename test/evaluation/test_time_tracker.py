@@ -1,12 +1,12 @@
-""" Tests for forest3d.evaluation.TimeTracker. """
+""" Tests for pointtree.evaluation.TimeTracker. """
 
 import pandas as pd
 
-from forest3d.evaluation import TimeTracker
+from pointtree.evaluation import TimeTracker
 
 
 def test_time_tracker():
-    """Test for forest3d.evaluation.TimeTracker."""
+    """Test for pointtree.evaluation.TimeTracker."""
 
     time_tracker = TimeTracker()
     time_tracker.save("test 1", 2)

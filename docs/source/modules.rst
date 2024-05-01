@@ -5,4 +5,4 @@ src
    :maxdepth: 4
    :titlesonly:
 
-   forest3d
+   pointtree

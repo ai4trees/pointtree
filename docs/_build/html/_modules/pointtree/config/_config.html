@@ -12,15 +12,15 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
   
-    <title>forest3d.evaluation._timer | PointTree</title>
-    <meta property="og:title" content="forest3d.evaluation._timer | PointTree" />
-    <meta name="twitter:title" content="forest3d.evaluation._timer | PointTree" />
+    <title>pointtree.config._config | PointTree</title>
+    <meta property="og:title" content="pointtree.config._config | PointTree" />
+    <meta name="twitter:title" content="pointtree.config._config | PointTree" />
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8d216cef" />
       <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=8958d2b4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/autoclass.css?v=497c207f" />
       <link rel="stylesheet" type="text/css" href="../../../_static/awesome-sphinx-design.css?v=a54cf077" />
-    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/forest3d/evaluation/_timer.html" />
+    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/pointtree/config/_config.html" />
         <link rel="search" title="Search" href="../../../search.html" />
 
     <script>
@@ -160,42 +160,32 @@
        href="../../index.html">Module code</a>
     
 <div class="mr-1">/</div><span aria-current="page"
-        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.evaluation._timer</span>
+        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">pointtree.config._config</span>
 </nav>
 
     <div id="content" role="main">
-      <h1>Source code for forest3d.evaluation._timer</h1><div class="highlight"><pre>
-<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; A context manager that tracks the execution time of the contained code. &quot;&quot;&quot;</span>
+      <h1>Source code for pointtree.config._config</h1><div class="highlight"><pre>
+<span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Utilities for configuring the package setup. &quot;&quot;&quot;</span>
 </span><span id="line-2">
-</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Timer&quot;</span><span class="p">]</span>
+</span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pytorch3d_is_available&quot;</span><span class="p">]</span>
 </span><span id="line-4">
-</span><span id="line-5"><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">perf_counter</span>
-</span><span id="line-6">
-</span><span id="line-7"><span class="kn">from</span> <span class="nn">._time_tracker</span> <span class="kn">import</span> <span class="n">TimeTracker</span>
-</span><span id="line-8">
-</span><span id="line-9">
-<div class="viewcode-block" id="Timer">
-<a class="viewcode-back" href="../../../forest3d.evaluation.html#forest3d.evaluation.Timer">[docs]</a>
-</span><span id="line-10"><span class="k">class</span> <span class="nc">Timer</span><span class="p">:</span>
-</span><span id="line-11"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-12"><span class="sd">    A context manager that tracks the execution time of the contained code.</span>
-</span><span id="line-13">
-</span><span id="line-14"><span class="sd">    Args:</span>
-</span><span id="line-15"><span class="sd">        desc: Description of the tracked code.</span>
-</span><span id="line-16"><span class="sd">        time_tracker: Time tracker in which the measured execution time is to be stored.</span>
-</span><span id="line-17"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-5">
+<div class="viewcode-block" id="pytorch3d_is_available">
+<a class="viewcode-back" href="../../../pointtree.config.html#pointtree.config.pytorch3d_is_available">[docs]</a>
+</span><span id="line-6"><span class="k">def</span> <span class="nf">pytorch3d_is_available</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="line-7"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-8"><span class="sd">    Returns: `True` if PyTorch3D is installed and `False` otherwise.</span>
+</span><span id="line-9"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-10">
+</span><span id="line-11">    <span class="n">pytorch3d_available</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="line-12">    <span class="k">try</span><span class="p">:</span>
+</span><span id="line-13">        <span class="kn">import</span> <span class="nn">pytorch3d</span> <span class="k">as</span> <span class="nn">_</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+</span><span id="line-14">
+</span><span id="line-15">        <span class="n">pytorch3d_available</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="line-16">    <span class="k">except</span> <span class="p">(</span><span class="ne">ModuleNotFoundError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+</span><span id="line-17">        <span class="k">pass</span>
 </span><span id="line-18">
-</span><span id="line-19">    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">time_tracker</span><span class="p">:</span> <span class="n">TimeTracker</span><span class="p">):</span>
-</span><span id="line-20">        <span class="bp">self</span><span class="o">.</span><span class="n">_desc</span> <span class="o">=</span> <span class="n">desc</span>
-</span><span id="line-21">        <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracker</span> <span class="o">=</span> <span class="n">time_tracker</span>
-</span><span id="line-22">        <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="line-23">
-</span><span id="line-24">    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="line-25">        <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
-</span><span id="line-26">
-</span><span id="line-27">    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
-</span><span id="line-28">        <span class="n">execution_time</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_time</span>
-</span><span id="line-29">        <span class="bp">self</span><span class="o">.</span><span class="n">_time_tracker</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_desc</span><span class="p">,</span> <span class="n">execution_time</span><span class="p">)</span></div>
+</span><span id="line-19">    <span class="k">return</span> <span class="n">pytorch3d_available</span></div>
 
 </span></code></pre></div>
     </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">

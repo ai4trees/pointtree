@@ -12,15 +12,15 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
   
-    <title>forest3d.io._las_reader | PointTree</title>
-    <meta property="og:title" content="forest3d.io._las_reader | PointTree" />
-    <meta name="twitter:title" content="forest3d.io._las_reader | PointTree" />
+    <title>pointtree.io._las_reader | PointTree</title>
+    <meta property="og:title" content="pointtree.io._las_reader | PointTree" />
+    <meta name="twitter:title" content="pointtree.io._las_reader | PointTree" />
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8d216cef" />
       <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=8958d2b4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/autoclass.css?v=497c207f" />
       <link rel="stylesheet" type="text/css" href="../../../_static/awesome-sphinx-design.css?v=a54cf077" />
-    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/forest3d/io/_las_reader.html" />
+    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/pointtree/io/_las_reader.html" />
         <link rel="search" title="Search" href="../../../search.html" />
 
     <script>
@@ -160,11 +160,11 @@
        href="../../index.html">Module code</a>
     
 <div class="mr-1">/</div><span aria-current="page"
-        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.io._las_reader</span>
+        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">pointtree.io._las_reader</span>
 </nav>
 
     <div id="content" role="main">
-      <h1>Source code for forest3d.io._las_reader</h1><div class="highlight"><pre>
+      <h1>Source code for pointtree.io._las_reader</h1><div class="highlight"><pre>
 <span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Point cloud file reader for las and laz files. &quot;&quot;&quot;</span>
 </span><span id="line-2">
 </span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;LasReader&quot;</span><span class="p">]</span>
@@ -180,7 +180,7 @@
 </span><span id="line-13">
 </span><span id="line-14">
 <div class="viewcode-block" id="LasReader">
-<a class="viewcode-back" href="../../../forest3d.io.html#forest3d.io.LasReader">[docs]</a>
+<a class="viewcode-back" href="../../../pointtree.io.html#pointtree.io.LasReader">[docs]</a>
 </span><span id="line-15"><span class="k">class</span> <span class="nc">LasReader</span><span class="p">(</span><span class="n">BasePointCloudReader</span><span class="p">):</span>
 </span><span id="line-16"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Point cloud file reader for las and laz files.&quot;&quot;&quot;</span>
 </span><span id="line-17">
@@ -199,7 +199,7 @@
 </span><span id="line-30">        <span class="bp">self</span><span class="o">.</span><span class="n">_ignore_default_columns</span> <span class="o">=</span> <span class="n">ignore_default_columns</span>
 </span><span id="line-31">
 <div class="viewcode-block" id="LasReader.supported_file_formats">
-<a class="viewcode-back" href="../../../forest3d.io.html#forest3d.io.LasReader.supported_file_formats">[docs]</a>
+<a class="viewcode-back" href="../../../pointtree.io.html#pointtree.io.LasReader.supported_file_formats">[docs]</a>
 </span><span id="line-32">    <span class="k">def</span> <span class="nf">supported_file_formats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 </span><span id="line-33"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="line-34"><span class="sd">        Returns:</span>
@@ -210,7 +210,7 @@
 
 </span><span id="line-39">
 <div class="viewcode-block" id="LasReader.read">
-<a class="viewcode-back" href="../../../forest3d.io.html#forest3d.io.LasReader.read">[docs]</a>
+<a class="viewcode-back" href="../../../pointtree.io.html#pointtree.io.LasReader.read">[docs]</a>
 </span><span id="line-40">    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PointCloudIoData</span><span class="p">:</span>
 </span><span id="line-41"><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="line-42"><span class="sd">        Reads a point cloud file.</span>

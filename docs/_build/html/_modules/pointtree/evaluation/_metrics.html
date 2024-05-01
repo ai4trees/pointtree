@@ -12,15 +12,15 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
   
-    <title>forest3d.evaluation._metrics | PointTree</title>
-    <meta property="og:title" content="forest3d.evaluation._metrics | PointTree" />
-    <meta name="twitter:title" content="forest3d.evaluation._metrics | PointTree" />
+    <title>pointtree.evaluation._metrics | PointTree</title>
+    <meta property="og:title" content="pointtree.evaluation._metrics | PointTree" />
+    <meta name="twitter:title" content="pointtree.evaluation._metrics | PointTree" />
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8d216cef" />
       <link rel="stylesheet" type="text/css" href="../../../_static/theme.css?v=8958d2b4" />
       <link rel="stylesheet" type="text/css" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css?v=0a3b3ea7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/autoclass.css?v=497c207f" />
       <link rel="stylesheet" type="text/css" href="../../../_static/awesome-sphinx-design.css?v=a54cf077" />
-    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/forest3d/evaluation/_metrics.html" />
+    <link rel="canonical" href="https://josafatburmeister.github.io/pointtree/_modules/pointtree/evaluation/_metrics.html" />
         <link rel="search" title="Search" href="../../../search.html" />
 
     <script>
@@ -160,11 +160,11 @@
        href="../../index.html">Module code</a>
     
 <div class="mr-1">/</div><span aria-current="page"
-        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">forest3d.evaluation._metrics</span>
+        class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">pointtree.evaluation._metrics</span>
 </nav>
 
     <div id="content" role="main">
-      <h1>Source code for forest3d.evaluation._metrics</h1><div class="highlight"><pre>
+      <h1>Source code for pointtree.evaluation._metrics</h1><div class="highlight"><pre>
 <span></span><code><span id="line-1"><span class="sd">&quot;&quot;&quot; Evaluation metrics for assesing the accuracy of tree instance segmentation algorithms. &quot;&quot;&quot;</span>
 </span><span id="line-2">
 </span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;match_instances&quot;</span><span class="p">,</span> <span class="s2">&quot;instance_segmentation_metrics&quot;</span><span class="p">,</span> <span class="s2">&quot;semantic_segmentation_metrics&quot;</span><span class="p">]</span>
@@ -176,7 +176,7 @@
 </span><span id="line-9">
 </span><span id="line-10">
 <div class="viewcode-block" id="match_instances">
-<a class="viewcode-back" href="../../../forest3d.evaluation.html#forest3d.evaluation.match_instances">[docs]</a>
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.match_instances">[docs]</a>
 </span><span id="line-11"><span class="k">def</span> <span class="nf">match_instances</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-locals</span>
 </span><span id="line-12">    <span class="n">target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">prediction</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">invalid_tree_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">iou_treshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
 </span><span id="line-13"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
@@ -252,7 +252,7 @@
 </span><span id="line-82">
 </span><span id="line-83">
 <div class="viewcode-block" id="instance_segmentation_metrics">
-<a class="viewcode-back" href="../../../forest3d.evaluation.html#forest3d.evaluation.instance_segmentation_metrics">[docs]</a>
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.instance_segmentation_metrics">[docs]</a>
 </span><span id="line-84"><span class="k">def</span> <span class="nf">instance_segmentation_metrics</span><span class="p">(</span>
 </span><span id="line-85">    <span class="n">matched_target_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 </span><span id="line-86">    <span class="n">matched_predicted_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -308,7 +308,7 @@
 </span><span id="line-135">
 </span><span id="line-136">
 <div class="viewcode-block" id="semantic_segmentation_metrics">
-<a class="viewcode-back" href="../../../forest3d.evaluation.html#forest3d.evaluation.semantic_segmentation_metrics">[docs]</a>
+<a class="viewcode-back" href="../../../pointtree.evaluation.html#pointtree.evaluation.semantic_segmentation_metrics">[docs]</a>
 </span><span id="line-137"><span class="k">def</span> <span class="nf">semantic_segmentation_metrics</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-locals, too-many-statements</span>
 </span><span id="line-138">    <span class="n">target</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 </span><span id="line-139">    <span class="n">prediction</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>

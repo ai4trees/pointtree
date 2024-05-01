@@ -373,7 +373,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         return trunk_positions
 
     @staticmethod
-    def create_height_map(points: np.ndarray, grid_size: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def create_height_map(  # pylint: disable=too-many-locals
+        points: np.ndarray, grid_size: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Creates a 2D height map from a given point cloud. For this purpose, the 3D point cloud is projected onto a 2D
         grid and the maximum z-coordinate within each grid cell is recorded. The value of grid cells that do not contain
@@ -424,10 +426,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
         num_cells = last_cell - first_cell + 1
 
-        unique_grid_indices, inverse_indices, point_counts_per_grid_cell = torch.unique(grid_indices, sorted=True,
-                                                                                        return_counts=True,
-                                                                                        return_inverse=True,
-                                                                                        dim=0)
+        unique_grid_indices, inverse_indices, point_counts_per_grid_cell = torch.unique(
+            grid_indices, sorted=True, return_counts=True, return_inverse=True, dim=0
+        )
         del grid_indices
         inverse_indices, sorting_indices = torch.sort(inverse_indices)
 
@@ -439,7 +440,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
         point_counts = np.zeros(num_cells)
-        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = point_counts_per_grid_cell.cpu().numpy()
+        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
+            point_counts_per_grid_cell.cpu().numpy()
+        )
 
         return height_map, point_counts, first_cell * grid_size
 

@@ -175,7 +175,7 @@
 </span><span id="line-8"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="line-9"><span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
 </span><span id="line-10">
-</span><span id="line-11"><span class="kn">from</span> <span class="nn">._color_palette</span> <span class="kn">import</span> <span class="n">acm_red</span><span class="p">,</span> <span class="n">acm_blue</span><span class="p">,</span> <span class="n">tree_color</span><span class="p">,</span> <span class="n">color_palette</span>
+</span><span id="line-11"><span class="kn">from</span> <span class="nn">._color_palette</span> <span class="kn">import</span> <span class="n">acm_red</span><span class="p">,</span> <span class="n">color_palette</span>
 </span><span id="line-12">
 </span><span id="line-13">
 <div class="viewcode-block" id="save_tree_map">
@@ -238,11 +238,11 @@
 </span><span id="line-69">
 </span><span id="line-70">    <span class="k">if</span> <span class="n">trunk_positions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="line-71">        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">trunk_positions</span><span class="p">:</span>
-</span><span id="line-72">            <span class="n">pil_image</span><span class="o">.</span><span class="n">putpixel</span><span class="p">((</span><span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">acm_blue</span><span class="p">)</span>
+</span><span id="line-72">            <span class="n">pil_image</span><span class="o">.</span><span class="n">putpixel</span><span class="p">((</span><span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">acm_red</span><span class="p">)</span>
 </span><span id="line-73">
 </span><span id="line-74">    <span class="k">if</span> <span class="n">crown_positions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="line-75">        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">crown_positions</span><span class="p">:</span>
-</span><span id="line-76">            <span class="n">pil_image</span><span class="o">.</span><span class="n">putpixel</span><span class="p">((</span><span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">tree_color</span><span class="p">)</span>
+</span><span id="line-76">            <span class="n">pil_image</span><span class="o">.</span><span class="n">putpixel</span><span class="p">((</span><span class="n">coord</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">acm_red</span><span class="p">)</span>
 </span><span id="line-77">
 </span><span id="line-78">    <span class="k">if</span> <span class="n">tree_positions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="line-79">        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">tree_positions</span><span class="p">:</span>

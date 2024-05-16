@@ -458,7 +458,6 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             expected_corrected_watershed_mask_without_border, corrected_watershed_mask_without_border
         )
 
-        assert os.path.exists(os.path.join(cache_dir, "voronoi_input_test_3.png"))
         assert os.path.exists(os.path.join(cache_dir, "voronoi_labels_with_border_test_3.png"))
         assert os.path.exists(os.path.join(cache_dir, "voronoi_labels_without_border_test_3.png"))
 
@@ -599,7 +598,8 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         assert os.path.exists(os.path.join(cache_dir, "watershed_without_border_test.png"))
 
         if correct_watershed:
-            assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_test.png"))
+            assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_with_border_test.png"))
+            assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_without_border_test.png"))
 
     def test_determine_overlapping_crowns(self):
         tree_coords = np.array(

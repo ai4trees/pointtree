@@ -8,9 +8,9 @@ from typing import Literal, Optional, Tuple, cast
 from numba_kdtree import KDTree
 import numpy as np
 import scipy.ndimage as ndi
-from skimage.morphology import disk, rectangle, dilation, erosion
+from skimage.morphology import diamond, disk, rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
-from skimage.segmentation import watershed
+from skimage.segmentation import watershed, find_boundaries
 from sklearn.cluster import DBSCAN
 import torch
 from torch_scatter import scatter_max
@@ -184,9 +184,12 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             | :math:`I = \text{ number of tree instances}`
         """
 
-        crown_top_positions, crown_top_positions_grid, canopy_height_model, grid_origin = (
-            self.compute_crown_top_positions(tree_coords, classification)
-        )
+        (
+            crown_top_positions,
+            crown_top_positions_grid,
+            canopy_height_model,
+            grid_origin,
+        ) = self.compute_crown_top_positions(tree_coords, classification)
 
         if self._algorithm == "watershed_crown_top_positions":
             if self._visualization_folder is not None and point_cloud_id is not None:
@@ -196,15 +199,18 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     tree_positions=crown_top_positions_grid,
                 )
 
-            (instance_ids, unique_instance_ids, watershed_labels_with_border, watershed_labels_without_border) = (
-                self.coarse_segmentation(
-                    tree_coords,
-                    np.full(len(tree_coords), fill_value=-1, dtype=np.int64),
-                    crown_top_positions_grid,
-                    canopy_height_model,
-                    grid_origin,
-                    point_cloud_id=point_cloud_id,
-                )
+            (
+                instance_ids,
+                unique_instance_ids,
+                watershed_labels_with_border,
+                watershed_labels_without_border,
+            ) = self.coarse_segmentation(
+                tree_coords,
+                np.full(len(tree_coords), fill_value=-1, dtype=np.int64),
+                crown_top_positions_grid,
+                canopy_height_model,
+                grid_origin,
+                point_cloud_id=point_cloud_id,
             )
 
             return instance_ids, unique_instance_ids
@@ -234,15 +240,19 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 trunk_positions=tree_positions_grid[len(crown_top_positions) :],
             )
 
-        (instance_ids, unique_instance_ids, watershed_labels_with_border, watershed_labels_without_border) = (
-            self.coarse_segmentation(
-                tree_coords,
-                instance_ids,
-                tree_positions_grid,
-                canopy_height_model,
-                grid_origin,
-                point_cloud_id=point_cloud_id,
-            )
+        (
+            instance_ids,
+            unique_instance_ids,
+            watershed_labels_with_border,
+            watershed_labels_without_border,
+        ) = self.coarse_segmentation(
+            tree_coords,
+            instance_ids,
+            tree_positions_grid,
+            canopy_height_model,
+            grid_origin,
+            point_cloud_id=point_cloud_id,
+            trunk_positions_grid=tree_positions_grid[len(crown_top_positions) :],
         )
 
         if self._algorithm == "watershed_matched_tree_positions":
@@ -586,6 +596,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     tree_positions.append(crown_top_positions[crown_index])
                     matched_crown_positions.append(crown_index)
                 else:
+                    self._logger.info("Trunk %d cannot be matched to any crown.", idx)
                     tree_positions.append(trunk_position)
             non_matched_crown_indices = np.setdiff1d(np.arange(len(crown_top_positions)), matched_crown_positions)
             tree_positions.extend(crown_top_positions[non_matched_crown_indices])
@@ -600,6 +611,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         canopy_height_model: np.ndarray,
         grid_origin: np.ndarray,
         point_cloud_id: Optional[str] = None,
+        trunk_positions_grid: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Coarse tree instance segmentation using the marker-controlled Watershed algorithm.
@@ -607,12 +619,15 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         Args:
             tree_coords: Coordinates of all tree points.
             instance_ids: Instance IDs of each tree point.
-            tree_positions: The 2D positions of all tree instances as in integer coordinates in the grid coordinate
+            tree_positions_grid: The 2D positions of all tree instances as in integer coordinates in the grid coordinate
                 system of the canopy height model.
             canopy_height_model: The canopy height model to segment.
             grid_origin: 2D coordinates of the origin of the canopy height model.
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 `None`, which means that no visualizations are created.
+            trunk_positions_grid: The 2D positions of tree trunks that were not matched with a tree crown as in integer
+                coordinates in the grid coordinate system of the canopy height model. Only used for visualization
+                purposes.
 
         Returns:
             Tuple of four arrays. The first contains the instance ID of each tree point. Points that do not belong to
@@ -646,20 +661,30 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 canopy_height_model, tree_positions_grid
             )
 
+            crown_positions_grid = None
+            if trunk_positions_grid is not None:
+                crown_positions_grid = tree_positions_grid[: len(tree_positions_grid) - len(trunk_positions_grid)]
+
             if self._visualization_folder is not None and point_cloud_id is not None:
                 crown_borders = np.logical_and(watershed_labels_with_border == 0, foreground_mask)
+                crown_borders = np.logical_or(crown_borders, watershed_labels_with_border == 11)
+
                 save_tree_map(
                     watershed_labels_with_border,
                     output_path=f"{self._visualization_folder}/watershed_with_border_{point_cloud_id}.png",
                     is_label_image=True,
                     crown_borders=crown_borders,
-                    tree_positions=tree_positions_grid,
+                    tree_positions=tree_positions_grid if trunk_positions_grid is None else None,
+                    crown_positions=crown_positions_grid,
+                    trunk_positions=trunk_positions_grid,
                 )
                 save_tree_map(
                     watershed_labels_without_border,
                     output_path=f"{self._visualization_folder}/watershed_without_border_{point_cloud_id}.png",
                     is_label_image=True,
-                    tree_positions=tree_positions_grid,
+                    tree_positions=tree_positions_grid if trunk_positions_grid is None else None,
+                    crown_positions=crown_positions_grid,
+                    trunk_positions=trunk_positions_grid,
                 )
 
             if self._correct_watershed:
@@ -672,12 +697,26 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
                 if self._visualization_folder is not None and point_cloud_id is not None:
                     crown_borders = np.logical_and(watershed_labels_with_border == 0, foreground_mask)
+                    img_path = f"{self._visualization_folder}/watershed_labels_voronoi_with_border_{point_cloud_id}.png"
                     save_tree_map(
-                        watershed_labels_without_border,
-                        output_path=f"{self._visualization_folder}/watershed_labels_voronoi_{point_cloud_id}.png",
+                        watershed_labels_with_border,
+                        output_path=img_path,
                         is_label_image=True,
                         crown_borders=crown_borders,
-                        tree_positions=tree_positions_grid,
+                        tree_positions=tree_positions_grid if trunk_positions_grid is None else None,
+                        crown_positions=crown_positions_grid,
+                        trunk_positions=trunk_positions_grid,
+                    )
+                    img_path = (
+                        f"{self._visualization_folder}/watershed_labels_voronoi_without_border_{point_cloud_id}.png"
+                    )
+                    save_tree_map(
+                        watershed_labels_without_border,
+                        output_path=img_path,
+                        is_label_image=True,
+                        tree_positions=tree_positions_grid if trunk_positions_grid is None else None,
+                        crown_positions=crown_positions_grid,
+                        trunk_positions=trunk_positions_grid,
                     )
 
             grid_indices = np.floor((tree_coords[:, :2] - grid_origin) / self._grid_size_canopy_height_model).astype(
@@ -789,8 +828,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
                 instance_mask = watershed_labels_without_border == instance_id
 
-                footprint = rectangle(3, 3)
-                dilated_instance_mask = dilation(instance_mask, footprint)
+                dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
                 neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask])
 
                 if instance_mask.sum() == 1 or (len(neighbor_instance_ids) == 2) and (0 not in neighbor_instance_ids):
@@ -803,15 +841,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     )
 
                     neighborhood_mask_without_border = instance_mask.copy()
-                    neighborhood_mask_with_border = np.logical_and(
-                        dilated_instance_mask, watershed_labels_without_border != 0
-                    )
                     for neighbor_id in neighbor_instance_ids:
                         neighborhood_mask_without_border = np.logical_or(
                             neighborhood_mask_without_border, watershed_labels_without_border == neighbor_id
-                        )
-                        neighborhood_mask_with_border = np.logical_or(
-                            neighborhood_mask_with_border, watershed_labels_with_border == neighbor_id
                         )
 
                     current_tree_positions = tree_positions_grid[neighbor_instance_ids - 1]
@@ -824,22 +856,16 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     voronoi_labels_with_border = watershed(
                         np.zeros_like(voronoi_input),
                         voronoi_input,
-                        mask=neighborhood_mask_with_border,
+                        mask=neighborhood_mask_without_border,
                         watershed_line=True,
                     )
-                    border_mask = np.logical_and(voronoi_labels_with_border == 0, neighborhood_mask_with_border)
+                    border_mask = np.logical_and(voronoi_labels_with_border == 0, neighborhood_mask_without_border)
                     voronoi_labels_without_border = voronoi_labels_with_border.copy()
                     voronoi_labels_without_border[border_mask] = dilation(voronoi_labels_with_border, rectangle(3, 3))[
                         border_mask
                     ]
 
                     if self._visualization_folder is not None and point_cloud_id is not None:
-                        img_path = f"{self._visualization_folder}/voronoi_input_{point_cloud_id}_{instance_id}.png"
-                        save_tree_map(
-                            voronoi_input,
-                            output_path=img_path,
-                            is_label_image=True,
-                        )
 
                         img_path = (
                             f"{self._visualization_folder}/voronoi_labels_without_border_{point_cloud_id}_"
@@ -873,12 +899,23 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                         )
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
-                    watershed_labels_with_border[neighborhood_mask_with_border] = voronoi_labels_with_border_remapped[
-                        neighborhood_mask_with_border
-                    ]
                     watershed_labels_without_border[neighborhood_mask_without_border] = (
                         voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
                     )
+
+                    # find outer boundaries to other trees that were not included in the Voronoi segmentation
+                    outer_boundaries = find_boundaries(neighborhood_mask_without_border, mode="inner", background=0)
+                    watershed_labels_without_border_without_neighborhood = watershed_labels_without_border.copy()
+                    watershed_labels_without_border_without_neighborhood[neighborhood_mask_without_border] = 0
+                    dilated_mask = dilation(watershed_labels_without_border_without_neighborhood, diamond(1))
+                    outer_boundaries = np.logical_and(outer_boundaries, dilated_mask != 0)
+
+                    neighborhood_mask_with_border = neighborhood_mask_without_border.copy()
+                    neighborhood_mask_with_border[outer_boundaries] = False
+
+                    watershed_labels_with_border[neighborhood_mask_with_border] = voronoi_labels_with_border_remapped[
+                        neighborhood_mask_with_border
+                    ]
 
         return watershed_labels_with_border, watershed_labels_without_border
 

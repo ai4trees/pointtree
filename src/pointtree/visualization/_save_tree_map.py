@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 
-from ._color_palette import acm_red, acm_blue, tree_color, color_palette
+from ._color_palette import acm_red, color_palette
 
 
 def save_tree_map(  # pylint: disable=too-many-branches
@@ -69,11 +69,11 @@ def save_tree_map(  # pylint: disable=too-many-branches
 
     if trunk_positions is not None:
         for coord in trunk_positions:
-            pil_image.putpixel((coord[1], coord[0]), acm_blue)
+            pil_image.putpixel((coord[1], coord[0]), acm_red)
 
     if crown_positions is not None:
         for coord in crown_positions:
-            pil_image.putpixel((coord[1], coord[0]), tree_color)
+            pil_image.putpixel((coord[1], coord[0]), acm_red)
 
     if tree_positions is not None:
         for coord in tree_positions:

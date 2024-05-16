@@ -680,10 +680,13 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                         tree_positions=tree_positions_grid,
                     )
 
-            mask = instance_ids == -1
-            grid_indices = np.floor(
-                (tree_coords[mask][:, :2] - grid_origin) / self._grid_size_canopy_height_model
-            ).astype(int)
+            grid_indices = np.floor((tree_coords[:, :2] - grid_origin) / self._grid_size_canopy_height_model).astype(
+                int
+            )
+            mask = np.logical_and(
+                instance_ids == -1, (grid_indices < watershed_labels_without_border.shape).all(axis=1)
+            )
+            grid_indices = grid_indices[mask]
             instance_ids[mask] = watershed_labels_without_border[grid_indices[:, 0], grid_indices[:, 1]] - 1
             instance_ids, unique_instance_ids = remap_instance_ids(instance_ids)
 

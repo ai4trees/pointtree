@@ -3,22 +3,33 @@
 __all__ = ["color_semantic_segmentation", "color_instance_segmentation"]
 
 import math
-from typing import Dict
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 
-from ._color_palette import color_palette
+from ._color_palette import color_palette, acm_red, acm_blue
 from ._hex_to_rgb import hex_to_rgb
 
 
-def color_instance_segmentation(point_cloud: pd.DataFrame, instance_id_column: str) -> pd.DataFrame:
+def color_instance_segmentation(
+    point_cloud: pd.DataFrame,
+    instance_id_column: str,
+    target_instance_id_column: Optional[str] = None,
+    fp_ids: Optional[List[int]] = None,
+    fn_ids: Optional[List[int]] = None,
+) -> pd.DataFrame:
     """
     Sets the color of each point based on its instance ID.
 
     Args:
         point_cloud: Point cloud to be colored.
         instance_id_column: Name of the column containing the instance IDs.
+        target_instance_id_column: Name of the column containing the ground truth instance IDs.
+        fp_ids: List of the predicted tree IDs that represent false positives. Defaults to `None`, which means that
+            false positives are not colored by a dedicated color.
+        fn_ids: List of the ground truth tree IDs that represents false negatives. Defaults to `None`, which means that
+            false negatives are not colored by a dedicated color.
 
     Returns:
         pandas.DataFrame: Point cloud with added or modified "r", "g", "b", "a" attributes.
@@ -31,6 +42,10 @@ def color_instance_segmentation(point_cloud: pd.DataFrame, instance_id_column: s
 
     color_idx = 0
 
+    background_gray = np.array([220, 219, 209, 127], dtype=int)
+
+    point_cloud[["r", "g", "b", "a"]] = background_gray
+
     for instance_id in instance_ids:
         point_cloud.loc[
             point_cloud[instance_id_column] == instance_id,
@@ -38,6 +53,24 @@ def color_instance_segmentation(point_cloud: pd.DataFrame, instance_id_column: s
         ] = colors[color_idx]
 
         color_idx += 1
+
+    if fp_ids is not None:
+        for instance_id in fp_ids:
+            if instance_id == -1:
+                continue
+            point_cloud.loc[
+                point_cloud[instance_id_column] == instance_id,
+                ["r", "g", "b"],  # type: ignore[call-overload]
+            ] = acm_red
+
+    if fn_ids is not None and target_instance_id_column:
+        for instance_id in fn_ids:
+            if instance_id == -1:
+                continue
+            point_cloud.loc[  # type: ignore[call-overload]
+                point_cloud[target_instance_id_column] == instance_id,
+                ["r", "g", "b"],
+            ] = acm_blue
 
     return point_cloud
 

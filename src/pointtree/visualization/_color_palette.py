@@ -11,7 +11,6 @@ color_palette = [
     [255, 252, 49, 255],  # yellow
     [140, 192, 132, 255],  # dark sea green # [245, 93, 62, 255],  # orange
     [105, 116, 124, 255],  # slate gray
-    [19, 70, 17, 255],  # forest green
     [125, 97, 103, 255],  # deep taube
     [255, 180, 0, 255],  # yellow
     [6, 167, 125, 255],  # green
@@ -31,8 +30,10 @@ color_palette = [
     [118, 117, 34, 255],  # spanish bistre
     [238, 215, 197, 255],  # champagne pink
     [86, 53, 30, 255],  # van dyke brown
+    [242, 92, 84, 255],  # bittersweet
 ]
 
+forest_green = (19, 70, 17)
 acm_red = (255, 25, 36)
 acm_blue = (0, 85, 201)
 tree_color = (63, 162, 84)

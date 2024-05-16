@@ -170,80 +170,113 @@
 </span><span id="line-3"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;color_semantic_segmentation&quot;</span><span class="p">,</span> <span class="s2">&quot;color_instance_segmentation&quot;</span><span class="p">]</span>
 </span><span id="line-4">
 </span><span id="line-5"><span class="kn">import</span> <span class="nn">math</span>
-</span><span id="line-6"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+</span><span id="line-6"><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 </span><span id="line-7">
 </span><span id="line-8"><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 </span><span id="line-9"><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="line-10">
-</span><span id="line-11"><span class="kn">from</span> <span class="nn">._color_palette</span> <span class="kn">import</span> <span class="n">color_palette</span>
+</span><span id="line-11"><span class="kn">from</span> <span class="nn">._color_palette</span> <span class="kn">import</span> <span class="n">color_palette</span><span class="p">,</span> <span class="n">acm_red</span><span class="p">,</span> <span class="n">acm_blue</span>
 </span><span id="line-12"><span class="kn">from</span> <span class="nn">._hex_to_rgb</span> <span class="kn">import</span> <span class="n">hex_to_rgb</span>
 </span><span id="line-13">
 </span><span id="line-14">
 <div class="viewcode-block" id="color_instance_segmentation">
 <a class="viewcode-back" href="../../../pointtree.visualization.html#pointtree.visualization.color_instance_segmentation">[docs]</a>
-</span><span id="line-15"><span class="k">def</span> <span class="nf">color_instance_segmentation</span><span class="p">(</span><span class="n">point_cloud</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">instance_id_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span id="line-16"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-17"><span class="sd">    Sets the color of each point based on its instance ID.</span>
-</span><span id="line-18">
-</span><span id="line-19"><span class="sd">    Args:</span>
-</span><span id="line-20"><span class="sd">        point_cloud: Point cloud to be colored.</span>
-</span><span id="line-21"><span class="sd">        instance_id_column: Name of the column containing the instance IDs.</span>
-</span><span id="line-22">
-</span><span id="line-23"><span class="sd">    Returns:</span>
-</span><span id="line-24"><span class="sd">        pandas.DataFrame: Point cloud with added or modified &quot;r&quot;, &quot;g&quot;, &quot;b&quot;, &quot;a&quot; attributes.</span>
-</span><span id="line-25"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="line-26">
-</span><span id="line-27">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
-</span><span id="line-28">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="n">instance_ids</span><span class="p">[</span><span class="n">instance_ids</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
-</span><span id="line-29">
-</span><span id="line-30">    <span class="n">colors</span> <span class="o">=</span> <span class="n">color_palette</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">color_palette</span><span class="p">))</span>  <span class="c1"># pylint: disable=c-extension-no-member</span>
-</span><span id="line-31">
-</span><span id="line-32">    <span class="n">color_idx</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="line-15"><span class="k">def</span> <span class="nf">color_instance_segmentation</span><span class="p">(</span>
+</span><span id="line-16">    <span class="n">point_cloud</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+</span><span id="line-17">    <span class="n">instance_id_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="line-18">    <span class="n">target_instance_id_column</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="line-19">    <span class="n">fp_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="line-20">    <span class="n">fn_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="line-21"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="line-22"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-23"><span class="sd">    Sets the color of each point based on its instance ID.</span>
+</span><span id="line-24">
+</span><span id="line-25"><span class="sd">    Args:</span>
+</span><span id="line-26"><span class="sd">        point_cloud: Point cloud to be colored.</span>
+</span><span id="line-27"><span class="sd">        instance_id_column: Name of the column containing the instance IDs.</span>
+</span><span id="line-28"><span class="sd">        target_instance_id_column: Name of the column containing the ground truth instance IDs.</span>
+</span><span id="line-29"><span class="sd">        fp_ids: List of the predicted tree IDs that represent false positives. Defaults to `None`, which means that</span>
+</span><span id="line-30"><span class="sd">            false positives are not colored by a dedicated color.</span>
+</span><span id="line-31"><span class="sd">        fn_ids: List of the ground truth tree IDs that represents false negatives. Defaults to `None`, which means that</span>
+</span><span id="line-32"><span class="sd">            false negatives are not colored by a dedicated color.</span>
 </span><span id="line-33">
-</span><span id="line-34">    <span class="k">for</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="n">instance_ids</span><span class="p">:</span>
-</span><span id="line-35">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
-</span><span id="line-36">            <span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">instance_id</span><span class="p">,</span>
-</span><span id="line-37">            <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
-</span><span id="line-38">        <span class="p">]</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">color_idx</span><span class="p">]</span>
-</span><span id="line-39">
-</span><span id="line-40">        <span class="n">color_idx</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span id="line-41">
-</span><span id="line-42">    <span class="k">return</span> <span class="n">point_cloud</span></div>
-
-</span><span id="line-43">
+</span><span id="line-34"><span class="sd">    Returns:</span>
+</span><span id="line-35"><span class="sd">        pandas.DataFrame: Point cloud with added or modified &quot;r&quot;, &quot;g&quot;, &quot;b&quot;, &quot;a&quot; attributes.</span>
+</span><span id="line-36"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-37">
+</span><span id="line-38">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+</span><span id="line-39">    <span class="n">instance_ids</span> <span class="o">=</span> <span class="n">instance_ids</span><span class="p">[</span><span class="n">instance_ids</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+</span><span id="line-40">
+</span><span id="line-41">    <span class="n">colors</span> <span class="o">=</span> <span class="n">color_palette</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">instance_ids</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">color_palette</span><span class="p">))</span>  <span class="c1"># pylint: disable=c-extension-no-member</span>
+</span><span id="line-42">
+</span><span id="line-43">    <span class="n">color_idx</span> <span class="o">=</span> <span class="mi">0</span>
 </span><span id="line-44">
+</span><span id="line-45">    <span class="n">background_gray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">220</span><span class="p">,</span> <span class="mi">219</span><span class="p">,</span> <span class="mi">209</span><span class="p">,</span> <span class="mi">127</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+</span><span id="line-46">
+</span><span id="line-47">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">background_gray</span>
+</span><span id="line-48">
+</span><span id="line-49">    <span class="k">for</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="n">instance_ids</span><span class="p">:</span>
+</span><span id="line-50">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+</span><span id="line-51">            <span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">instance_id</span><span class="p">,</span>
+</span><span id="line-52">            <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+</span><span id="line-53">        <span class="p">]</span> <span class="o">=</span> <span class="n">colors</span><span class="p">[</span><span class="n">color_idx</span><span class="p">]</span>
+</span><span id="line-54">
+</span><span id="line-55">        <span class="n">color_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span id="line-56">
+</span><span id="line-57">    <span class="k">if</span> <span class="n">fp_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="line-58">        <span class="k">for</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="n">fp_ids</span><span class="p">:</span>
+</span><span id="line-59">            <span class="k">if</span> <span class="n">instance_id</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+</span><span id="line-60">                <span class="k">continue</span>
+</span><span id="line-61">            <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+</span><span id="line-62">                <span class="n">point_cloud</span><span class="p">[</span><span class="n">instance_id_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">instance_id</span><span class="p">,</span>
+</span><span id="line-63">                <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[call-overload]</span>
+</span><span id="line-64">            <span class="p">]</span> <span class="o">=</span> <span class="n">acm_red</span>
+</span><span id="line-65">
+</span><span id="line-66">    <span class="k">if</span> <span class="n">fn_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">target_instance_id_column</span><span class="p">:</span>
+</span><span id="line-67">        <span class="k">for</span> <span class="n">instance_id</span> <span class="ow">in</span> <span class="n">fn_ids</span><span class="p">:</span>
+</span><span id="line-68">            <span class="k">if</span> <span class="n">instance_id</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+</span><span id="line-69">                <span class="k">continue</span>
+</span><span id="line-70">            <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>  <span class="c1"># type: ignore[call-overload]</span>
+</span><span id="line-71">                <span class="n">point_cloud</span><span class="p">[</span><span class="n">target_instance_id_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">instance_id</span><span class="p">,</span>
+</span><span id="line-72">                <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">],</span>
+</span><span id="line-73">            <span class="p">]</span> <span class="o">=</span> <span class="n">acm_blue</span>
+</span><span id="line-74">
+</span><span id="line-75">    <span class="k">return</span> <span class="n">point_cloud</span></div>
+
+</span><span id="line-76">
+</span><span id="line-77">
 <div class="viewcode-block" id="color_semantic_segmentation">
 <a class="viewcode-back" href="../../../pointtree.visualization.html#pointtree.visualization.color_semantic_segmentation">[docs]</a>
-</span><span id="line-45"><span class="k">def</span> <span class="nf">color_semantic_segmentation</span><span class="p">(</span>
-</span><span id="line-46">    <span class="n">point_cloud</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">classes_to_colors</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">semantic_segmentation_column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;classification&quot;</span>
-</span><span id="line-47"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span id="line-48"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="line-49"><span class="sd">    Sets the color of each point based on its semantic class.</span>
-</span><span id="line-50">
-</span><span id="line-51"><span class="sd">    Args:</span>
-</span><span id="line-52"><span class="sd">        point_cloud: Point cloud to be colored.</span>
-</span><span id="line-53"><span class="sd">        classes_to_colors: Mapping of class IDs to hex color codes.</span>
-</span><span id="line-54"><span class="sd">        semantic_segmentation_column: Name of the column containing semantic class IDs. Defaults to `&quot;classification&quot;`.</span>
-</span><span id="line-55">
-</span><span id="line-56"><span class="sd">    Returns:</span>
-</span><span id="line-57"><span class="sd">        Point cloud with added or modified &quot;r&quot;, &quot;g&quot;, &quot;b&quot;, &quot;a&quot; attributes.</span>
-</span><span id="line-58"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="line-59">
-</span><span id="line-60">    <span class="n">background_gray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">143</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">127</span><span class="p">])</span> <span class="o">/</span> <span class="mi">255</span>
-</span><span id="line-61">
-</span><span id="line-62">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">background_gray</span>
-</span><span id="line-63">
-</span><span id="line-64">    <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">hex_color</span> <span class="ow">in</span> <span class="n">classes_to_colors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="line-65">        <span class="n">rgb_color</span> <span class="o">=</span> <span class="n">hex_to_rgb</span><span class="p">(</span><span class="n">hex_color</span><span class="p">)</span>
-</span><span id="line-66">
-</span><span id="line-67">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
-</span><span id="line-68">            <span class="n">point_cloud</span><span class="p">[</span><span class="n">semantic_segmentation_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">class_id</span><span class="p">,</span>
-</span><span id="line-69">            <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
-</span><span id="line-70">        <span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rgb_color</span><span class="p">)</span>
-</span><span id="line-71">
-</span><span id="line-72">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-</span><span id="line-73">
-</span><span id="line-74">    <span class="k">return</span> <span class="n">point_cloud</span></div>
+</span><span id="line-78"><span class="k">def</span> <span class="nf">color_semantic_segmentation</span><span class="p">(</span>
+</span><span id="line-79">    <span class="n">point_cloud</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">classes_to_colors</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">semantic_segmentation_column</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;classification&quot;</span>
+</span><span id="line-80"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="line-81"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="line-82"><span class="sd">    Sets the color of each point based on its semantic class.</span>
+</span><span id="line-83">
+</span><span id="line-84"><span class="sd">    Args:</span>
+</span><span id="line-85"><span class="sd">        point_cloud: Point cloud to be colored.</span>
+</span><span id="line-86"><span class="sd">        classes_to_colors: Mapping of class IDs to hex color codes.</span>
+</span><span id="line-87"><span class="sd">        semantic_segmentation_column: Name of the column containing semantic class IDs. Defaults to `&quot;classification&quot;`.</span>
+</span><span id="line-88">
+</span><span id="line-89"><span class="sd">    Returns:</span>
+</span><span id="line-90"><span class="sd">        Point cloud with added or modified &quot;r&quot;, &quot;g&quot;, &quot;b&quot;, &quot;a&quot; attributes.</span>
+</span><span id="line-91"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="line-92">
+</span><span id="line-93">    <span class="n">background_gray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">143</span><span class="p">,</span> <span class="mi">135</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">127</span><span class="p">])</span> <span class="o">/</span> <span class="mi">255</span>
+</span><span id="line-94">
+</span><span id="line-95">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">background_gray</span>
+</span><span id="line-96">
+</span><span id="line-97">    <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">hex_color</span> <span class="ow">in</span> <span class="n">classes_to_colors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="line-98">        <span class="n">rgb_color</span> <span class="o">=</span> <span class="n">hex_to_rgb</span><span class="p">(</span><span class="n">hex_color</span><span class="p">)</span>
+</span><span id="line-99">
+</span><span id="line-100">        <span class="n">point_cloud</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span>
+</span><span id="line-101">            <span class="n">point_cloud</span><span class="p">[</span><span class="n">semantic_segmentation_column</span><span class="p">]</span> <span class="o">==</span> <span class="n">class_id</span><span class="p">,</span>
+</span><span id="line-102">            <span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+</span><span id="line-103">        <span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rgb_color</span><span class="p">)</span>
+</span><span id="line-104">
+</span><span id="line-105">    <span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_cloud</span><span class="p">[[</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">255</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+</span><span id="line-106">
+</span><span id="line-107">    <span class="k">return</span> <span class="n">point_cloud</span></div>
 
 </span></code></pre></div>
     </div><div class="flex justify-between items-center pt-6 mt-12 border-t border-border gap-4">
@@ -253,7 +286,7 @@
     </div><footer class="py-6 border-t border-border md:py-0">
     <div class="container flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row">
       <div class="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-        <p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2024, Josafat-Mattias Burmeister.&nbsp;Last updated: May 01, 2024.&nbsp;Built with <a class="font-medium underline underline-offset-4"
+        <p class="text-sm leading-loose text-center text-muted-foreground md:text-left">© 2024, Josafat-Mattias Burmeister.&nbsp;Last updated: May 16, 2024.&nbsp;Built with <a class="font-medium underline underline-offset-4"
     href="https://www.sphinx-doc.org"
     rel="noreferrer">Sphinx 7.2.6</a></p>
 </div>

@@ -312,7 +312,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 trunk_mask = np.logical_or(trunk_mask, classification == self._branch_class_id)
 
             if trunk_mask.sum() == 0:
-                return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
+                return np.full(len(tree_coords), dtype=np.int64, fill_value=-1), np.empty(0, dtype=np.int64)
 
             trunk_points = tree_coords[trunk_mask]
 

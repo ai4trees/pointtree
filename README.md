@@ -1,4 +1,6 @@
-# PointTree - A Python Package for Deriving Information About Vegetation From 3D Point Clouds.
+# PointTree
+
+## A Python Package for Deriving Information About Vegetation From 3D Point Clouds.
 
 The package contains the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
 

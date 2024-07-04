@@ -1,0 +1,25 @@
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Burmeister"
+    given-names: "Josafat-Mattias"
+    orcid: "https://orcid.org/0000-0003-1890-844X"
+  - family-names: "Richter"
+    given-names: "Rico"
+    orcid: "https://orcid.org/0000-0001-5523-3694"
+  - family-names: "Reder"
+    given-names: "Stefan"
+    orcid: "https://orcid.org/0000-0002-2899-6191"
+  - family-names: "Mund"
+    given-names: "Jan-Peter"
+    orcid: "https://orcid.org/0000-0002-4878-5519"
+  - family-names: "Döllner"
+    given-names: "Jürgen"
+    orcid: "https://orcid.org/0000-0002-8981-8583"
+  doi: "10.5194/isprs-annals-X-4-W5-2024-79-2024"
+  journal: "ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences"
+  start: 79 # First page number
+  end: 86 # Last page number
+  title: "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation"
+  volume: X-4/W5-2024
+  year: 2024

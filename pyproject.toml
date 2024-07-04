@@ -11,7 +11,7 @@ authors = [
 description = "A library for individual tree segmentation in 3D point clouds."
 license = { file = "LICENSE" }
 classifiers = [
-    "License :: OSI Approved :: GPL License",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]

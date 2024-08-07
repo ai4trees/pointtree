@@ -242,7 +242,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         np.testing.assert_array_equal(expected_grid_origin, grid_origin)
 
     def test_compute_crown_top_positions_smoothed_canopy_height_model(self):
-        expected_grid_origin = np.array([1, 1], dtype=float)
+        expected_grid_origin = np.array([0, 0], dtype=float)
 
         tree_coords = np.array(
             [

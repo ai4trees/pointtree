@@ -399,7 +399,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
     @staticmethod
     def create_height_map(  # pylint: disable=too-many-locals
-        points: np.ndarray, grid_size: float
+        points: np.ndarray,
+        grid_size: float,
+        bounding_box: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Creates a 2D height map from a given point cloud. For this purpose, the 3D point cloud is projected onto a 2D
@@ -410,6 +412,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         Args:
             points: Coordinates of each point.
             grid_size: Grid size of the height map.
+            bounding_box: Bounding box coordinates specifying the area for which to compute the height map. The first
+                element is expected to be the minimum xy-coordinate of the bounding box and the second the maximum
+                xy-coordinate.
 
         Returns:
             Tuple of three arrays. The first is the height map. The second is a map of the same size containing the
@@ -417,6 +422,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
         Shape:
             - :code:`points`: :math:`(N, 3)`
+            - :code:`bounding_box`: :math:`(2, 2)`
             - Output: Tuple of three arrays. The first and second have shape :math:`(W, H)`. The third has shape \
               :math:`(2)`.
 
@@ -430,7 +436,12 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         if len(points) == 0:
             return np.empty((0, 0), dtype=np.float64), np.empty((0, 0), dtype=np.float64), np.empty(0, dtype=np.float64)
 
+        if bounding_box is None:
+            bounding_box = np.row_stack([points[:, :2].min(axis=0), points[:, :2].max(axis=0)])
+
         points = points.copy()
+        points = points[(points[:, :2] <= bounding_box[1]).all(axis=-1)]
+        points[:, :2] -= bounding_box[0]
         points[:, 2] -= points[:, 2].min(axis=0)
 
         device = torch.device("cpu")
@@ -447,8 +458,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
         points_torch = torch.from_numpy(points).to(device)
         grid_indices = torch.floor(points_torch[:, :2] / grid_size).long()
-        first_cell = grid_indices.amin(dim=0).cpu().numpy()
-        last_cell = grid_indices.amax(dim=0).cpu().numpy()
+        first_cell = np.floor(bounding_box[0] / grid_size).astype(np.int64)
+        last_cell = np.floor(bounding_box[1] / grid_size).astype(np.int64)
 
         num_cells = last_cell - first_cell + 1
 
@@ -460,7 +471,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
         max_height, _ = scatter_max(points_torch[sorting_indices, 2], inverse_indices, dim=0)
 
-        unique_grid_indices_np = unique_grid_indices.cpu().numpy() - first_cell
+        unique_grid_indices_np = unique_grid_indices.cpu().numpy()
         del unique_grid_indices
 
         height_map = np.zeros(num_cells)
@@ -513,10 +524,12 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 )
 
         with Timer("Height map computation", self._time_tracker):
+            bounding_box = None
             if self._algorithm != "watershed_crown_top_positions":
+                bounding_box = np.row_stack([tree_coords[:, :2].min(axis=0), tree_coords[:, :2].max(axis=0)])
                 tree_coords = tree_coords[classification == self._crown_class_id]
             canopy_height_model, count_map, grid_origin = self.create_height_map(
-                tree_coords, grid_size=self._grid_size_canopy_height_model
+                tree_coords, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box
             )
 
         with Timer("Detection of crown top positions", self._time_tracker):

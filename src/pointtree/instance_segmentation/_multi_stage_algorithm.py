@@ -399,7 +399,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
     @staticmethod
     def create_height_map(  # pylint: disable=too-many-locals
-        points: np.ndarray, grid_size: float, bounding_box: Optional[np.ndarray] = None,
+        points: np.ndarray,
+        grid_size: float,
+        bounding_box: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         r"""
         Creates a 2D height map from a given point cloud. For this purpose, the 3D point cloud is projected onto a 2D
@@ -524,8 +526,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         with Timer("Height map computation", self._time_tracker):
             bounding_box = None
             if self._algorithm != "watershed_crown_top_positions":
-                bounding_box = np.row_stack([tree_coords[:, :2].min(axis=0),
-                                               tree_coords[:, :2].max(axis=0)])
+                bounding_box = np.row_stack([tree_coords[:, :2].min(axis=0), tree_coords[:, :2].max(axis=0)])
                 tree_coords = tree_coords[classification == self._crown_class_id]
             canopy_height_model, count_map, grid_origin = self.create_height_map(
                 tree_coords, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box

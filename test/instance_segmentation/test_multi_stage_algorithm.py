@@ -101,7 +101,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         assert len(count_map) == 0
         assert len(grid_origin) == 0
 
-    @pytest.mark.parametrize(["bounding_box", [None, np.array([0, 1, 1, 1])]])
+    @pytest.mark.parametrize("bounding_box", [None, np.array([[1, 0], [1.9, 2.7]], dtype=float)])
     def test_create_height_map(self, bounding_box: Optional[np.ndarray]):
         points = np.array(
             [
@@ -123,7 +123,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         else:
             expected_height_map = np.array([[0, 1, 2]], dtype=float)
             expected_count_map = np.array([[0, 3, 1]], dtype=np.int64)
-            expected_grid_origin = np.array([0, 1], dtype=float)
+            expected_grid_origin = bounding_box[0]
 
         height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(
             points, grid_size, bounding_box=bounding_box

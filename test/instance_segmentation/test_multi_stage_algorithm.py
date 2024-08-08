@@ -101,7 +101,8 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         assert len(count_map) == 0
         assert len(grid_origin) == 0
 
-    def test_create_height_map(self):
+    @pytest.mark.parametrize(["bounding_box", [None, np.array([0, 1, 1, 1])]])
+    def test_create_height_map(self, bounding_box: Optional[np.ndarray]):
         points = np.array(
             [
                 [1, 1, 1],
@@ -115,11 +116,18 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         )
         grid_size = 1
 
-        expected_height_map = np.array([[1, 2], [4, 0]], dtype=float)
-        expected_count_map = np.array([[3, 1], [2, 0]], dtype=np.int64)
-        expected_grid_origin = np.array([1, 1], dtype=float)
+        if bounding_box is None:
+            expected_height_map = np.array([[1, 2], [4, 0]], dtype=float)
+            expected_count_map = np.array([[3, 1], [2, 0]], dtype=np.int64)
+            expected_grid_origin = np.array([1, 1], dtype=float)
+        else:
+            expected_height_map = np.array([[0, 1, 2]], dtype=float)
+            expected_count_map = np.array([[0, 3, 1]], dtype=np.int64)
+            expected_grid_origin = np.array([0, 1], dtype=float)
 
-        height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(points, grid_size)
+        height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(
+            points, grid_size, bounding_box=bounding_box
+        )
 
         np.testing.assert_array_equal(expected_height_map, height_map)
         np.testing.assert_array_equal(expected_count_map, count_map)

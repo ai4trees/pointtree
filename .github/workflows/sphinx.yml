@@ -28,11 +28,11 @@ jobs:
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
-          cd docs
-          rm -rf _build
-          make clean
-          make html
-          cp -r build _build
+        # cd docs
+        # rm -rf _build
+        # make clean
+        # make html
+        # cp -r build _build
       - name: Commit and push documentation files
         run: |
           cd /github/workspace/
@@ -40,7 +40,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add docs/source/*
-          git add docs/_build/html/*
           git pull
           git commit -m "Automated docs push: ${{ github.event.pull_request.title }}" --allow-empty
           git push
+        # git add docs/_build/html/*

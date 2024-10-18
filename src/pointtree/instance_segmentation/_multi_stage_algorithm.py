@@ -100,6 +100,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         self,
         trunk_class_id: int,
         crown_class_id: int,
+        *,
         branch_class_id: Optional[int] = None,
         algorithm: Literal["full", "watershed_crown_top_positions", "watershed_matched_tree_positions"] = "full",
         downsampling_voxel_size: Optional[float] = None,
@@ -623,6 +624,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         tree_positions_grid: np.ndarray,
         canopy_height_model: np.ndarray,
         grid_origin: np.ndarray,
+        *,
         point_cloud_id: Optional[str] = None,
         trunk_positions_grid: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

@@ -29,8 +29,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
+      - name: Checkout out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Build sphinx documentation from docstrings
+        shell: bash
+        run: |
+          source /root/venv/bin/activate
+          cd /github/workspace/
+          python -m pip install --upgrade .'[dev, docs]'
+          sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
+          cd docs
+          rm -rf _build
+          make clean
+          make html
+          cp -r build _build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

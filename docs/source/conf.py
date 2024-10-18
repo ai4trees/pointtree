@@ -62,7 +62,7 @@ theme_options = ThemeOptions(
     main_nav_links={"Docs": "/pointtree/index"},
     extra_header_link_icons={
         "repository on GitHub": {
-            "link": "https://github.com/josafatburmeister/pointtree",
+            "link": "https://github.com/ai4trees/pointtree",
             "icon": (
                 '<svg height="26px" style="margin-top:-2px;display:inline" '
                 'viewBox="0 0 45 44" '

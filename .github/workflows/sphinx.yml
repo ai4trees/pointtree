@@ -12,7 +12,11 @@ jobs:
       image: justushildebrand/python-cuda:3.9-cuda11.8
       volumes:
         - ${{ github.workspace }}:/github/workspace
-    if: ${{ !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
+    # the workflow is disabled because the documentation build is no longer stored in the repository but build
+    # on-the-fly when deploying the documentation to Github pages
+    # the condition that should be used when re-enabling the workflow is in the comment below
+    if: false
+    # ${{ !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0

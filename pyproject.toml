@@ -55,7 +55,7 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/josafatburmeister/pointtree"
+Homepage = "https://github.com/ai4trees/pointtree"
 
 [tool.bumpver]
 current_version = "1.0.0"
@@ -67,4 +67,4 @@ push            = false
 
 [tool.bumpver.file_patterns]
 "pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
-"src/segtree/__init__.py" = ["""{version}"""]
+"src/pointtree/__init__.py" = ["""{version}"""]

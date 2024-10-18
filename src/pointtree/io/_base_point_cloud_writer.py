@@ -70,6 +70,7 @@ class BasePointCloudWriter(abc.ABC):
         self,
         point_cloud: pandas.DataFrame,
         file_path: str,
+        *,
         x_max_resolution: Optional[float] = None,
         y_max_resolution: Optional[float] = None,
         z_max_resolution: Optional[float] = None,

@@ -150,7 +150,7 @@ def voxel_downsampling(  # pylint: disable=too-many-locals, too-many-statements
         point_indices = torch.arange(len(points), dtype=torch.long, device=device)
         point_indices = point_indices[points_to_refine_mask][sorting_indices]
 
-        refined_indices, _ = knn_search(
+        refined_indices_torch, _ = knn_search(
             support_points,
             voxel_centers_torch,
             batch_indices_support_points,
@@ -160,7 +160,7 @@ def voxel_downsampling(  # pylint: disable=too-many-locals, too-many-statements
             k=1,
         )
 
-        refined_indices = point_indices[refined_indices.flatten()].cpu().numpy()
+        refined_indices = point_indices[refined_indices_torch.flatten()].cpu().numpy()
 
         selected_indices = numpy.concatenate([selected_indices, refined_indices])
 

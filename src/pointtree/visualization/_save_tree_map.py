@@ -14,6 +14,7 @@ from ._color_palette import acm_red, color_palette
 def save_tree_map(  # pylint: disable=too-many-branches
     image: np.ndarray,
     output_path: str,
+    *,
     is_label_image: bool = False,
     crown_borders: Optional[np.ndarray] = None,
     border_mask: Optional[np.ndarray] = None,

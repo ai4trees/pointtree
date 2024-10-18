@@ -100,6 +100,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         self,
         trunk_class_id: int,
         crown_class_id: int,
+        *,
         branch_class_id: Optional[int] = None,
         algorithm: Literal["full", "watershed_crown_top_positions", "watershed_matched_tree_positions"] = "full",
         downsampling_voxel_size: Optional[float] = None,
@@ -477,9 +478,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
         point_counts = np.zeros(num_cells)
-        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
-            point_counts_per_grid_cell.cpu().numpy()
-        )
+        point_counts[
+            unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]
+        ] = point_counts_per_grid_cell.cpu().numpy()
 
         return height_map, point_counts, first_cell * grid_size
 
@@ -623,6 +624,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         tree_positions_grid: np.ndarray,
         canopy_height_model: np.ndarray,
         grid_origin: np.ndarray,
+        *,
         point_cloud_id: Optional[str] = None,
         trunk_positions_grid: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -907,14 +909,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     for instance_id in neighbor_instance_ids:
                         tree_position = tree_positions_grid[instance_id - 1]
                         voronoi_id = voronoi_labels_without_border[tree_position[0], tree_position[1]]
-                        voronoi_labels_without_border_remapped[voronoi_labels_without_border == voronoi_id] = (
-                            instance_id
-                        )
+                        voronoi_labels_without_border_remapped[
+                            voronoi_labels_without_border == voronoi_id
+                        ] = instance_id
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
-                    watershed_labels_without_border[neighborhood_mask_without_border] = (
-                        voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
-                    )
+                    watershed_labels_without_border[
+                        neighborhood_mask_without_border
+                    ] = voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
 
                     # find outer boundaries to other trees that were not included in the Voronoi segmentation
                     outer_boundaries = find_boundaries(neighborhood_mask_without_border, mode="inner", background=0)

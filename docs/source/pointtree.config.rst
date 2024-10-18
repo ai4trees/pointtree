@@ -1,5 +1,6 @@
-pointtree.config
-================
+pointtree.config package
+========================
+
 .. automodule:: pointtree.config
    :members:
    :undoc-members:

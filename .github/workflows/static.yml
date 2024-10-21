@@ -28,6 +28,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    container:
+      image: justushildebrand/python-cuda:3.9-cuda11.8
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -44,17 +48,16 @@ jobs:
           python -m pip install --upgrade .'[dev, docs]'
           sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
           cd docs
-          rm -rf _build
+          rm -rf build
           make clean
           make html
-          cp -r build _build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: './docs/_build/html'
+          path: './docs/build/html'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

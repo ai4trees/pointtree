@@ -41,8 +41,8 @@ def make_labels_consecutive(
 
     labels_to_remap: Union[numpy.ndarray, numpy.ma.MaskedArray]
     if ignore_id is not None:
-        mask = labels == ignore_id
-        labels_to_remap = numpy.ma.masked_array(labels, mask)
+        mask = labels != ignore_id
+        labels_to_remap = labels[mask]
     else:
         labels_to_remap = labels
 
@@ -51,7 +51,9 @@ def make_labels_consecutive(
     key = numpy.arange(0, len(unique_labels))
     index = numpy.digitize(labels_to_remap, unique_labels, right=True)
     labels_to_remap[:] = key[index]
-    labels_to_remap = labels_to_remap + start_id
+    labels_to_remap += start_id
+
+    labels[mask] = labels_to_remap
 
     if return_unique_labels:
         return labels, key

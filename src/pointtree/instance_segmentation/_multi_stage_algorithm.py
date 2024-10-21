@@ -16,9 +16,9 @@ import torch
 from torch_scatter import scatter_max
 
 from pointtree.evaluation import Timer
+from pointtree.operations import make_labels_consecutive
 from pointtree.visualization import save_tree_map
 from ._priority_queue import PriorityQueue
-from ._utils import remap_instance_ids
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 
@@ -327,7 +327,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             instance_ids = np.full(len(tree_coords), fill_value=-1, dtype=np.int64)
             instance_ids[trunk_mask] = clustering.labels_
 
-            return remap_instance_ids(instance_ids)
+            return make_labels_consecutive(  # type: ignore[return-value]
+                instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
+            )
 
     def filter_trunk_clusters(
         self, instance_ids: np.ndarray, unique_instance_ids: np.ndarray, min_points: int
@@ -364,7 +366,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 if instance_points < min_points:
                     instance_ids[instance_mask] = -1
                     self._logger.info("Discard trunk cluster %d", instance_id)
-        return remap_instance_ids(instance_ids)
+        return make_labels_consecutive(  # type: ignore[return-value]
+            instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
+        )
 
     def compute_trunk_positions(
         self, tree_coords: np.ndarray, instance_ids: np.ndarray, unique_instance_ids: np.ndarray
@@ -746,7 +750,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             )
             grid_indices = grid_indices[mask]
             instance_ids[mask] = watershed_labels_without_border[grid_indices[:, 0], grid_indices[:, 1]] - 1
-            instance_ids, unique_instance_ids = remap_instance_ids(instance_ids)
+            instance_ids, unique_instance_ids = make_labels_consecutive(
+                instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
+            )
 
         return (
             instance_ids,

@@ -16,9 +16,9 @@ import torch
 from torch_scatter import scatter_max
 
 from pointtree.evaluation import Timer
+from pointtree.operations import make_labels_consecutive
 from pointtree.visualization import save_tree_map
 from ._priority_queue import PriorityQueue
-from ._utils import remap_instance_ids
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 
@@ -323,7 +323,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             instance_ids = np.full(len(tree_coords), fill_value=-1, dtype=np.int64)
             instance_ids[trunk_mask] = clustering.labels_
 
-            return remap_instance_ids(instance_ids)
+            return make_labels_consecutive(  # type: ignore[return-value]
+                instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
+            )
 
     def filter_trunk_clusters(
         self, instance_ids: np.ndarray, unique_instance_ids: np.ndarray, min_points: int
@@ -360,7 +362,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 if instance_points < min_points:
                     instance_ids[instance_mask] = -1
                     self._logger.info("Discard trunk cluster %d", instance_id)
-        return remap_instance_ids(instance_ids)
+        return make_labels_consecutive(  # type: ignore[return-value]
+            instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
+        )
 
     def compute_trunk_positions(
         self, tree_coords: np.ndarray, instance_ids: np.ndarray, unique_instance_ids: np.ndarray
@@ -478,9 +482,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
         point_counts = np.zeros(num_cells)
-        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
-            point_counts_per_grid_cell.cpu().numpy()
-        )
+        point_counts[
+            unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]
+        ] = point_counts_per_grid_cell.cpu().numpy()
 
         return height_map, point_counts, first_cell * grid_size
 
@@ -742,7 +746,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             )
             grid_indices = grid_indices[mask]
             instance_ids[mask] = watershed_labels_without_border[grid_indices[:, 0], grid_indices[:, 1]] - 1
-            instance_ids, unique_instance_ids = remap_instance_ids(instance_ids)
+            instance_ids, unique_instance_ids = make_labels_consecutive(
+                instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
+            )
 
         return (
             instance_ids,
@@ -909,14 +915,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     for instance_id in neighbor_instance_ids:
                         tree_position = tree_positions_grid[instance_id - 1]
                         voronoi_id = voronoi_labels_without_border[tree_position[0], tree_position[1]]
-                        voronoi_labels_without_border_remapped[voronoi_labels_without_border == voronoi_id] = (
-                            instance_id
-                        )
+                        voronoi_labels_without_border_remapped[
+                            voronoi_labels_without_border == voronoi_id
+                        ] = instance_id
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
-                    watershed_labels_without_border[neighborhood_mask_without_border] = (
-                        voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
-                    )
+                    watershed_labels_without_border[
+                        neighborhood_mask_without_border
+                    ] = voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
 
                     # find outer boundaries to other trees that were not included in the Voronoi segmentation
                     outer_boundaries = find_boundaries(neighborhood_mask_without_border, mode="inner", background=0)

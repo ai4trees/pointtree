@@ -32,6 +32,8 @@ def make_labels_consecutive(
     """
 
     if len(labels) == 0:
+        if return_unique_labels:
+            return labels, numpy.empty_like(labels)
         return labels
 
     if not inplace:
@@ -48,10 +50,10 @@ def make_labels_consecutive(
     unique_labels = numpy.sort(unique_labels)
     key = numpy.arange(0, len(unique_labels))
     index = numpy.digitize(labels_to_remap, unique_labels, right=True)
-    labels_to_remap = key[index]
+    labels_to_remap[:] = key[index]
     labels_to_remap = labels_to_remap + start_id
 
     if return_unique_labels:
-        return labels, unique_labels
+        return labels, key
 
     return labels

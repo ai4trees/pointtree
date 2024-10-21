@@ -236,6 +236,10 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         if self._visualization_folder is not None and point_cloud_id is not None:
             save_tree_map(
                 canopy_height_model,
+                os.path.join(self._visualization_folder, f"canopy_height_model_{point_cloud_id}_without_positions.png"),
+            )
+            save_tree_map(
+                canopy_height_model,
                 os.path.join(self._visualization_folder, f"canopy_height_model_{point_cloud_id}.png"),
                 tree_positions=tree_positions_grid[: len(crown_top_positions)],
                 trunk_positions=tree_positions_grid[len(crown_top_positions) :],

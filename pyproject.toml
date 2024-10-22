@@ -4,11 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pointtree"
-version = "1.0.0"
+version = "0.0.0"
 authors = [
     {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
 ]
-description = "A library for individual tree segmentation in 3D point clouds."
+maintainers = [
+    {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+]
+description = "A Python Package for Individual Tree Segmentation in 3D Point Clouds."
+readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -59,20 +63,19 @@ docs = [
     "sphinx-sitemap",
     "sphinxcontrib-jsmath",
     "sphinxcontrib-katex",
-    "sphinxcontrib-napoleon"
+    "sphinxcontrib-napoleon",
+    "sphinx_mdinclude",
 ]
 
 [project.urls]
 Homepage = "https://github.com/ai4trees/pointtree"
+Documentation = "https://ai4trees.github.io/pointtree/"
+Repository = "https://github.com/ai4trees/pointtree.git"
+Issues = "https://github.com/ai4trees/pointtree/issues"
+Changelog = "https://ai4trees.github.io/pointtree/changelog"
 
-[tool.bumpver]
-current_version = "1.0.0"
-version_pattern = "MAJOR.MINOR.PATCH"
-commit_message  = "Bump version {old_version} -> {new_version}"
-commit          = true
-tag             = true
-push            = false
-
-[tool.bumpver.file_patterns]
-"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
-"src/pointtree/__init__.py" = ["""{version}"""]
+[tool.semantic_release]
+version_variable = "pyproject.toml:version"
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = "python -m build"

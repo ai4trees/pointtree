@@ -1,13 +1,13 @@
 .. meta::
-   :description: A Python package for deriving information about vegetation from 3D point clouds.
-   :twitter:description: A Python package for deriving information about vegetation from 3D point clouds.
+   :description: |summary|
+   :twitter:description: |summary|
 
 PointTree
 ====================
 
 .. rst-class:: lead
 
-   A Python package for deriving information about vegetation from 3D point clouds.
+   |summary|
 
 ----
 
@@ -15,11 +15,6 @@ This is the documentation for version |current| of the |product| package.
 
 Get started
 -----------
-
-#. Clone the repository:
-
-   .. literalinclude:: how-to/install/includes/clone.sh
-      :language: sh
 
 #. Install `PyTorch <https://pytorch.org/get-started/locally>`__
 
@@ -33,6 +28,11 @@ Get started
 
    .. literalinclude:: how-to/install/includes/install.sh
       :language: sh
+
+Upgrade
+-------
+
+If you want to upgrade to version |current| of the package, see :doc:`changelog/index`.
 
 Package Documentation
 ----------------------

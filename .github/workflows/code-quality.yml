@@ -81,9 +81,9 @@ jobs:
           fetch-depth: 0
       - name: Force correct branch on workflow sha
         run: |
+          git config --global --add safe.directory $(realpath .)
           git branch -vv
           git remote
-          git config --global --add safe.directory $(realpath .)
           git checkout -B ${{ github.head_ref }} ${{ github.sha }}
           git branch -vv
       - name: Executing tests
@@ -98,11 +98,11 @@ jobs:
         if: ${{ inputs.update-coverage-badge == true }}
         run: |
           cd /github/workspace/
-          git remote
           git config --global --add safe.directory $(realpath .)
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add coverage.svg
+          git remote
           git branch -vv
           git remote
           git pull

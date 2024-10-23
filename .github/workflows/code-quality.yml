@@ -77,7 +77,6 @@ jobs:
       - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           fetch-depth: 0
       - name: Force correct branch on workflow sha
         run: |

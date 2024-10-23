@@ -11,17 +11,12 @@ on:
 jobs:
   black:
     runs-on: ubuntu-latest
-    container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with black
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install black
           black src --check --verbose --diff --color --line-length 120

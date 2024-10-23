@@ -24,17 +24,8 @@ jobs:
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Checkout out repository at workflow sha
+      - name: Checkout out repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 0
-      - name: Force correct branch on workflow sha
-        shell: bash
-        run: |
-          cd /github/workspace/
-          git config --global --add safe.directory $(realpath .)
-          git checkout -B ${{ github.head_ref }} ${{ github.sha }}
       - name: Generate sphinx documentation sources from docstrings
         shell: bash
         run: |

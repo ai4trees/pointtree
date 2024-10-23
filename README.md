@@ -40,11 +40,11 @@ pytest
 
 Releases are published automatically when a tag is pushed to the main branch on GitHub.
 
-.. code-block:: bash
+```bash
+# Create release tag
+git commit -m "a commit"
+git tag -a "release"
 
-   # Create release tag
-   git commit -m "a commit"
-   git tag -a "release"
-
-   # Push
-   git push upstream --tags
+# Push
+git push upstream --tags
+```

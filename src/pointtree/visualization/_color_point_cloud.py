@@ -90,7 +90,7 @@ def color_semantic_segmentation(
         Point cloud with added or modified "r", "g", "b", "a" attributes.
     """
 
-    background_gray = np.array([143, 135, 130, 127]) / 255
+    background_gray = np.array([220, 219, 209, 127], dtype=int)
 
     point_cloud[["r", "g", "b", "a"]] = background_gray
 

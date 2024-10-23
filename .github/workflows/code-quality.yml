@@ -14,10 +14,13 @@ jobs:
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v4
+      - name: Setup up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
       - name: Analysing the code with black
         shell: bash
         run: |
-          cd /github/workspace/
           python -m pip install black
           black src --check --verbose --diff --color --line-length 120
           black test --check --verbose --diff --color --line-length 120

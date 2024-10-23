@@ -84,7 +84,9 @@ jobs:
           git config --global --add safe.directory $(realpath .)
           git branch -vv
           git remote
-          git checkout -B ${{ github.head_ref }} ${{ github.sha }}
+          echo ${{ github.ref }}
+          echo ${{ github.head_ref }}
+          git checkout -B ${{ github.ref }} ${{ github.sha }}
           git branch -vv
       - name: Executing tests
         shell: bash

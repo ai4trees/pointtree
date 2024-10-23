@@ -1,6 +1,6 @@
 # PointTree
 
-## A Python Package for Deriving Information About Vegetation From 3D Point Clouds.
+## A Python Package for Individual Tree Segmentation in 3D Point Clouds.
 
 The package contains the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
 
@@ -10,37 +10,7 @@ The documentation of our package is available [here](https://ai4trees.github.io/
 
 ### Project Setup
 
-First, clone our repository:
-
-```
-git clone https://github.com/ai4trees/pointtree.git
-```
-
-Change to the pointtree directory:
-
-```
-cd pointtree
-```
-
-Install PyTorch using the instructions on the [PyTorch website](https://pytorch.org/get-started/locally/). Then, install our package:
-
-```
-python -m pip install .
-```
-
-(Optional) To install the package including all dependencies needed for development, testing, and building the documentation:
-
-```
-python -m pip install .[dev,docs]
-```
-
-### Running the tests
-
-To execute the tests, run:
-
-```
-pytest 
-```
+The setup of our package is described in the [documentation](https://ai4trees.github.io/pointtree/#get-started).
 
 ### How to Cite
 
@@ -56,4 +26,25 @@ title = {{Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-
 volume = {X-4/W5-2024},
 year = {2024}
 }
+```
+
+### Running the Tests
+
+To execute the tests, run:
+
+```
+pytest
+```
+
+### Releasing
+
+Releases are published automatically when a tag is pushed to the main branch on GitHub.
+
+```bash
+# Create release tag
+git commit -m "a commit"
+git tag -a "release"
+
+# Push
+git push upstream --tags
 ```

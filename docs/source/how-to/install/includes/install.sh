@@ -1,1 +1,1 @@
-python -m pip install -e pointtree
+python -m pip install pointtree

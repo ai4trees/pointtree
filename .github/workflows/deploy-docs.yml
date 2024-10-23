@@ -1,12 +1,11 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# This workflow deploys the package documentation on GitHub Pages when a new package release is published
+name: Deploy documentation
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
+  release:
+    types: [published]
 
-  # Allows you to run this workflow manually from the Actions tab
+  # Allows to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -18,16 +17,16 @@ permissions:
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
+  group: deploy-docs
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
+  deploy-docs:
+    if: github.repository == 'ai4trees/pointtree'
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     container:
       image: justushildebrand/python-cuda:3.9-cuda11.8
       volumes:
@@ -35,18 +34,21 @@ jobs:
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Checkout out repository
+      - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
-      - name: Build sphinx documentation from docstrings
+      - name: Force correct branch on workflow sha
+        run: |
+          git config --global --add safe.directory $(realpath .)
+          git checkout -B ${{ github.head_ref }} ${{ github.sha }}
+      - name: Build sphinx documentation
         shell: bash
         run: |
           source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
-          sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
           cd docs
           rm -rf build
           make clean

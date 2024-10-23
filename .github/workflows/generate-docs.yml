@@ -1,18 +1,26 @@
-name: Build of Sphinx Documentation
+# This workflow updates the sources of the Sphinx documentation based on the Python docstrings
+
+name: Update Sphinx Documentation
 on:
   pull_request:
     branches:
       - main
 
+  # Allows to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  group: generate-docs
+  cancel-in-progress: false
+
 jobs:
-  sphinx:
-    name: Build documentation
+  generate-docs:
     runs-on: ubuntu-latest
+
     container:
       image: justushildebrand/python-cuda:3.9-cuda11.8
       volumes:
         - ${{ github.workspace }}:/github/workspace
-    if: ${{ !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -21,19 +29,14 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - name: Build sphinx documentation from docstrings
+      - name: Generate sphinx documentation sources from docstrings
         shell: bash
         run: |
           source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
-        # cd docs
-        # rm -rf _build
-        # make clean
-        # make html
-        # cp -r build _build
-      - name: Commit and push documentation files
+      - name: Commit and push documentation sources
         run: |
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
@@ -41,6 +44,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git add docs/source/*
           git pull
-          git commit -m "Automated docs push: ${{ github.event.pull_request.title }}" --allow-empty
+          git commit -m "docs: update docs [${{ github.event.pull_request.title }}] [skip-ci]" --allow-empty
           git push
-        # git add docs/_build/html/*

@@ -1,6 +1,9 @@
 from dataclasses import asdict
+from datetime import datetime
+from importlib import metadata
+from typing import List
 
-from sphinxawesome_theme import ThemeOptions, __version__
+from sphinxawesome_theme import ThemeOptions
 from sphinxawesome_theme.postprocess import Icons
 
 # Configuration file for the Sphinx documentation builder.
@@ -12,9 +15,10 @@ from sphinxawesome_theme.postprocess import Icons
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "PointTree"
-author = "Josafat-Mattias Burmeister"
-copyright = f"2024, {author}."
-release = "1.0.0"
+author = ", ".join([name.split(" <")[0] for name in metadata.metadata("pointtree")["Author-email"].split(", ")])
+copyright = f"{datetime.now().year}, {author}."
+release = metadata.version("pointtree")
+summary = metadata.metadata("pointtree")["Summary"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,6 +31,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxawesome_theme.highlighting",
     "sphinx_design",
+    "sphinx_mdinclude",
     "sphinx_sitemap",
 ]
 
@@ -46,12 +51,13 @@ python_maximum_signature_line_length = 88
 # Global substitutions for reStructuredText files
 substitutions = [
     f".. |product| replace:: {project}",
+    f".. |summary| replace:: {summary}",
     f".. |current| replace:: {release}",
 ]
 rst_prolog = "\n".join(substitutions)
 
 templates_path = ["apidoc_templates"]
-exclude_patterns = []
+exclude_patterns: List[str] = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
@@ -59,7 +65,7 @@ exclude_patterns = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/pointtree/index"},
+    main_nav_links={"Docs": "/pointtree/index", "Changelog": "/changelog"},
     extra_header_link_icons={
         "repository on GitHub": {
             "link": "https://github.com/ai4trees/pointtree",
@@ -109,3 +115,7 @@ html_extra_path = ["robots.txt", "_redirects"]
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["autoclass.css"]
+
+html_sidebars: dict[str, list[str]] = {
+    "changelog/*": ["sidebar_main_nav_links.html"],
+}

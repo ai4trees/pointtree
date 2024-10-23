@@ -36,6 +36,9 @@ jobs:
           ref: ${{ github.sha }}
       - name: Force correct release branch on workflow sha
         run: |
+          git config --global --add safe.directory $(realpath .)
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.ref_name }} ${{ github.sha }}
       - name: Setup up Python
         uses: actions/setup-python@v3
@@ -47,9 +50,6 @@ jobs:
           pip install build wheel python-semantic-release
       - name: Create release
         run: |
-            git config --global --add safe.directory $(realpath .)
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git config --global user.name "github-actions[bot]"
             semantic-release version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -24,10 +24,10 @@ jobs:
   if: github.repository == 'ai4trees/pointtree'
 
   deploy-docs:
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     container:
       image: justushildebrand/python-cuda:3.9-cuda11.8
       volumes:
@@ -42,6 +42,9 @@ jobs:
           fetch-depth: 0
       - name: Force correct branch on workflow sha
         run: |
+          git config --global --add safe.directory $(realpath .)
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.head_ref }} ${{ github.sha }}
       - name: Build sphinx documentation
         shell: bash

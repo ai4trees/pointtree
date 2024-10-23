@@ -15,7 +15,6 @@ concurrency:
 
 jobs:
   generate-docs:
-    name: Generate documentation sources
     runs-on: ubuntu-latest
 
     container:
@@ -32,6 +31,9 @@ jobs:
           fetch-depth: 0
       - name: Force correct branch on workflow sha
         run: |
+          git config --global --add safe.directory $(realpath .)
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.head_ref }} ${{ github.sha }}
       - name: Generate sphinx documentation sources from docstrings
         shell: bash
@@ -43,9 +45,6 @@ jobs:
       - name: Commit and push documentation sources
         run: |
           cd /github/workspace/
-          git config --global --add safe.directory $(realpath .)
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
           git add docs/source/*
           git pull
           git commit -m "docs: update docs [${{ github.event.pull_request.title }}] [skip ci]" --allow-empty

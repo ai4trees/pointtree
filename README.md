@@ -12,14 +12,6 @@ The documentation of our package is available [here](https://ai4trees.github.io/
 
 The setup of our package is described in the [documentation](https://ai4trees.github.io/pointtree/#get-started).
 
-### Running the tests
-
-To execute the tests, run:
-
-```
-pytest
-```
-
 ### How to Cite
 
 If you use our code, please consider citing our paper:
@@ -35,3 +27,24 @@ volume = {X-4/W5-2024},
 year = {2024}
 }
 ```
+
+### Running the Tests
+
+To execute the tests, run:
+
+```
+pytest
+```
+
+### Releasing
+
+Releases are published automatically when a tag is pushed to the main branch on GitHub.
+
+.. code-block:: bash
+
+   # Create release tag
+   git commit -m "a commit"
+   git tag -a "release"
+
+   # Push
+   git push upstream --tags

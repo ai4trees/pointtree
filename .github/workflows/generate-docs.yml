@@ -26,6 +26,9 @@ jobs:
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - name: Generate sphinx documentation sources from docstrings
         shell: bash
         run: |

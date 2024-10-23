@@ -70,6 +70,9 @@ jobs:
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - name: Executing tests
         shell: bash
         run: |
@@ -86,9 +89,6 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add coverage.svg
-          git remote
-          git branch -vv
-          git remote
           git pull
           git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}] [skip ci]" --allow-empty
           git push

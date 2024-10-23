@@ -82,8 +82,7 @@ jobs:
           coverage run -m pytest
           coverage-badge -f -o coverage.svg
       - name: Commit coverage badge
-        if: |
-          ${{ inputs.update-coverage-badge == true }} && ${{ !startsWith(github.event.head_commit.message, 'ci: update coverage badge') && !startsWith(github.event.head_commit.message, 'docs: update docs')}}
+        if: ${{ inputs.update-coverage-badge == true }}
         run: |
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
@@ -91,5 +90,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git add coverage.svg
           git pull
-          git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}]" --allow-empty
+          git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}] [skip-ci]" --allow-empty
           git push

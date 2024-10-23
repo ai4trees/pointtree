@@ -77,7 +77,7 @@ jobs:
       - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
       - name: Force correct branch on workflow sha
         run: |
@@ -86,7 +86,7 @@ jobs:
           git remote
           echo ${{ github.ref }}
           echo ${{ github.head_ref }}
-          git checkout -B ${{ github.ref }} ${{ github.sha }}
+          git checkout -B ${{ github.head_ref }} ${{ github.sha }}
           git branch -vv
       - name: Executing tests
         shell: bash

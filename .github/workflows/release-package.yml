@@ -1,0 +1,74 @@
+# This workflow creates a release of the package and publishes it on PyPI when commits are pushed to the main branch
+name: CD pipeline for main branch
+
+on:
+  push:
+    branches:
+      - main
+    tages:
+      - release
+
+permissions:
+  id-token: write
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  if: github.repository == 'ai4trees/pointtree'
+
+  release-package:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
+      # Note: we need to checkout the repository at the workflow sha in case during the workflow
+      # the branch was updated. To keep PSR working with the configured release branches,
+      # we force a checkout of the desired release branch but at the workflow sha HEAD.
+      - name: Check out repository at workflow sha
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Force correct release branch on workflow sha
+        run: |
+          git checkout -B ${{ github.ref_name }} ${{ github.sha }}
+      - name: Setup up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel python-semantic-release
+      - name: Create release
+        run: |
+            git config --global --add safe.directory $(realpath .)
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git config --global user.name "github-actions[bot]"
+            semantic-release version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish package to TestPyPI
+        uses: pypa/gh-action-pypi-publish@master
+        if: steps.release.outputs.released == 'true'
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      - name: Test install from TestPyPI
+        run: |
+          pip install \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple \
+            pointtree
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        if: steps.release.outputs.released == 'true'
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

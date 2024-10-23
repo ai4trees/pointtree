@@ -1,3 +1,5 @@
+# This workflow checks that pull request titles adhere to the conventional commits format
+
 name: PR Conventional Commit Validation
 
 on:

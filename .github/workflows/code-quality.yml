@@ -16,16 +16,16 @@ jobs:
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
-      - name: Checkout out repository
+      - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Analysing the code with black
         shell: bash
         run: |
-          pwd
-          ls
           source /root/venv/bin/activate
           cd /github/workspace/
-          python -m pip install --upgrade .'[dev, docs]'
+          python -m pip install black
           black src --check --verbose --diff --color --line-length 120
           black test --check --verbose --diff --color --line-length 120
   mypy:
@@ -35,8 +35,10 @@ jobs:
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
-      - name: Checkout out repository
+      - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Analysing the code with mypy
         shell: bash
         run: |
@@ -51,8 +53,10 @@ jobs:
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
-      - name: Checkout out repository
+      - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
       - name: Analysing the code with pylint
         shell: bash
         run: |
@@ -70,11 +74,14 @@ jobs:
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Checkout out repository
+      - name: Checkout out repository at workflow sha
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
+      - name: Force correct branch on workflow sha
+        run: |
+          git checkout -B ${{ github.head_ref }} ${{ github.sha }}
       - name: Executing tests
         shell: bash
         run: |
@@ -84,7 +91,7 @@ jobs:
           coverage run -m pytest
           coverage-badge -f -o coverage.svg
       - name: Commit coverage badge
-        if: ${{ inputs.update-coverage-badge == true && !startsWith(github.event.head_commit.message, 'Automated docs push:') && !startsWith(github.event.head_commit.message, 'Automated coverage batch push:')}}
+        if: ${{ inputs.update-coverage-badge == true }}
         run: |
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
@@ -92,5 +99,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git add coverage.svg
           git pull
-          git commit -m "Automated coverage badge push: ${{ github.event.pull_request.title }}" --allow-empty
+          git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}] [skip ci]" --allow-empty
           git push

@@ -17,12 +17,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  if: github.repository == 'ai4trees/pointtree'
-
   release-package:
-
+    if: github.repository == 'ai4trees/pointtree'
     runs-on: ubuntu-latest
-
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0

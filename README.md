@@ -28,23 +28,4 @@ year = {2024}
 }
 ```
 
-### Running the Tests
-
-To execute the tests, run:
-
-```
-pytest
-```
-
-### Releasing
-
-Releases are published automatically when a tag is pushed to the main branch on GitHub.
-
-```bash
-# Create release tag
-git commit -m "a commit"
-git tag -a "release"
-
-# Push
-git push upstream --tags
 ```

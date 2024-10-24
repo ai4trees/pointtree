@@ -20,6 +20,10 @@ jobs:
   release-package:
     if: github.repository == 'ai4trees/pointtree'
     runs-on: ubuntu-latest
+    container:
+      image: justushildebrand/python-cuda:3.9-cuda11.8
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -33,15 +37,14 @@ jobs:
           ref: ${{ github.sha }}
       - name: Force correct release branch on workflow sha
         run: |
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.ref_name }} ${{ github.sha }}
-      - name: Setup up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.x'
       - name: Install build dependencies
         run: |
+          source /root/venv/bin/activate
           python -m pip install --upgrade pip
           pip install build wheel python-semantic-release
       - name: Create release
@@ -58,7 +61,7 @@ jobs:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
       - name: Test install from TestPyPI
         run: |
-          pip install \
+          python -m pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \
             pointtree

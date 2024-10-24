@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: justushildebrand/python-cuda:3.9-cuda11.7
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:

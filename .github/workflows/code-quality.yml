@@ -43,7 +43,7 @@ jobs:
   pylint:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: justushildebrand/python-cuda:3.9-cuda11.8
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:

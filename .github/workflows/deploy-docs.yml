@@ -51,7 +51,12 @@ jobs:
           mkdir all_builds
           git tag -l "v[0-9]*\.[0-9]*\.[0-9]*"
           git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" \
-            | xargs -d $'\n' sh -c 'for arg do rm -rf build; git checkout "$arg"; make clean; make html; mv build/html "all_builds/$arg"; done' _
+            | xargs -d $'\n' sh -c 'for arg do \
+                rm -rf build; git checkout "$arg"; \
+                git checkout main -- source/conf.py; \
+                git checkout main -- source/apidoc_templates/versions.html; \
+                make clean; make html; \
+                mv build/html "all_builds/$arg"; done' _
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

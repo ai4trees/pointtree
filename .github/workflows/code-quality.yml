@@ -27,7 +27,7 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: justushildebrand/python-cuda:3.9-cuda11.7
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -60,7 +60,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: justushildebrand/python-cuda:3.9-cuda11.7
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -76,8 +76,8 @@ jobs:
         run: |
           source /root/venv/bin/activate
           cd /github/workspace/
-          python -m pip install --upgrade .'[dev, docs]'
-          coverage run -m pytest
+          python -m pip install --upgrade -e .'[dev, docs]'
+          coverage run --omit=test/* -m pytest
           coverage-badge -f -o coverage.svg
       - name: Commit coverage badge
         if: ${{ inputs.update-coverage-badge == true }}

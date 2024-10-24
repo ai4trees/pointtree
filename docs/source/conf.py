@@ -65,7 +65,7 @@ exclude_patterns: List[str] = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/pointtree/index", "Changelog": "/changelog"},
+    main_nav_links={"Docs": "/pointtree/index", "Changelog": "/changelog", "Development": "/development"},
     extra_header_link_icons={
         "repository on GitHub": {
             "link": "https://github.com/ai4trees/pointtree",
@@ -118,4 +118,5 @@ html_css_files = ["autoclass.css"]
 
 html_sidebars: dict[str, list[str]] = {
     "changelog/*": ["sidebar_main_nav_links.html"],
+    "development/*": ["sidebar_main_nav_links.html"],
 }

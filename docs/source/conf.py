@@ -1,7 +1,8 @@
 from dataclasses import asdict
 from datetime import datetime
 from importlib import metadata
-from typing import List
+import subprocess
+from typing import Any, Dict, List
 
 from sphinxawesome_theme import ThemeOptions
 from sphinxawesome_theme.postprocess import Icons
@@ -107,7 +108,7 @@ html_copy_source = False
 html_logo = ""
 html_favicon = ""
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = "https://josafatburmeister.github.io/pointtree/"
+html_baseurl = "https://ai4trees.github.io/pointtree/"
 html_extra_path = ["robots.txt", "_redirects"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -117,6 +118,18 @@ html_static_path = ["_static"]
 html_css_files = ["autoclass.css"]
 
 html_sidebars: dict[str, list[str]] = {
+    "*": ["sidebar_main_nav_links.html", "localtoc.html", "versions.html"],
     "changelog/*": ["sidebar_main_nav_links.html"],
     "development/*": ["sidebar_main_nav_links.html"],
 }
+
+html_context: Dict[str, Any] = {
+    "current_version": release,
+    "versions": [],
+}
+
+git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_output=True, text=True)
+version_tags = git_ls_tags_result.stdout.split("\n")
+
+for version_tag in version_tags:
+    html_context["versions"].append([version_tag, f"{html_baseurl}/{version_tag}"])

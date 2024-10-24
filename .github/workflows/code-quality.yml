@@ -77,7 +77,7 @@ jobs:
           source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade -e .'[dev, docs]'
-          coverage run -m pytest
+          coverage run --omit=test/* -m pytest
           coverage-badge -f -o coverage.svg
       - name: Commit coverage badge
         if: ${{ inputs.update-coverage-badge == true }}

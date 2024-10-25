@@ -48,7 +48,7 @@ jobs:
           source /root/venv/bin/activate
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
-          python -m pip install --upgrade .'[dev, docs]'
+          python -m pip install -e --upgrade .'[dev, docs]'
           cd docs
           rm -rf all_builds
           mkdir all_builds

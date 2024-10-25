@@ -31,7 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete huge unnecessary tools folder
-        run: rm -rf /opt/hostedtoolcache
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Cache Docker image
@@ -49,11 +51,15 @@ jobs:
             cd /github/workspace/
             python -m pip install --upgrade .'[dev, docs]'
             mypy . --warn-unused-ignores --show-error-codes --no-incremental
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
   pylint:
     runs-on: ubuntu-latest
     steps:
       - name: Delete huge unnecessary tools folder
-        run: rm -rf /opt/hostedtoolcache
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Cache Docker image
@@ -72,11 +78,15 @@ jobs:
             python -m pip install --upgrade .'[dev, docs]'
             pylint src --rcfile=.rcfile
             pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Delete huge unnecessary tools folder
-        run: rm -rf /opt/hostedtoolcache
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
@@ -109,3 +119,5 @@ jobs:
           git pull
           git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}] [skip-ci]" --allow-empty
           git push
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0

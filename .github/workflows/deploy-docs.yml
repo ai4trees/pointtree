@@ -65,7 +65,7 @@ jobs:
           make clean
           make html
           mv build/html all_builds/main
-          latest_version = variable=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
+          latest_version=variable=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
           touch all_builds/_redirects
           echo "/ /$latest_version" >> all_builds/_redirects
           echo "/stable /$latest_version" >> all_builds/_redirects

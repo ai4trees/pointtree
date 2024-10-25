@@ -4,6 +4,9 @@ name: Deploy documentation
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
 
   # Allows to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -54,9 +57,19 @@ jobs:
             | xargs -d $'\n' sh -c 'for arg do \
                 rm -rf build; git checkout "$arg"; \
                 git checkout main -- source/conf.py; \
-                git checkout main -- source/apidoc_templates/versions.html; \
+                git checkout main -- source/apidoc_templates/*; \
                 make clean; make html; \
                 mv build/html "all_builds/$arg"; done' _
+          git checkout main
+          rm -rf build
+          make clean
+          make html
+          mv build/html all_builds/main
+          latest_version = variable=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
+          touch all_builds/_redirects
+          echo "/ /$latest_version" >> all_builds/_redirects
+          echo "/stable /$latest_version" >> all_builds/_redirects
+          touch all_builds/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

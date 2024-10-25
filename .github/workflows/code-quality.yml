@@ -30,6 +30,8 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Cache Docker image
@@ -50,6 +52,8 @@ jobs:
   pylint:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Cache Docker image
@@ -71,6 +75,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository

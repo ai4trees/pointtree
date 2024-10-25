@@ -29,17 +29,13 @@ jobs:
           black test --check --verbose --diff --color --line-length 120
   mypy:
     runs-on: ubuntu-latest
-    container:
-      image: $DOCKER_IMAGE_NAME
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:
-          key: docker-${{ runner.os }}-$DOCKER_IMAGE_NAME
+          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
       - name: Analysing the code with mypy
         uses: addnab/docker-run-action@v3
         with:
@@ -59,7 +55,7 @@ jobs:
       - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:
-          key: docker-${{ runner.os }}-$DOCKER_IMAGE_NAME
+          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
       - name: Analysing the code with pylint
         uses: addnab/docker-run-action@v3
         with:
@@ -74,10 +70,6 @@ jobs:
             pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
     runs-on: ubuntu-latest
-    container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -89,7 +81,7 @@ jobs:
       - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:
-          key: docker-${{ runner.os }}-$DOCKER_IMAGE_NAME
+          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
       - name: Executing tests
         uses: addnab/docker-run-action@v3
         with:

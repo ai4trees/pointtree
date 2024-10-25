@@ -31,7 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Show disk usage
-        run: df -h
+        run: |
+          df -h
+          cd
+          pwd
       - name: Delete huge unnecessary tools folder
         run: |
           rm -rf /opt/hostedtoolcache

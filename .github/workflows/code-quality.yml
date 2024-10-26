@@ -155,6 +155,8 @@ jobs:
       - name: Delete huge unnecessary tools folder
         run: |
           ls /home/runner/work
+          ls /home/runner -a
+          rm -rf /home/runner/work/pointtree
       - name: Show disk usage
         run: |
           df -h

@@ -10,6 +10,7 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: justushildebrand/python-cuda:3.9-cuda11.8
+  DOCKER_IMAGE_PATH: ~/justushildebrand/python-cuda:3.9-cuda11.8.tar.gz
 
 jobs:
   black:
@@ -118,6 +119,18 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
       - name: Cache Docker image
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: ${{ env.DOCKER_IMAGE_PATH }}
+          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
+      - name: Pull Docker image
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: docker pull {{ env.DOCKER_IMAGE_NAME }}
+      - name: Load Docker image
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: docker load --input {{ env.DOCKER_IMAGE_NAME }}
+      - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:
           key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
@@ -170,3 +183,6 @@ jobs:
           pwd
           cd
           ls
+      - name: Save Docker image in Cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}

@@ -135,3 +135,5 @@ version_tags.sort(reverse=True)
 
 for version_tag in version_tags:
     html_context["versions"].append([version_tag, f"{base_url}/{version_tag}"])
+
+print("versions", html_context["versions"])

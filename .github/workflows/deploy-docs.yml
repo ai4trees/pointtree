@@ -60,7 +60,7 @@ jobs:
                 git checkout "$arg"; \
                 git branch -a; \
                 git checkout ${{ github.ref_name }} -- ./source/conf.py; \
-                git checkout ${{ github.ref_name }} -- ./source/apidoc_templates/*; \
+                git checkout ${{ github.ref_name }} -- ./source/apidoc_templates/versions.html; \
                 cat source/conf.py; \
                 ls source/apidoc_templates; \
                 make clean; make html; \

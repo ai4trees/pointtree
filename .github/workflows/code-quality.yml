@@ -173,6 +173,7 @@ jobs:
           ls -a /home/runner/work/pointtree
           docker image ls
           docker rmi $(docker images --filter=reference="node*" -q)
+          docker system prune -f --all --volumes
           docker image ls
       - name: Show disk usage
         run: |

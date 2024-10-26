@@ -10,7 +10,7 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: justushildebrand/python-cuda:3.9-cuda11.8
-  DOCKER_IMAGE_PATH: ~/justushildebrand/python-cuda:3.9-cuda11.8.tar.gz
+  DOCKER_IMAGE_PATH: ~/docker-image-justushildebrand-python-cuda-3-9-cuda11-8.tar.gz
 
 jobs:
   black:

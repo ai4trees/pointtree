@@ -20,6 +20,7 @@ author = ", ".join([name.split(" <")[0] for name in metadata.metadata("pointtree
 copyright = f"{datetime.now().year}, {author}."
 release = metadata.version("pointtree")
 summary = metadata.metadata("pointtree")["Summary"]
+base_url = "https://ai4trees.github.io/pointtree"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -108,7 +109,7 @@ html_copy_source = False
 html_logo = ""
 html_favicon = ""
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = "https://ai4trees.github.io/pointtree"
+html_baseurl = f"{base_url}/v{release}"
 html_extra_path = ["robots.txt", "_redirects"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -125,7 +126,7 @@ html_sidebars: dict[str, list[str]] = {
 
 html_context: Dict[str, Any] = {
     "current_version": release,
-    "versions": ["main (unstable)", f"{html_baseurl}/main"],
+    "versions": ["main (unstable)", f"{base_url}/main"],
 }
 
 git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_output=True, text=True)
@@ -133,4 +134,4 @@ version_tags = git_ls_tags_result.stdout.split("\n")
 version_tags.sort(reverse=True)
 
 for version_tag in version_tags:
-    html_context["versions"].append([version_tag, f"{html_baseurl}/{version_tag}"])
+    html_context["versions"].append([version_tag, f"{base_url}/{version_tag}"])

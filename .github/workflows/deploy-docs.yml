@@ -71,10 +71,11 @@ jobs:
           make html
           mv build/html all_builds/main
           latest_version=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
+          cp -r all_builds/$latest_version all_builds/stable
           touch all_builds/_redirects
           echo "/ /$latest_version" >> all_builds/_redirects
           echo "/stable /$latest_version" >> all_builds/_redirects
-          touch all_builds/index.html
+          cp ./source/apidoc_templates/index.html all_builds/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

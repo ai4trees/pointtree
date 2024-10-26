@@ -126,10 +126,10 @@ jobs:
           key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
       - name: Pull Docker image
         if: steps.cache.outputs.cache-hit != 'true'
-        run: docker pull {{ env.DOCKER_IMAGE_NAME }}
+        run: docker pull ${{ env.DOCKER_IMAGE_NAME }}
       - name: Load Docker image
         if: steps.cache.outputs.cache-hit == 'true'
-        run: docker load --input {{ env.DOCKER_IMAGE_NAME }}
+        run: docker load --input ${{ env.DOCKER_IMAGE_NAME }}
       - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:

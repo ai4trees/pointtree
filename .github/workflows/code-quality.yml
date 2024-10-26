@@ -147,4 +147,8 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Show disk usage
-        run: df -h
+        run: |
+          df -h
+          pwd
+          cd
+          pwd

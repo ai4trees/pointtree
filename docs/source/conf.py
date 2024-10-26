@@ -126,14 +126,16 @@ html_sidebars: dict[str, list[str]] = {
 
 html_context: Dict[str, Any] = {
     "current_version": release,
-    "versions": ["main (unstable)", f"{base_url}/main"],
+    "versions": [("main (unstable)", f"{base_url}/main")],
 }
 
 git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_output=True, text=True)
-version_tags = git_ls_tags_result.stdout.split("\n")
+version_tags = [version_tag for version_tag in git_ls_tags_result.stdout.split("\n") if version_tag.startswith("v")]
 version_tags.sort(reverse=True)
 
+print("version_tags", version_tags)
+
 for version_tag in version_tags:
-    html_context["versions"].append([version_tag, f"{base_url}/{version_tag}"])
+    html_context["versions"].append((version_tag, f"{base_url}/{version_tag}"))
 
 print("versions", html_context["versions"])

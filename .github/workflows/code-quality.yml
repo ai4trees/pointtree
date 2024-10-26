@@ -156,7 +156,9 @@ jobs:
         run: |
           ls /home/runner/work
           ls /home/runner -a
-          rm -rf /home/runner/work/pointtree
+          ls -a /home/runner/.docker
+          ls -a /home/runner/work/pointtree
+          docker image ls
       - name: Show disk usage
         run: |
           df -h

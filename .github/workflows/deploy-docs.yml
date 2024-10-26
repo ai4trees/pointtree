@@ -58,6 +58,8 @@ jobs:
                 rm -rf build; git checkout "$arg"; \
                 git checkout main -- source/conf.py; \
                 git checkout main -- source/apidoc_templates/*; \
+                cat source/conf.py; \
+                ls source/apidoc_templates; \
                 make clean; make html; \
                 mv build/html "all_builds/$arg"; done' _
           git checkout main

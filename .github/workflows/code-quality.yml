@@ -152,6 +152,15 @@ jobs:
           pwd
           cd
           pwd
+      - name: Delete huge unnecessary tools folder
+        run: |
+          rm -rf /home/runner/work
+      - name: Show disk usage
+        run: |
+          df -h
+          pwd
+          cd
+          pwd
       - name: Debug logs
         run: |
           pwd

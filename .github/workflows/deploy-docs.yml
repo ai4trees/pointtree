@@ -56,6 +56,7 @@ jobs:
           git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" \
             | xargs -d $'\n' sh -c 'for arg do \
                 rm -rf build; git checkout "$arg"; \
+                git branch -a; \
                 git checkout main -- source/conf.py; \
                 git checkout main -- source/apidoc_templates/*; \
                 cat source/conf.py; \

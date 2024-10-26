@@ -66,6 +66,7 @@ jobs:
                 make clean; make html; \
                 mv build/html "all_builds/$arg"; done' _
           git checkout ${{ github.ref_name }}
+          export POINTTREE_VERSION="main (unstable)"
           rm -rf build
           make clean
           make html

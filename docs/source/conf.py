@@ -1,6 +1,7 @@
 from dataclasses import asdict
 from datetime import datetime
 from importlib import metadata
+import os
 import subprocess
 from typing import Any, Dict, List
 
@@ -18,7 +19,8 @@ from sphinxawesome_theme.postprocess import Icons
 project = "PointTree"
 author = ", ".join([name.split(" <")[0] for name in metadata.metadata("pointtree")["Author-email"].split(", ")])
 copyright = f"{datetime.now().year}, {author}."
-release = metadata.version("pointtree")
+# the package version can be either specified via the env variable POINTTREE_VERSION or read from the installed package
+release = os.environ.get("POINTTREE_VERSION", metadata.version("pointtree"))
 summary = metadata.metadata("pointtree")["Summary"]
 base_url = "https://ai4trees.github.io/pointtree"
 
@@ -133,9 +135,5 @@ git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_outp
 version_tags = [version_tag for version_tag in git_ls_tags_result.stdout.split("\n") if version_tag.startswith("v")]
 version_tags.sort(reverse=True)
 
-print("version_tags", version_tags)
-
 for version_tag in version_tags:
     html_context["versions"].append((version_tag, f"{base_url}/{version_tag}"))
-
-print("versions", html_context["versions"])

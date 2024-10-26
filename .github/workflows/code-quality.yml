@@ -10,7 +10,7 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: justushildebrand/python-cuda:3.9-cuda11.8
-  DOCKER_IMAGE_PATH: /dev/root/docker-image-justushildebrand-python-cuda-3-9-cuda11-8.tar.gz
+  DOCKER_IMAGE_PATH: ~/docker-image-justushildebrand-python-cuda-3-9-cuda11-8.tar.gz
 
 jobs:
   black:
@@ -171,6 +171,8 @@ jobs:
           ls /home/runner -a
           ls -a /home/runner/.docker
           ls -a /home/runner/work/pointtree
+          docker image ls
+          docker rmi $(docker images --filter=reference="node*" -q)
           docker image ls
       - name: Show disk usage
         run: |

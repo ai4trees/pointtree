@@ -152,3 +152,8 @@ jobs:
           pwd
           cd
           pwd
+      - name: Debug logs
+        run: |
+          pwd
+          cd
+          ls

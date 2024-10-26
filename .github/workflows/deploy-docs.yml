@@ -59,13 +59,13 @@ jobs:
                 rm -rf build; \
                 git checkout "$arg"; \
                 git branch -a; \
-                git checkout main -- ./source/conf.py; \
-                git checkout main -- ./source/apidoc_templates/*; \
+                git checkout ${{ github.ref_name }} -- ./source/conf.py; \
+                git checkout ${{ github.ref_name }} -- ./source/apidoc_templates/*; \
                 cat source/conf.py; \
                 ls source/apidoc_templates; \
                 make clean; make html; \
                 mv build/html "all_builds/$arg"; done' _
-          git checkout main
+          git checkout ${{ github.ref_name }}
           rm -rf build
           make clean
           make html

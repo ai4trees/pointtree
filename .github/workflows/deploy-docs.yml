@@ -61,8 +61,8 @@ jobs:
         if: ${{ github.event_name == 'release' }}
         shell: bash
         run: |
-          cd docs
           git config --global --add safe.directory $(realpath .)
+          cd docs
           latest_version=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
           git checkout "$latest_version"
           git branch -a
@@ -79,23 +79,23 @@ jobs:
         if: ${{ github.event_name == 'push' }} && ${{ github.head_ref == 'main'}}
         shell: bash
         run: |
+          git config --global --add safe.directory $(realpath .)
           echo ${{ github.event_name }}
           cd docs
-          git config --global --add safe.directory $(realpath .)
           echo ${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
           make clean
           make html
           mv build/html "all_builds/main"
           rclone sync all_builds docs-cloud:pointtree-docs
-      - name: Build docs for main branch
+      - name: Build docs for pull request
         if: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
+          git config --global --add safe.directory $(realpath .)
           echo ${{ github.event_name }}
           echo ${{ github.event }}
           cd docs
-          git config --global --add safe.directory $(realpath .)
           echo ${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
           git branch -a

@@ -118,22 +118,28 @@ html_extra_path = ["robots.txt", "_redirects"]
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["autoclass.css"]
+html_css_files = [
+    "autoclass.css",
+    "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=keyboard_arrow_down",
+]
 
 html_sidebars: dict[str, list[str]] = {
-    "*": ["sidebar_main_nav_links.html", "localtoc.html", "versions.html"],
+    "*": ["sidebar_main_nav_links.html", "localtoc.html", "version.html"],
     "changelog/*": ["sidebar_main_nav_links.html"],
     "development/*": ["sidebar_main_nav_links.html"],
 }
+html_additional_pages = {"versions": "versions.html"}
 
 html_context: Dict[str, Any] = {
     "current_version": release,
+    "base_url": base_url,
     "versions": [("main (unstable)", f"{base_url}/main")],
 }
 
 git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_output=True, text=True)
 version_tags = [version_tag for version_tag in git_ls_tags_result.stdout.split("\n") if version_tag.startswith("v")]
 version_tags.sort(reverse=True)
+version_tags[-1] = f"{version_tags[-1]} (stable)"
 
 for version_tag in version_tags:
     html_context["versions"].append((version_tag, f"{base_url}/{version_tag}"))

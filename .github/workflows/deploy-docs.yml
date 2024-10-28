@@ -81,7 +81,8 @@ jobs:
         run: |
           git config --global --add safe.directory $(realpath .)
           echo ${{ github.event_name }}
-          cd docs
+          source /root/venv/bin/activate
+          cd /github/workspace/docs
           echo ${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
           make clean
@@ -95,7 +96,8 @@ jobs:
           git config --global --add safe.directory $(realpath .)
           echo ${{ github.event_name }}
           echo ${{ github.event }}
-          cd docs
+          source /root/venv/bin/activate
+          cd /github/workspace/docs
           echo ${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
           git branch -a

@@ -97,7 +97,7 @@ def instance_segmentation_metrics(
         invalid_tree_id: ID that is assigned to instances that could not be matched. Defaults to -1.
 
     Returns:
-        A dictionary containing the following instance segmentation keys: `"tp"`, `"fp"`, `"fn"`, `"panoptic_quality"`,
+        :A dictionary containing the following instance segmentation keys: `"tp"`, `"fp"`, `"fn"`, `"panoptic_quality"`,
         `"detection_f1_score"`, `"detection_precision"`, `"detection_recall"`, `"segmentation_m_iou"`,
         `"segmentation_m_precision"`, `"segmentation_m_recall"`.
     """
@@ -151,7 +151,7 @@ def semantic_segmentation_metrics(  # pylint: disable=too-many-locals, too-many-
             aggregated classes and the values are lists of the IDs of the classes to be aggregated.
 
     Returns:
-        A dictionary containing the following keys for each semantic class: `"<class_name>_iou"`,
+        :A dictionary containing the following keys for each semantic class: `"<class_name>_iou"`,
         `"<class_name>_precision"`, `"<class_name>_recall"`. For each aggregated class, the keys
         `"<class_name>_iou_aggregated"`, `"<class_name>_precision_aggregated"`, `"<class_name>_recall_aggregated"` are
         provided.

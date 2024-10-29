@@ -1,5 +1,7 @@
 """ Base class for implementing tree instance segmentation algorithms. """
 
+__all__ = ["InstanceSegmentationAlgorithm"]
+
 import abc
 import logging
 from typing import Optional, Tuple
@@ -94,11 +96,13 @@ class InstanceSegmentationAlgorithm(abc.ABC):
             point_cloud_size = len(point_cloud)
 
             tree_mask = np.logical_or(
-                point_cloud[semantic_segmentation_column] == self._trunk_class_id,
-                point_cloud[semantic_segmentation_column] == self._crown_class_id,
+                point_cloud[semantic_segmentation_column].to_numpy() == self._trunk_class_id,
+                point_cloud[semantic_segmentation_column].to_numpy() == self._crown_class_id,
             )
             if self._branch_class_id is not None:
-                tree_mask = np.logical_or(tree_mask, point_cloud[semantic_segmentation_column] == self._branch_class_id)
+                tree_mask = np.logical_or(
+                    tree_mask, point_cloud[semantic_segmentation_column].to_numpy() == self._branch_class_id
+                )
 
             if tree_mask.sum() == 0:
                 return np.full(len(point_cloud), fill_value=-1, dtype=np.int64)

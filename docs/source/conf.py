@@ -50,6 +50,14 @@ napoleon_custom_sections = [
 ]
 napoleon_use_ivar = True
 nitpicky = True
+nitpick_ignore = [
+    ("py:class", "abc.ABC"),
+    ("py:class", "numpy.ndarray"),
+    ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", "pandas.DataFrame"),
+    ("py:class", "torch.Tensor"),
+    ("py:class", "torch.Size"),
+]
 python_maximum_signature_line_length = 88
 
 # Global substitutions for reStructuredText files
@@ -112,7 +120,7 @@ html_logo = ""
 html_favicon = ""
 html_permalinks_icon = Icons.permalinks_icon
 html_baseurl = f"{base_url}/v{release}"
-html_extra_path = ["robots.txt", "_redirects"]
+html_extra_path = ["robots.txt"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -9,6 +9,10 @@ on:
 jobs:
   clean-up-pr:
     runs-on: ubuntu-latest
+    container:
+      image: justushildebrand/python-cuda:3.9-cuda11.7
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Remove documentation deployment
         shell: bash

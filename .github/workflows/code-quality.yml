@@ -47,12 +47,16 @@ jobs:
         with:
           path: ${{ env.DOCKER_IMAGE_PATH }}
           key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
+      - name: Show disk usage
+        run: df -h
       - name: Pull Docker image
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           docker rmi $(docker images --filter=reference="node*" -q)
           docker system prune -f --all --volumes
+          df -h
           docker pull ${{ env.DOCKER_IMAGE_NAME }}
+          df -h
           docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}
       - name: Show disk usage
         run: df -h

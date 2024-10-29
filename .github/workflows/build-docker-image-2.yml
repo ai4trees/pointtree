@@ -1,0 +1,33 @@
+name: Build of Docker images
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+
+  build-3-8:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clean working directory
+      uses: AutoModality/action-clean@v1.1.0
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - run: |
+        export latest_version = (git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
+        echo $latest_version
+    - name: Build and push a docker image with all runtime dependencies of the pointtree package
+      uses: elgohr/Publish-Docker-Github-Action@v5
+      with:
+        name: josafatburmeister/pointtree:${{ env.latest_version }}-torch2.4.0-cuda12.4
+        username: ${{ secrets.DOCKER_HUB_USER }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+        dockerfile: Dockerfile
+        context: .
+    - name: Clean up docker build remains
+      run: docker system prune --all --volumes --force

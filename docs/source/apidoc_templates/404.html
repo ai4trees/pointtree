@@ -4,8 +4,11 @@
     if (url.endsWith("/pointtree") || url.endsWith("/pointtree/")) {
         window.location.replace(window.location.pathname.replace("stable/versions"));
     }
-    if (window.location.pathname.endsWith("/pointtree/stable")) {
-        window.location.replace(window.location.pathname.replace(LATEST_VERSION));
+    if (window.location.pathname.includes("/pointtree/stable")) {
+        window.location.replace(window.location.pathname.toString().replace(
+          "/pointtree/stable",
+          `/pointtree/${LATEST_VERSION}`)
+        );
     }
 </script>
 

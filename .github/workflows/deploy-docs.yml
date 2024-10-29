@@ -113,8 +113,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           message: |
-            The documentation for this pull request was deployed at \
-            https://ai4trees.github.io/pointtree/pr${{ github.event.number }}.
+            The documentation for this pull request was deployed at https://ai4trees.github.io/pointtree/pr${{ github.event.number }}.
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

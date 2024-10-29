@@ -24,7 +24,7 @@ def voxel_downsampling(  # pylint: disable=too-many-locals, too-many-statements
 
     Args:
         points: The point cloud to downsample.
-        voxel_size: The size of the voxels used for downsampling. If :attr:`voxel_size` is set to zero or less, no
+        voxel_size: The size of the voxels used for downsampling. If :code:`voxel_size` is set to zero or less, no
             downsampling is applied.
         point_aggregation: Method to be used to aggregate the points within the same voxel. Defaults to
             `nearest_neighbor`. `"nearest_neighbor"`: The point closest to the voxel center is selected. `"random"`:
@@ -33,7 +33,7 @@ def voxel_downsampling(  # pylint: disable=too-many-locals, too-many-statements
             points included in the downsampled point cloud, the point that is first in the original point cloud is
             also first in the downsampled point cloud. Defaults to `True`.
         start: Coordinates of a point at which the voxel grid is to be aligned, i.e., the grid is placed so that
-            :attr:`start` is at a corner point of a voxel. Defaults to `None`, which means that the grid is aligned at
+            :code:`start` is at a corner point of a voxel. Defaults to `None`, which means that the grid is aligned at
             the coordinate origin.
 
     Returns:
@@ -44,8 +44,8 @@ def voxel_downsampling(  # pylint: disable=too-many-locals, too-many-statements
         ValueError: If `start` is not `None` and has an invalid shape.
 
     Shape:
-        - :attr:`points`: :math:`(N, 3 + D)`.
-        - :attr:`start`: :math:`(3)`
+        - :code:`points`: :math:`(N, 3 + D)`.
+        - :code:`start`: :math:`(3)`
         - Output: Tuple of two arrays. The first has shape :math:`(N', 3 + D)` and the second :math:`(N')`.
 
           | where

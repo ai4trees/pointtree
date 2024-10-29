@@ -55,16 +55,16 @@ jobs:
           docker rmi $(docker images --filter=reference="node*" -q)
           docker system prune -f --all --volumes
           df -h
-          docker pull python:3.9.20
+          docker pull pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
           df -h
-          docker save --output ${{ env.DOCKER_IMAGE_PATH }} python:3.9.20
+          docker save --output ${{ env.DOCKER_IMAGE_PATH }} pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
           df -h
       - name: Show disk usage
         run: df -h
       - name: Load Docker image
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
-          docker load --input python:3.9.20
+          docker load --input pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
       - name: Show disk usage
         run: df -h
       - name: Checkout out repository

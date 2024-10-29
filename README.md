@@ -2,6 +2,7 @@
 
 ## A Python Package for Individual Tree Segmentation in 3D Point Clouds.
 
+![pypi-image](https://badge.fury.io/py/pointtree.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/ai4trees/pointtree/actions/workflows/code-quality-main.yml/badge.svg)](https://github.com/ai4trees/pointtree/actions/workflows/code-quality-main.yml)
 ![coverage](https://github.com/ai4trees/pointtree/blob/main/coverage.svg)

@@ -32,22 +32,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Show disk usage
-        run: |
-          df -h
-          cd
-          pwd
+        run: df -h
       - name: Delete huge unnecessary tools folder
         run: |
           rm -rf /opt/hostedtoolcache
           rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Show disk usage
         run: df -h
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
+      - name: Cache Docker image
+        uses: actions/cache@v4
+        id: cache
+        with:
+          path: ${{ env.DOCKER_IMAGE_PATH }}
+          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
+      - name: Pull Docker image
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          docker rmi $(docker images --filter=reference="node*" -q)
+          docker system prune -f --all --volumes
+          docker pull ${{ env.DOCKER_IMAGE_NAME }}
+          docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}
+      - name: Show disk usage
+        run: df -h
+      - name: Load Docker image
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          docker load --input ${{ env.DOCKER_IMAGE_NAME }}
+      - name: Show disk usage
+        run: df -h
       - name: Checkout out repository
         uses: actions/checkout@v4
-      - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.5.0
         with:
-          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - name: Analysing the code with mypy
         uses: addnab/docker-run-action@v3
         with:
@@ -59,12 +78,6 @@ jobs:
             cd /github/workspace/
             python -m pip install --upgrade .'[dev, docs]'
             mypy . --warn-unused-ignores --show-error-codes --no-incremental
-      - name: Show disk usage
-        run: df -h
-      - name: Clean up potential remnants of past jobs
-        uses: AutoModality/action-clean@v1.1.0
-      - name: Show disk usage
-        run: df -h
   pylint:
     runs-on: ubuntu-latest
     steps:

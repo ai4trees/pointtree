@@ -113,11 +113,6 @@ jobs:
         run: df -h
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Checkout out repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
       - name: Cache Docker image
         uses: actions/cache@v4
         id: cache
@@ -131,14 +126,19 @@ jobs:
           docker system prune -f --all --volumes
           docker pull ${{ env.DOCKER_IMAGE_NAME }}
           docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}
+      - name: Show disk usage
+        run: df -h
       - name: Load Docker image
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
           docker load --input ${{ env.DOCKER_IMAGE_NAME }}
-      - name: Cache Docker image
-        uses: ScribeMD/docker-cache@0.5.0
+      - name: Show disk usage
+        run: df -h
+      - name: Checkout out repository
+        uses: actions/checkout@v4
         with:
-          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
       - name: Executing tests
         uses: addnab/docker-run-action@v3
         with:
@@ -160,32 +160,3 @@ jobs:
           git pull
           git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}] [skip-ci]" --allow-empty
           git push
-      - name: Show disk usage
-        run: df -h
-      - name: Clean up potential remnants of past jobs
-        uses: AutoModality/action-clean@v1.1.0
-      - name: Show disk usage
-        run: |
-          df -h
-          pwd
-          cd
-          pwd
-      - name: Delete huge unnecessary tools folder
-        run: |
-          ls /home/runner/work
-          ls /home/runner -a
-          ls -a /home/runner/.docker
-          ls -a /home/runner/work/pointtree
-          docker image ls
-          docker image ls
-      - name: Show disk usage
-        run: |
-          df -h
-          pwd
-          cd
-          pwd
-      - name: Debug logs
-        run: |
-          pwd
-          cd
-          ls

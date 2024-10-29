@@ -58,6 +58,7 @@ jobs:
           docker pull python:3.9.20
           df -h
           docker save --output ${{ env.DOCKER_IMAGE_PATH }} python:3.9.20
+          df -h
       - name: Show disk usage
         run: df -h
       - name: Load Docker image

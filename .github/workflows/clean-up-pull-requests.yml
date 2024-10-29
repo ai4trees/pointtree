@@ -7,13 +7,12 @@ on:
     types: [closed]
 
 jobs:
-  validate-pr-title:
+  clean-up-pr:
     runs-on: ubuntu-latest
     steps:
       - name: Remove documentation deployment
         shell: bash
         run: |
-          cd /github/workspace/docs
           rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
             pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
             user=${{ secrets.DOCS_CLOUD_USER }}

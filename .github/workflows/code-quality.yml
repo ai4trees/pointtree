@@ -127,6 +127,7 @@ jobs:
       - name: Pull Docker image
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          docker rmi $(docker images --filter=reference="node*" -q)
           docker system prune -f --all --volumes
           docker pull ${{ env.DOCKER_IMAGE_NAME }}
           docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}
@@ -176,8 +177,6 @@ jobs:
           ls -a /home/runner/.docker
           ls -a /home/runner/work/pointtree
           docker image ls
-          docker rmi $(docker images --filter=reference="node*" -q)
-          docker system prune -f --all --volumes
           docker image ls
       - name: Show disk usage
         run: |

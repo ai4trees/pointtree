@@ -101,11 +101,9 @@ jobs:
           source /root/venv/bin/activate
           cd docs
           echo ${{ github.head_ref }}
+          echo ${{ github.event.pull_request.id }}
           git checkout ${{ github.head_ref }}
-          git branch -a
           echo ${{ github.head_ref }}
-          git checkout main -- ./source/conf.py
-          git checkout main -- ./source/apidoc_templates/version.html
           make clean
           make html
           mv build/html "all_builds/pr${{ github.event.pull_request.id }}"
@@ -113,7 +111,7 @@ jobs:
       - uses: marocchino/sticky-pull-request-comment@v2
         if: ${{ github.event_name == 'pull_request' }}
         with:
-          header: test
+          header: Github actions bot
           message: |
             ```
             The documentation for this pull request was deployed at https://ai4trees.github.io/pointtree//pr${{github.event.pull_request.id}}.

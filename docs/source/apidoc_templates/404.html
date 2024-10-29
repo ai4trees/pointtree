@@ -1,12 +1,12 @@
 <script>
     LATEST_VERSION = "v0.0.0";
-    let url = window.location.pathname;
+    let url = window.location.pathname.toString();
     // redirect to overview of different versions
     if (url.endsWith("/pointtree") || url.endsWith("/pointtree/")) {
         if (url.endsWith("/")) {
           url = url.slice(0, -1);
         }
-        window.location.replace(`${window.location.pathname.toString()}/stable/versions`);
+        window.location.replace(`${url}/stable/versions`);
     }
     // redirect to documentation of latest version
     if (window.location.pathname.includes("/pointtree/stable")) {

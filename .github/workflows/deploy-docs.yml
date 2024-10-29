@@ -61,6 +61,7 @@ jobs:
         if: ${{ github.event_name == 'release' }}
         shell: bash
         run: |
+          cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           cd docs
           latest_version=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
@@ -79,10 +80,11 @@ jobs:
         if: ${{ github.event_name == 'push' }} && ${{ github.head_ref == 'main'}}
         shell: bash
         run: |
+          cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           echo ${{ github.event_name }}
           source /root/venv/bin/activate
-          cd /github/workspace/docs
+          cd docs
           echo ${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
           make clean
@@ -93,11 +95,12 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         shell: bash
         run: |
+          cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           echo ${{ github.event_name }}
           echo ${{ github.event }}
           source /root/venv/bin/activate
-          cd /github/workspace/docs
+          cd docs
           echo ${{ github.head_ref }}
           git checkout ${{ github.head_ref }}
           git branch -a

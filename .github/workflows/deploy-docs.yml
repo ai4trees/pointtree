@@ -19,6 +19,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
@@ -101,20 +102,19 @@ jobs:
           source /root/venv/bin/activate
           cd docs
           echo ${{ github.head_ref }}
-          echo ${{ github.event.pull_request.id }}
+          echo ${{ github.event.number }}
           git checkout ${{ github.head_ref }}
           echo ${{ github.head_ref }}
           make clean
           make html
-          mv build/html "all_builds/pr${{ github.event.pull_request.id }}"
+          mv build/html "all_builds/pr${{ github.event.number }}"
           rclone sync all_builds docs-cloud:pointtree-docs
       - uses: marocchino/sticky-pull-request-comment@v2
-        if: ${{ github.event_name == 'pull_request' }}
+        if: github.event_name == 'pull_request'
         with:
-          header: Github actions bot
           message: |
             ```
-            The documentation for this pull request was deployed at https://ai4trees.github.io/pointtree//pr${{github.event.pull_request.id}}.
+            The documentation for this pull request was deployed at https://ai4trees.github.io/pointtree//pr${{github.event.number}}.
             ```
       - name: Setup Pages
         uses: actions/configure-pages@v5

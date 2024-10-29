@@ -55,15 +55,15 @@ jobs:
           docker rmi $(docker images --filter=reference="node*" -q)
           docker system prune -f --all --volumes
           df -h
-          docker pull ${{ env.DOCKER_IMAGE_NAME }}
+          docker pull python:3.9.20
           df -h
-          docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}
+          docker save --output ${{ env.DOCKER_IMAGE_PATH }} python:3.9.20
       - name: Show disk usage
         run: df -h
       - name: Load Docker image
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
-          docker load --input ${{ env.DOCKER_IMAGE_NAME }}
+          docker load --input python:3.9.20
       - name: Show disk usage
         run: df -h
       - name: Checkout out repository

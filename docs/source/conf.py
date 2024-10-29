@@ -147,7 +147,9 @@ html_context: Dict[str, Any] = {
 git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_output=True, text=True)
 version_tags = [version_tag for version_tag in git_ls_tags_result.stdout.split("\n") if version_tag.startswith("v")]
 version_tags.sort(reverse=True)
-version_tags[-1] = f"{version_tags[-1]} (stable)"
 
-for version_tag in version_tags:
-    html_context["versions"].append((version_tag, f"{base_url}/{version_tag}"))
+for idx, version_tag in enumerate(version_tags):
+    version_url = f"{base_url}/{version_tag}"
+    if idx == len(version_tags) - 1:
+        version_tag = f"{version_tag} (stable)"
+    html_context["versions"].append((version_tag, version_url))

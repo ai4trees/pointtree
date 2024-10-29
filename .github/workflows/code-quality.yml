@@ -9,8 +9,8 @@ on:
         type: boolean
 
 env:
-  DOCKER_IMAGE_NAME: justushildebrand/python-cuda:3.9-cuda11.8
-  DOCKER_IMAGE_PATH: ~/docker-image-justushildebrand-python-cuda-3-9-cuda11-8.tar.gz
+  DOCKER_IMAGE_NAME: josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4
+  DOCKER_IMAGE_PATH: ~/docker-image-josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4.tar.gz
 
 jobs:
   black:
@@ -55,16 +55,16 @@ jobs:
           docker rmi $(docker images --filter=reference="node*" -q)
           docker system prune -f --all --volumes
           df -h
-          docker pull josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4
+          docker pull ${{ env.DOCKER_IMAGE_NAME }}
           df -h
-          docker save --output ${{ env.DOCKER_IMAGE_PATH }} josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4
+          docker save --output ${{ env.DOCKER_IMAGE_PATH }} ${{ env.DOCKER_IMAGE_NAME }}
           df -h
       - name: Show disk usage
         run: df -h
       - name: Load Docker image
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
-          docker load --input josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4
+          docker load --input ${{ env.DOCKER_IMAGE_PATH }}
       - name: Show disk usage
         run: df -h
       - name: Checkout out repository

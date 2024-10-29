@@ -10,7 +10,7 @@ on:
 
 env:
   DOCKER_IMAGE_NAME: josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4
-  DOCKER_IMAGE_PATH: ~/docker-image-josafatburmeister/pointtree:v0.0.0-torch2.4.0-cuda12.4.tar.gz
+  DOCKER_IMAGE_PATH: ~/docker-image-josafatburmeister-pointtree:v0.0.0-torch2.4.0-cuda12.4.tar.gz
 
 jobs:
   black:

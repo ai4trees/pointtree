@@ -23,11 +23,4 @@ jobs:
           rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
             pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
             user=${{ secrets.DOCS_CLOUD_USER }}
-          rclone copy docs-cloud:pointtree-docs/ all_builds
-          cd all_builds
-          ls
-          cd ..
-          echo ${{ github.event.number }}
-          echo "all_builds/pr${{ github.event.number }}"
-          rm -rf "all_builds/pr${{ github.event.number }}"
-          rclone sync all_builds docs-cloud:pointtree-docs
+          rclone purge docs-cloud:pointtree-docs/pr${{ github.event.number }}

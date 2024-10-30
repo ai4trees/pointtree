@@ -78,6 +78,10 @@ jobs:
           cd /github/workspace/
           python -m pip install --upgrade -e .'[dev, docs]'
           pytest --cov --cov-report=xml
+      - name: Debug log
+        shell: bash
+        run: |
+          echo ${{ github.event.pull_request.user.login }}
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:

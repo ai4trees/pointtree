@@ -7,6 +7,9 @@ on:
         required: false
         default: false
         type: boolean
+    secrets:
+      codecov_token:
+        required: true
 
 jobs:
   black:
@@ -86,5 +89,5 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.codecov_token }}
           verbose: true

@@ -1,4 +1,4 @@
-# PointTree
+![pointtree](./docs/assets/pointtree-logo-color.png)
 
 ## A Python Package for Individual Tree Segmentation in 3D Point Clouds.
 

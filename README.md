@@ -12,11 +12,11 @@ The package contains the official source code of the paper ["Burmeister, Josafat
 
 ### Package Documentation
 
-The documentation of our package is available [here](https://ai4trees.github.io/pointtree/latest).
+The documentation of our package is available [here](https://ai4trees.github.io/pointtree/stable).
 
 ### Project Setup
 
-The setup of our package is described in the [documentation](https://ai4trees.github.io/pointtree/latest#get-started).
+The setup of our package is described in the [documentation](https://ai4trees.github.io/pointtree/stable#get-started).
 
 ### How to Cite
 

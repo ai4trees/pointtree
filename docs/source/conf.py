@@ -16,7 +16,7 @@ from sphinxawesome_theme.postprocess import Icons
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "PointTree"
+project = "pointtree"
 author = ", ".join([name.split(" <")[0] for name in metadata.metadata("pointtree")["Author-email"].split(", ")])
 copyright = f"{datetime.now().year}, {author}."
 # the package version can be either specified via the env variable POINTTREE_VERSION or read from the installed package
@@ -78,6 +78,8 @@ theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
     main_nav_links={"Docs": "/pointtree/index", "Changelog": "/changelog", "Development": "/development"},
+    logo_light="../assets/pointtree-icon-light-mode.png",
+    logo_dark="../assets/pointtree-icon-dark-mode.png",
     extra_header_link_icons={
         "repository on GitHub": {
             "link": "https://github.com/ai4trees/pointtree",
@@ -117,7 +119,7 @@ html_use_index = False
 html_domain_indices = False
 html_copy_source = False
 html_logo = ""
-html_favicon = ""
+html_favicon = "../assets/pointtree-favicon-128x128.png"
 html_permalinks_icon = Icons.permalinks_icon
 html_baseurl = f"{base_url}/v{release}"
 html_extra_path = ["robots.txt"]

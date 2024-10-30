@@ -7,18 +7,11 @@
 Testing
 ------------------
 
-To execute the tests, run:
+To execute the tests and measure the code coverage, run:
 
 .. code-block:: bash
 
-   $ pytest
-
-To measure the code coverage, run:
-
-.. code-block:: bash
-
-   $ coverage run -m pytest
-   $ coverage report --show-missing
+   $ pytest --cov --cov-report=xml
 
 Releasing
 ----------

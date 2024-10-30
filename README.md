@@ -1,4 +1,4 @@
-![pointtree](./docs/assets/pointtree-logo-color.png)
+<img src="./docs/assets/pointtree-logo-color.png" alt="pointtree" width="300" height="100">
 
 ## A Python Package for Individual Tree Segmentation in 3D Point Clouds.
 

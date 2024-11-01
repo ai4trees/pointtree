@@ -11,10 +11,6 @@ on:
       codecov_token:
         required: true
 
-env:
-  DOCKER_IMAGE_NAME: josafatburmeister/pointtree:latest
-  DOCKER_IMAGE_PATH: ~/docker-image-josafatburmeister-pointtree:latest.tar.gz
-
 jobs:
   black:
     runs-on: ubuntu-latest
@@ -34,7 +30,7 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.DOCKER_IMAGE_NAME }}
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -51,7 +47,7 @@ jobs:
   pylint:
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.DOCKER_IMAGE_NAME }}
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -69,7 +65,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: ${{ env.DOCKER_IMAGE_NAME }}
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:

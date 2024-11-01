@@ -33,32 +33,21 @@ jobs:
           black test --check --verbose --diff --color --line-length 120
   mypy:
     runs-on: ubuntu-latest
+    container:
+      image: ${{ env.DOCKER_IMAGE_NAME }}
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Delete unnecessary folders to free disk space
-        run: |
-          rm -rf /opt/hostedtoolcache
-          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
-          docker system prune --all --volumes --force
-      - name: Cache Docker image
-        id: cache-docker-image
-        uses: ScribeMD/docker-cache@0.5.0
-        with:
-          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with mypy
-        uses: addnab/docker-run-action@v3
-        with:
-          image: ${{ env.DOCKER_IMAGE_NAME }}
-          options: -v ${{ github.workspace }}:/github/workspace
-          shell: bash
-          run: |
-            source /root/venv/bin/activate
-            cd /github/workspace/
-            python -m pip install --upgrade .'[dev, docs]'
-            mypy . --warn-unused-ignores --show-error-codes --no-incremental
+        shell: bash
+        run: |
+          cd /github/workspace/
+          python -m pip install --upgrade .'[dev, docs]'
+          mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
     steps:

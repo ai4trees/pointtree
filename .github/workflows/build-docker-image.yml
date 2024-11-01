@@ -3,12 +3,13 @@ name: Build of Docker images
 on:
   release:
     types: [published]
-  push:
   workflow_dispatch:
 
-defaults:
-  run:
-    shell: bash
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: build-docker-image
+  cancel-in-progress: false
 
 jobs:
   build-docker-image:

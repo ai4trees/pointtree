@@ -80,9 +80,9 @@ theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
     main_nav_links={
-        "Docs": f"/pointtree/{release_id}/index.html",
-        "Changelog": f"/pointtree/{release_id}/changelog",
-        "Development": f"pointtree/{release_id}/development",
+        "Docs": f"/pointtree/{release_id}/",
+        "Changelog": f"/pointtree/{release_id}/changelog/",
+        "Development": f"pointtree/{release_id}/development/",
     },
     logo_light="../assets/pointtree-icon-light-mode.png",
     logo_dark="../assets/pointtree-icon-dark-mode.png",

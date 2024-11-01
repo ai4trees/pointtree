@@ -45,13 +45,12 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "black",
-    "coverage",
-    "coverage-badge",
     "mypy",
     "pandas-stubs",
     "parameterized",
     "pylint",
     "pytest",
+    "pytest-cov",
     "types-Pillow",
 ]
 docs = [

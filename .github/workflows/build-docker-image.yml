@@ -1,7 +1,6 @@
 name: Build of Docker images
 
 on:
-  push:
   release:
     types: [published]
   # Allows to run this workflow manually from the Actions tab

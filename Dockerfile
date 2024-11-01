@@ -9,7 +9,7 @@ FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
 COPY --from=builder /opt/conda/lib/python3.11/site-packages/pytorch3d /opt/conda/lib/python3.11/site-packages
 COPY --from=builder /opt/conda/lib/python3.11/site-packages/pytorch3d-*.dist-info /opt/conda/lib/python3.11/site-packages
 
-RUN apt-get update && apt-get install -y --no-install-recommends git gnupg && \
+RUN apt-get update && apt-get install -y --no-install-recommends curl git gnupg && \
     sudo -v ; curl https://rclone.org/install.sh | sudo bash
 
 RUN python -m pip install \

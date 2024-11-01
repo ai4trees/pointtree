@@ -33,13 +33,13 @@ jobs:
   deploy-docs:
     if: github.repository == 'ai4trees/pointtree'
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     container:
       image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Clean up potential remnants of past jobs

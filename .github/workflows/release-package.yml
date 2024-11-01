@@ -1,5 +1,5 @@
 # This workflow creates a release of the package and publishes it on PyPI when commits are pushed to the main branch
-name: CD pipeline for main branch
+name: Release package
 
 on:
   # Allows to run this workflow manually from the Actions tab

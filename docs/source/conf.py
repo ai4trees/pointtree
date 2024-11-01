@@ -82,7 +82,7 @@ theme_options = ThemeOptions(
     main_nav_links={
         "Docs": f"/pointtree/{release_id}/index",
         "Changelog": f"/pointtree/{release_id}/changelog/index",
-        "Development": f"pointtree/{release_id}/development/index",
+        "Development": f"pointtree/{release_id}/develop/index",
     },
     logo_light="../assets/pointtree-icon-light-mode.png",
     logo_dark="../assets/pointtree-icon-dark-mode.png",
@@ -142,7 +142,7 @@ html_css_files = [
 html_sidebars: dict[str, list[str]] = {
     "*": ["sidebar_main_nav_links.html", "localtoc.html", "version.html"],
     "changelog/*": ["sidebar_main_nav_links.html"],
-    "development/*": ["sidebar_main_nav_links.html"],
+    "develop/*": ["sidebar_main_nav_links.html"],
 }
 html_additional_pages = {"versions": "versions.html"}
 

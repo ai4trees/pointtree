@@ -1,4 +1,0 @@
-[run]
-omit =
-    # excludes tests from coverage measurements
-    test/*

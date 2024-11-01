@@ -1,6 +1,6 @@
 FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-runtime
 
-RUN apt-get update && apt-get install -y --no-install-recommends git
+RUN apt-get update && apt-get install -y --no-install-recommends git gnupg
 
 RUN sudo -v ; curl https://rclone.org/install.sh | sudo bash
 

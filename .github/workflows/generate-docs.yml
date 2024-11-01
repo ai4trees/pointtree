@@ -16,9 +16,8 @@ concurrency:
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
-
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -32,7 +31,6 @@ jobs:
       - name: Generate sphinx documentation sources from docstrings
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src

@@ -30,32 +30,34 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with mypy
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with pylint
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           pylint src --rcfile=.rcfile
@@ -63,7 +65,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -77,7 +79,6 @@ jobs:
       - name: Executing tests
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade -e .'[dev, docs]'
           pytest --cov --cov-report=xml

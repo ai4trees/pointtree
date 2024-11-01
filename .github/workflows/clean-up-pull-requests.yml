@@ -10,7 +10,7 @@ jobs:
   clean-up-pr:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:

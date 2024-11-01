@@ -19,7 +19,7 @@ jobs:
     if: github.repository == 'ai4trees/pointtree' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:

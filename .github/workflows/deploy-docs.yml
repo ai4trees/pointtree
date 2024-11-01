@@ -37,20 +37,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
+
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Checkout out repository at workflow sha
+      - name: Checkout out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Prepare docs build
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace
           python -m pip install --upgrade -e .'[dev, docs]'
           cd docs
@@ -65,7 +65,6 @@ jobs:
         if: github.event_name == 'release'
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           cd docs
@@ -82,7 +81,6 @@ jobs:
         if: github.event_name == 'push' && github.ref_name == 'main'
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           cd docs
@@ -97,10 +95,8 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
-          source /root/venv/bin/activate
           cd docs
           git checkout ${{ github.head_ref }}
           export POINTTREE_VERSION="pr${{ github.event.number }}"

@@ -1,7 +1,0 @@
-#content .sig dl {
-    margin-top: 0rem;
-}
-
-#content .field-list ul:not(.search)>li, #content .field-list ul:not(.search) p {
-    margin-top: 1rem;
-}

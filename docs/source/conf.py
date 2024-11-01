@@ -82,7 +82,7 @@ theme_options = ThemeOptions(
     main_nav_links={
         "Docs": f"/pointtree/{release_id}/index",
         "Changelog": f"/pointtree/{release_id}/changelog/index",
-        "Development": f"pointtree/{release_id}/develop/index",
+        "Development": f"/pointtree/{release_id}/develop/index",
     },
     logo_light="../assets/pointtree-icon-light-mode.png",
     logo_dark="../assets/pointtree-icon-dark-mode.png",

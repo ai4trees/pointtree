@@ -30,6 +30,7 @@ classifiers = [
 keywords = ["tree", "point cloud", "segmentation"]
 requires-python = ">=3.9"
 dependencies = [
+    "laspy",
     "numba",
     "numba-kdtree",
     "numpy",

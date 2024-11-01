@@ -2,6 +2,7 @@ from dataclasses import asdict
 from datetime import datetime
 from importlib import metadata
 import os
+import re
 import subprocess
 from typing import Any, Dict, List
 
@@ -21,6 +22,7 @@ author = ", ".join([name.split(" <")[0] for name in metadata.metadata("pointtree
 copyright = f"{datetime.now().year}, {author}."
 # the package version can be either specified via the env variable POINTTREE_VERSION or read from the installed package
 release = os.environ.get("POINTTREE_VERSION", metadata.version("pointtree"))
+release_id = f"v{release}" if re.match(r"^\d+\.\d+\.\d+$", release) is not None else release
 summary = metadata.metadata("pointtree")["Summary"]
 base_url = "https://ai4trees.github.io/pointtree"
 
@@ -77,7 +79,11 @@ exclude_patterns: List[str] = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/pointtree/index", "Changelog": "/changelog", "Development": "/development"},
+    main_nav_links={
+        "Docs": f"/pointtree/{release_id}/index.html",
+        "Changelog": f"/pointtree/{release_id}/changelog",
+        "Development": f"pointtree/{release_id}/development",
+    },
     logo_light="../assets/pointtree-icon-light-mode.png",
     logo_dark="../assets/pointtree-icon-dark-mode.png",
     extra_header_link_icons={
@@ -121,7 +127,7 @@ html_copy_source = False
 html_logo = ""
 html_favicon = "../assets/pointtree-favicon-128x128.png"
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = f"{base_url}/v{release}"
+html_baseurl = f"{base_url}/{release_id}"
 html_extra_path = ["robots.txt"]
 
 # Add any paths that contain custom static files (such as style sheets) here,

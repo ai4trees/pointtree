@@ -6,18 +6,32 @@ on:
   pull_request:
     types: [closed]
 
+env:
+  DOCKER_IMAGE_NAME: josafatburmeister/pointtree:latest
+  DOCKER_IMAGE_PATH: ~/docker-image-josafatburmeister-pointtree:latest.tar.gz
+
 jobs:
   clean-up-pr:
     runs-on: ubuntu-latest
-    container:
-      image: justushildebrand/python-cuda:3.9-cuda11.7
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
     steps:
-      - name: Remove documentation deployment
-        shell: bash
+      - name: Cache Docker image
+        id: cache-docker-image
+        uses: ScribeMD/docker-cache@0.5.0
+        with:
+          key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
+      - name: Delete unnecessary folders to free disk space
+        if: steps.cache-docker-image.outputs.cache-hit != 'true'
         run: |
-          rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
-            pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
-            user=${{ secrets.DOCS_CLOUD_USER }}
-          rclone purge docs-cloud:pointtree-docs/pr${{ github.event.number }}
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
+      - name: Remove documentation deployment
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ env.DOCKER_IMAGE_NAME }}
+          options: -v ${{ github.workspace }}:/github/workspace
+          shell: bash
+          run: |
+            rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
+              pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
+              user=${{ secrets.DOCS_CLOUD_USER }}
+            rclone purge docs-cloud:pointtree-docs/pr${{ github.event.number }}

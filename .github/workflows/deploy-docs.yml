@@ -81,7 +81,6 @@ jobs:
         if: github.event_name == 'push' && github.ref_name == 'main'
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           cd docs
@@ -96,10 +95,8 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
-          source /root/venv/bin/activate
           cd docs
           git checkout ${{ github.head_ref }}
           export POINTTREE_VERSION="pr${{ github.event.number }}"

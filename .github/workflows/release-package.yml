@@ -34,13 +34,13 @@ jobs:
           ref: ${{ github.sha }}
       - name: Force correct release branch on workflow sha
         run: |
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.ref_name }} ${{ github.sha }}
       - name: Install build dependencies
         run: |
-          source /root/venv/bin/activate
-          cd /github/workspace/
           python -m pip install --upgrade pip
           pip install build wheel python-semantic-release
       - name: Create release

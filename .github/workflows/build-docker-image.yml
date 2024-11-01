@@ -17,6 +17,11 @@ jobs:
     steps:
       - name: Clean working directory
         uses: AutoModality/action-clean@v1.1.0
+      - name: Delete unnecessary folders to free disk space
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
+          docker system prune --all --volumes --force
       - name: Checkout out repository
         uses: actions/checkout@v4
         with:
@@ -26,7 +31,7 @@ jobs:
         run: |
           latest_version=$(git tag -l 'v[0-9]*\.[0-9]*\.[0-9]*' | sort | tail -1)
           echo "latest_version=${latest_version:1}" >> $GITHUB_ENV
-      - name: Build and push a docker image with pointtree installation
+      - name: Build and push a docker image with pointtree installation (version tag)
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: josafatburmeister/pointtree:${{ env.latest_version }}-torch2.4.0-cuda12.4
@@ -34,7 +39,7 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
           dockerfile: Dockerfile
           context: .
-      - name: Build and push a docker image with pointtree installation
+      - name: Build and push a docker image with pointtree installation (latest tag)
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: josafatburmeister/pointtree:latest

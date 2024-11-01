@@ -3,7 +3,8 @@ name: Build of Docker images
 on:
   release:
     types: [published]
-  push:
+
+  # Allows to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.

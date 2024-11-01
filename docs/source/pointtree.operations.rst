@@ -1,6 +1,5 @@
-pointtree.operations package
-============================
-
+pointtree.operations
+====================
 .. automodule:: pointtree.operations
    :members:
    :undoc-members:

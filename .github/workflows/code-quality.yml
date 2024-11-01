@@ -36,16 +36,16 @@ jobs:
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
+      - name: Delete unnecessary folders to free disk space
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
+          docker system prune --all --volumes --force
       - name: Cache Docker image
         id: cache-docker-image
         uses: ScribeMD/docker-cache@0.5.0
         with:
           key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
-      - name: Delete unnecessary folders to free disk space
-        if: steps.cache-docker-image.outputs.cache-hit != 'true'
-        run: |
-          rm -rf /opt/hostedtoolcache
-          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with mypy
@@ -64,15 +64,15 @@ jobs:
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
+      - name: Delete unnecessary folders to free disk space
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
+          docker system prune --all --volumes --force
       - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:
           key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
-      - name: Delete unnecessary folders to free disk space
-        if: steps.cache-docker-image.outputs.cache-hit != 'true'
-        run: |
-          rm -rf /opt/hostedtoolcache
-          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with pylint
@@ -92,15 +92,15 @@ jobs:
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
+      - name: Delete unnecessary folders to free disk space
+        run: |
+          rm -rf /opt/hostedtoolcache
+          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
+          docker system prune --all --volumes --force
       - name: Cache Docker image
         uses: ScribeMD/docker-cache@0.5.0
         with:
           key: docker-${{ runner.os }}-${{ env.DOCKER_IMAGE_NAME }}
-      - name: Delete unnecessary folders to free disk space
-        if: steps.cache-docker-image.outputs.cache-hit != 'true'
-        run: |
-          rm -rf /opt/hostedtoolcache
-          rm -rf /usr/local/android /usr/share/dotnet /usr/local/share/boost /opt/ghc
       - name: Checkout out repository
         uses: actions/checkout@v4
         with:

@@ -10,7 +10,7 @@ COPY --from=builder /opt/conda/lib/python3.11/site-packages/pytorch3d /opt/conda
 COPY --from=builder /opt/conda/lib/python3.11/site-packages/pytorch3d-*.dist-info /opt/conda/lib/python3.11/site-packages
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl git gnupg && \
-    sudo -v ; curl https://rclone.org/install.sh | sudo bash
+    curl https://rclone.org/install.sh | bash
 
 RUN python -m pip install \
     torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html \

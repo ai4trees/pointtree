@@ -3,6 +3,7 @@ name: Build of Docker images
 on:
   release:
     types: [published]
+  push:
   workflow_dispatch:
 
 defaults:

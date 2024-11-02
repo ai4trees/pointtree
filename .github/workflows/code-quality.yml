@@ -7,6 +7,9 @@ on:
         required: false
         default: false
         type: boolean
+    secrets:
+      codecov_token:
+        required: true
 
 jobs:
   black:
@@ -27,42 +30,50 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with mypy
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Analysing the code with pylint
         shell: bash
         run: |
-          source /root/venv/bin/activate
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
     runs-on: ubuntu-latest
-    container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
+    # run tests for all supported Python and PyTorch versions
+    strategy:
+      matrix:
+        version: [
+          {python: "3.9", torch: "2.0.0"},
+          {python: "3.10", torch: "2.1.0"},
+          {python: "3.11", torch: "2.2.0"},
+          {python: "3.12", torch: "2.3.0"},
+          {python: "3.12", torch: "2.4.0"}
+        ]
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -71,22 +82,21 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
+      - name: Setup up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.version.python }}
       - name: Executing tests
         shell: bash
         run: |
-          source /root/venv/bin/activate
-          cd /github/workspace/
-          python -m pip install --upgrade .'[dev, docs]'
-          coverage run -m pytest
-          coverage-badge -f -o coverage.svg
-      - name: Commit coverage badge
-        if: ${{ inputs.update-coverage-badge == true }}
-        run: |
-          cd /github/workspace/
-          git config --global --add safe.directory $(realpath .)
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add coverage.svg
-          git pull
-          git commit -m "ci: update coverage badge [${{ github.event.pull_request.title }}] [skip-ci]" --allow-empty
-          git push
+          pip install torch==${{ matrix.version.torch }}
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install --upgrade -e .'[dev, docs]'
+          pytest --cov --cov-report=xml
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.codecov_token }}
+          verbose: true

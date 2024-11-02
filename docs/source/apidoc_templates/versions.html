@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+
+    <title>PointTree Documentation</title>
+    <meta property="og:title" content="PointTree Documentation" />
+    <meta name="twitter:title" content="PointTree Documentation" />
+
+    {#- CSS files #}
+    {%- for css in css_files %}
+      {%- if css|attr("filename") %}
+        {{ css_tag(css) }}
+      {%- else -%}
+        <link rel="stylesheet" href="{{ pathto(css, 1)|e }}" />
+      {%- endif %}
+    {%- endfor %}
+
+    {%- set _favicon_url = favicon_url | default(pathto('_static/' + (favicon or ""), 1)) %}
+    {%- if favicon_url or favicon %}
+      <link rel="icon" href="{{ _favicon_url }}" />
+    {%- endif %}
+
+</head>
+
+<body>
+    <div id="page" class="relative flex flex-col min-h-screen">
+        <div class="flex-1 p-6">
+            {%- block main %}
+            <main class="relative">
+                <h1 class="text-xl font-bold">PointTree Documentation</h1>
+                <p class="caption py-6"><span class="caption-text">Pick a version:</span></p>
+                <ul>
+                {% for version, url in versions %}
+                <li class="pb-1">
+                    <a class="reference internal underline" href="{{ url }}">{{ version }}</a>
+                </li>
+                {% endfor %}
+                </ul>
+            </div>
+            </main>
+            {%- endblock main %}
+        </div>
+
+        {%- block footer %}
+        {%- include "footer.html" %}
+        {%- endblock footer %}
+    </div>
+</body>
+
+<style>
+    .pb-1 {
+        padding-bottom: 0.25rem;
+    }
+    .p-6 {
+        padding: 1.5rem;
+    }
+    .py-6 {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+</style>
+
+</html>

@@ -50,7 +50,7 @@ def ravel_index(index: torch.Tensor, input_tensor: torch.Tensor, dim: int) -> to
 def ravel_multi_index(multi_index: torch.Tensor, dims: Union[torch.Size, torch.Tensor]) -> torch.Tensor:
     r"""
     PyTorch implementation of numpy.ravel_multi_index. This operation  is inverse to
-    :py:meth:`pointtorch.operations.torch.unravel_flat_index`.
+    :py:meth:`pointtree.operations.unravel_flat_index`.
 
     Args:
         multi_index: Tensor containing the indices for each dimension.
@@ -58,11 +58,11 @@ def ravel_multi_index(multi_index: torch.Tensor, dims: Union[torch.Size, torch.T
 
     Returns:
         Indices for the flattened version of the tensor, referring to the same elements as referenced by
-        :attr:`multi_index` for the non-flattened version of the tensor.
+        :code:`multi_index` for the non-flattened version of the tensor.
 
     Shape:
-        - :attr:`multi_index`: :math:`(N, d_1, ..., d_D)`
-        - :attr:`dims`: :math:`(D)`
+        - :code:`multi_index`: :math:`(N, d_1, ..., d_D)`
+        - :code:`dims`: :math:`(D)`
         - Output: :math:`(N \cdot d_1 \cdot ... \cdot d_D)`
 
           | where
@@ -86,7 +86,7 @@ def ravel_multi_index(multi_index: torch.Tensor, dims: Union[torch.Size, torch.T
 def unravel_flat_index(flat_index: torch.Tensor, dims: Union[torch.Size, torch.Tensor]) -> torch.Tensor:
     r"""
     Converts an index for a 1-dimensional tensor into an index for an equivalent multi-dimensional tensor. This
-    operation is inverse to :py:meth:`pointtorch.operations.torch.ravel_multi_index`.
+    operation is inverse to :py:meth:`pointtree.operations.ravel_multi_index`.
 
     Args:
         flat_index: Tensor containing the indices for the flat array.
@@ -94,11 +94,11 @@ def unravel_flat_index(flat_index: torch.Tensor, dims: Union[torch.Size, torch.T
 
     Returns:
         Indices for the multi-dimensional version of the tensor, referring to the same elements as referenced by
-        :attr:`flat_index` for the flattened version of the tensor.
+        :code:`flat_index` for the flattened version of the tensor.
 
     Shape:
-        - :attr:`flat_index`: :math:`(N \cdot d_1 \cdot ... \cdot d_D)`
-        - :attr:`dims`: :math:`(D)`
+        - :code:`flat_index`: :math:`(N \cdot d_1 \cdot ... \cdot d_D)`
+        - :code:`dims`: :math:`(D)`
         - Output: :math:`(N, d_1, ..., d_D)`
 
           | where

@@ -1,6 +1,5 @@
-pointtree.evaluation package
-============================
-
+pointtree.evaluation
+====================
 .. automodule:: pointtree.evaluation
    :members:
    :undoc-members:

@@ -1,0 +1,23 @@
+# This workflow runs a clean up after a pull request is closed or merged
+
+name: Clean up after closing or merging a pull request
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  clean-up-pr:
+    runs-on: ubuntu-latest
+    container:
+      image: josafatburmeister/pointtree:latest
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
+    steps:
+      - name: Remove documentation deployment
+        shell: bash
+        run: |
+          rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
+            pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
+            user=${{ secrets.DOCS_CLOUD_USER }}
+          rclone purge docs-cloud:pointtree-docs/pr${{ github.event.number }}

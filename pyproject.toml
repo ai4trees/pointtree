@@ -30,28 +30,28 @@ classifiers = [
 keywords = ["tree", "point cloud", "segmentation"]
 requires-python = ">=3.9"
 dependencies = [
-    "numba",
-    "numba-kdtree",
-    "numpy",
-    "pandas",
-    "pyclesperanto-prototype",
-    "scipy",
-    "scikit-image",
-    "scikit-learn",
-    "torch",
-    "torch-cluster",
-    "torch-scatter"
+    "laspy>=2.0.0, <3.0.0",
+    "numba>=0.55.0, <1.0.0",
+    "numba-kdtree>=0.3.0, <1.0.0",
+    "numpy>=1.21.0, <3.0.0",
+    "pandas>=2.0.0, <3.0.0",
+    "pyclesperanto-prototype>=0.22.0, <1.0.0",
+    "scipy>=1.8.0, <2.0.0",
+    "scikit-image>=0.21.0, <1.0.0",
+    "scikit-learn>=1.2.0, <2.0.0",
+    "torch>=2.0.0, <3.0.0",
+    "torch-cluster>=1.6.0, <2.0.0",
+    "torch-scatter>=2.0.2, <3.0.0"
 ]
 [project.optional-dependencies]
 dev = [
     "black",
-    "coverage",
-    "coverage-badge",
     "mypy",
     "pandas-stubs",
     "parameterized",
     "pylint",
     "pytest",
+    "pytest-cov",
     "types-Pillow",
 ]
 docs = [

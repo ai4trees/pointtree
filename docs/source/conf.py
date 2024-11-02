@@ -1,7 +1,10 @@
 from dataclasses import asdict
 from datetime import datetime
 from importlib import metadata
-from typing import List
+import os
+import re
+import subprocess
+from typing import Any, Dict, List
 
 from sphinxawesome_theme import ThemeOptions
 from sphinxawesome_theme.postprocess import Icons
@@ -14,11 +17,14 @@ from sphinxawesome_theme.postprocess import Icons
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "PointTree"
+project = "pointtree"
 author = ", ".join([name.split(" <")[0] for name in metadata.metadata("pointtree")["Author-email"].split(", ")])
 copyright = f"{datetime.now().year}, {author}."
-release = metadata.version("pointtree")
+# the package version can be either specified via the env variable POINTTREE_VERSION or read from the installed package
+release = os.environ.get("POINTTREE_VERSION", metadata.version("pointtree"))
+release_id = f"v{release}" if re.match(r"^\d+\.\d+\.\d+$", release) is not None else release
 summary = metadata.metadata("pointtree")["Summary"]
+base_url = "https://ai4trees.github.io/pointtree"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -46,6 +52,14 @@ napoleon_custom_sections = [
 ]
 napoleon_use_ivar = True
 nitpicky = True
+nitpick_ignore = [
+    ("py:class", "abc.ABC"),
+    ("py:class", "numpy.ndarray"),
+    ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", "pandas.DataFrame"),
+    ("py:class", "torch.Tensor"),
+    ("py:class", "torch.Size"),
+]
 python_maximum_signature_line_length = 88
 
 # Global substitutions for reStructuredText files
@@ -65,7 +79,13 @@ exclude_patterns: List[str] = []
 theme_options = ThemeOptions(
     show_prev_next=True,
     awesome_external_links=True,
-    main_nav_links={"Docs": "/pointtree/index", "Changelog": "/changelog"},
+    main_nav_links={
+        "Docs": f"/pointtree/{release_id}/index",
+        "Changelog": f"/pointtree/{release_id}/changelog/index",
+        "Development": f"/pointtree/{release_id}/develop/index",
+    },
+    logo_light="../assets/pointtree-icon-light-mode.png",
+    logo_dark="../assets/pointtree-icon-dark-mode.png",
     extra_header_link_icons={
         "repository on GitHub": {
             "link": "https://github.com/ai4trees/pointtree",
@@ -105,17 +125,39 @@ html_use_index = False
 html_domain_indices = False
 html_copy_source = False
 html_logo = ""
-html_favicon = ""
+html_favicon = "../assets/pointtree-favicon-128x128.png"
 html_permalinks_icon = Icons.permalinks_icon
-html_baseurl = "https://josafatburmeister.github.io/pointtree/"
-html_extra_path = ["robots.txt", "_redirects"]
+html_baseurl = f"{base_url}/{release_id}"
+html_extra_path = ["robots.txt"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["autoclass.css"]
+html_css_files = [
+    "autoclass.css",
+    "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=keyboard_arrow_down",
+]
 
 html_sidebars: dict[str, list[str]] = {
+    "*": ["sidebar_main_nav_links.html", "localtoc.html", "version.html"],
     "changelog/*": ["sidebar_main_nav_links.html"],
+    "develop/*": ["sidebar_main_nav_links.html"],
 }
+html_additional_pages = {"versions": "versions.html"}
+
+html_context: Dict[str, Any] = {
+    "current_version": release,
+    "base_url": base_url,
+    "versions": [("main (unstable)", f"{base_url}/main")],
+}
+
+git_ls_tags_result = subprocess.run(["git", "tag", "-l", "v*.*.*"], capture_output=True, text=True)
+version_tags = [version_tag for version_tag in git_ls_tags_result.stdout.split("\n") if version_tag.startswith("v")]
+version_tags.sort(reverse=True)
+
+for idx, version_tag in enumerate(version_tags):
+    version_url = f"{base_url}/{version_tag}"
+    if idx == len(version_tags) - 1:
+        version_tag = f"{version_tag} (stable)"
+    html_context["versions"].append((version_tag, version_url))

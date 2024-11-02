@@ -8,7 +8,7 @@ import pytest
 from pointtree.operations import make_labels_consecutive
 
 
-class TestUtils:
+class TestMakeLabelsConsecutive:
     """Tests for the make_labels_consecutive method in pointtree.operations."""
 
     @pytest.mark.parametrize("ignore_id", [-1, None])

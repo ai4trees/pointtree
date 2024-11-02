@@ -1,9 +1,17 @@
-# This workflow deploys the package documentation on GitHub Pages when a new package release is published
+# This workflow deploys the package documentation on GitHub Pages when a new package release is published, a new commit
+# is pushed to main, or a pull request is created
+
 name: Deploy documentation
 
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
   # Allows to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -13,6 +21,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
@@ -28,38 +37,86 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     container:
-      image: justushildebrand/python-cuda:3.9-cuda11.8
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
+
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
-      - name: Checkout out repository at workflow sha
+      - name: Checkout out repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
           fetch-depth: 0
-      - name: Force correct branch on workflow sha
-        run: |
-          git config --global --add safe.directory $(realpath .)
-          git checkout -B ${{ github.head_ref }} ${{ github.sha }}
-      - name: Build sphinx documentation
+      - name: Prepare docs build
         shell: bash
         run: |
-          source /root/venv/bin/activate
-          cd /github/workspace/
-          python -m pip install --upgrade .'[dev, docs]'
+          cd /github/workspace
+          python -m pip install --upgrade -e .'[dev, docs]'
           cd docs
+          rm -rf all_builds
+          mkdir all_builds
           rm -rf build
+          rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
+            pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
+            user=${{ secrets.DOCS_CLOUD_USER }}
+          rclone copy docs-cloud:pointtree-docs/ all_builds
+      - name: Build docs for package release
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
+          cd docs
+          latest_version=$(git tag -l "v[0-9]*\.[0-9]*\.[0-9]*" | sort | tail -1)
+          git checkout "$latest_version"
           make clean
           make html
+          mv build/html "all_builds/$latest_version"
+          rm -f all_builds/404.html
+          cp ./source/apidoc_templates/404.html all_builds/404.html
+          sed -i -e "s/LATEST_VERSION = \"v0.0.0\";/$latest_version/g" all_builds/404.html
+          rclone sync all_builds docs-cloud:pointtree-docs
+      - name: Build docs for main branch
+        if: github.event_name == 'push' && github.ref_name == 'main'
+        shell: bash
+        run: |
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
+          cd docs
+          git checkout ${{ github.head_ref }}
+          export POINTTREE_VERSION="main (unstable)"
+          make clean
+          make html
+          rm -rf all_builds/main
+          mv build/html all_builds/main
+          rclone sync all_builds docs-cloud:pointtree-docs
+      - name: Build docs for pull request
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
+          cd docs
+          git checkout ${{ github.head_ref }}
+          export POINTTREE_VERSION="pr${{ github.event.number }}"
+          make clean
+          make html
+          rm -rf "all_builds/pr${{ github.event.number }}"
+          mv build/html "all_builds/pr${{ github.event.number }}"
+          rclone sync all_builds docs-cloud:pointtree-docs
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          message: |
+            The documentation for this pull request was deployed at https://ai4trees.github.io/pointtree/pr${{ github.event.number }}.
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: './docs/build/html'
+          path: './docs/all_builds'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

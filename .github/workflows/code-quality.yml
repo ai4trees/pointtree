@@ -15,12 +15,14 @@ jobs:
   black:
     runs-on: ubuntu-latest
     steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
         uses: actions/checkout@v4
       - name: Setup up Python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.9'
+          python-version: '3.12'
       - name: Analysing the code with black
         shell: bash
         run: |

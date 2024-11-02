@@ -64,10 +64,10 @@ jobs:
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
     runs-on: ubuntu-latest
-    container:
-      image: josafatburmeister/pointtree:latest
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
+    # run tests for all supported Python versions
+    strategy:
+      matrix:
+        python_version: [3.9, 3.10, 3.11, 3.12, 3.13]
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -76,10 +76,17 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
+      - name: Setup up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python_version }}
       - name: Executing tests
         shell: bash
         run: |
           cd /github/workspace/
+          pip install torch==2.4.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           python -m pip install --upgrade -e .'[dev, docs]'
           pytest --cov --cov-report=xml
       - name: Upload results to Codecov

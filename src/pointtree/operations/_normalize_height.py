@@ -11,6 +11,7 @@ def normalize_height(  # pylint: disable=too-many-locals
     dtm: npt.NDArray[np.float64],
     dtm_offset: npt.NDArray[np.float64],
     dtm_resolution: float,
+    allow_outside_points: bool = True,
     inplace: bool = False,
 ) -> npt.NDArray[np.float64]:
     r"""
@@ -22,11 +23,18 @@ def normalize_height(  # pylint: disable=too-many-locals
         coords: Point coordinates of the point cloud to normalize.
         dtm: Rasterized digital terrain model.
         dtm_offset: X and y-coordinates of the top left corner of the DTM grid.
+        allow_outside_points: If this option is set to :code:`True` and a point in the point cloud to be normalized is
+            not in the area covered by the DTM, the height of the nearest DTM points is still determined and used for
+            normalization. Otherwise, a :code:`ValueError` is thrown if points are outside the area covered by the DTM.
+            Defaults to :code:`True`.
         inplace: Whether the normalization should be applied in place to the :code:`coords` array. Defaults to
             :code:`False`.
 
     Returns:
         Height-normalized point cloud.
+
+    Raises:
+        ValueError: If the point cloud to be normalized covers a larger base area than the DTM.
 
     Shape:
         - :code:`coords`: :math:`(N, 3)`
@@ -42,9 +50,17 @@ def normalize_height(  # pylint: disable=too-many-locals
     """
 
     grid_positions = (coords[:, :2] - dtm_offset) / dtm_resolution
-    grid_positions = np.clip(grid_positions, 0, np.array(dtm.shape) - 1)
+    if allow_outside_points:
+        grid_positions = np.clip(grid_positions, 0, np.array(dtm.shape) - 1)
     grid_indices = np.floor(grid_positions).astype(np.int64)
     grid_fractions = grid_positions - grid_indices
+
+    if not allow_outside_points and (
+        (grid_positions < 0).any()
+        or (grid_positions[:, 0] >= dtm.shape[1]).any()
+        or (grid_positions[:, 1] >= dtm.shape[0]).any()
+    ):
+        raise ValueError("The DTM does not completely cover the point cloud to be normalized.")
 
     height_1 = dtm[grid_indices[:, 1], grid_indices[:, 0]]
     height_2 = dtm[grid_indices[:, 1], np.minimum(grid_indices[:, 0] + 1, dtm.shape[1] - 1)]

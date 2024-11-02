@@ -8,7 +8,7 @@ import pytest
 from pointtree.operations import create_digital_terrain_model
 
 
-class TestClothSimulationFiltering:  # pylint: disable=too-few-public-methods
+class TestCreateDigitalTerrainModel:  # pylint: disable=too-few-public-methods
     """Tests for the create_digital_terrain_model method in pointtree.operations."""
 
     @pytest.mark.parametrize("voxel_size", [None, 0.5])

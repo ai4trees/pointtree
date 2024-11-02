@@ -1,6 +1,5 @@
-pointtree.io package
-====================
-
+pointtree.io
+============
 .. automodule:: pointtree.io
    :members:
    :undoc-members:

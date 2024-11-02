@@ -1,6 +1,5 @@
-pointtree.visualization package
-===============================
-
+pointtree.visualization
+=======================
 .. automodule:: pointtree.visualization
    :members:
    :undoc-members:

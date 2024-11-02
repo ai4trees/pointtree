@@ -17,10 +17,8 @@ jobs:
   clean-up-pr:
     runs-on: ubuntu-latest
     steps:
-      - name: Install rclone
-        shell: bash
-        run: |
-          curl https://rclone.org/install.sh | bash
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
       - name: Remove documentation deployment
         shell: bash
         run: |

@@ -1,0 +1,30 @@
+# This workflow runs a clean up after a pull request is closed or merged
+
+name: Clean up after closing or merging a pull request
+
+on:
+  pull_request:
+    types: [closed]
+
+# Allow only one concurrent run, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these runs to complete.
+# Unfortunately, there is no option to disable skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: clean-up-pr
+  cancel-in-progress: false
+
+jobs:
+  clean-up-pr:
+    runs-on: ubuntu-latest
+    container:
+      image: josafatburmeister/pointtree:latest
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
+    steps:
+      - name: Remove documentation deployment
+        shell: bash
+        run: |
+          rclone config create --non-interactive docs-cloud webdav url=${{ secrets.DOCS_CLOUD_URL }} \
+            pass=${{ secrets.DOCS_CLOUD_PASSWORD }} vendor=${{ secrets.DOCS_CLOUD_VENDOR }} \
+            user=${{ secrets.DOCS_CLOUD_USER }}
+          rclone purge docs-cloud:pointtree-docs/pr${{ github.event.number }}

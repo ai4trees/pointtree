@@ -2,7 +2,7 @@
    :description: |summary|
    :twitter:description: |summary|
 
-PointTree
+pointtree
 ====================
 
 .. rst-class:: lead

@@ -22,12 +22,12 @@ def pack_batch(
 
     Returns:
         Tuple of two tensors. The first tensor is the packed batch. Point clouds containing less than :math:`N_{max}`
-        points are padded with :attr:`fill_value`. The second tensor is a boolean mask, which is `True` in all positions
-        where the packed batch contains valid points and `False` in all positions filled with :attr:`fill_value`.
+        points are padded with :code:`fill_value`. The second tensor is a boolean mask, which is `True` in all positions
+        where the packed batch contains valid points and `False` in all positions filled with :code:`fill_value`.
 
     Shape:
-        - | :attr:`input_batch`: :math:`(N_1 + ... + N_B, D)`
-        - | :attr:`point_cloud_sizes`: :math:`(B)`
+        - | :code:`input_batch`: :math:`(N_1 + ... + N_B, D)`
+        - | :code:`point_cloud_sizes`: :math:`(B)`
         - | Output: Tuple of two tensors with shape :math:`(B, N_{max}, D)` and :math:`(B, N_{max})`.
           |
           | where

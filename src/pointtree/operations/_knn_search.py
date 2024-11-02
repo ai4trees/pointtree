@@ -45,13 +45,13 @@ def knn_search(
         second tensor contains the distances between the neighbors and the query points.
 
     Shape:
-        - :attr:`coords_support_points`: :math:`(N, 3)`
-        - :attr:`coords_query_points`: :math:`(N', 3)`
-        - :attr:`batch_indices_support_points`: :math:`(N)`
-        - :attr:`batch_indices_query_points`: :math:`(N')`
-        - :attr:`point_cloud_sizes_support_points`: :math:`(B)`
-        - :attr:`point_cloud_sizes_query_points`: :math:`(B)`
-        - Output: Tuple of two tensors, both with shape :math:`(N', k)` if :attr:`k` :math:`\leq n_{max}`, \
+        - :code:`coords_support_points`: :math:`(N, 3)`
+        - :code:`coords_query_points`: :math:`(N', 3)`
+        - :code:`batch_indices_support_points`: :math:`(N)`
+        - :code:`batch_indices_query_points`: :math:`(N')`
+        - :code:`point_cloud_sizes_support_points`: :math:`(B)`
+        - :code:`point_cloud_sizes_query_points`: :math:`(B)`
+        - Output: Tuple of two tensors, both with shape :math:`(N', k)` if :code:`k` :math:`\leq n_{max}`, \
           otherwise :math:`(N', n_{max})`.
 
           | where
@@ -117,12 +117,12 @@ def knn_search_pytorch3d(
         second tensor contains the distances between the neighbors and the query points.
 
     Shape:
-        - :attr:`coords_support_points`: :math:`(N, 3)`
-        - :attr:`coords_query_points`: :math:`(N', 3)`
-        - :attr:`batch_indices_query_points`: :math:`(N')`
-        - :attr:`point_cloud_sizes_support_points`: :math:`(B)`
-        - :attr:`point_cloud_sizes_query_points`: :math:`(B)`
-        - Output: Tuple of two tensors, both with shape :math:`(N', k)` if :attr:`k` :math:`\leq n_{max}`, \
+        - :code:`coords_support_points`: :math:`(N, 3)`
+        - :code:`coords_query_points`: :math:`(N', 3)`
+        - :code:`batch_indices_query_points`: :math:`(N')`
+        - :code:`point_cloud_sizes_support_points`: :math:`(B)`
+        - :code:`point_cloud_sizes_query_points`: :math:`(B)`
+        - Output: Tuple of two tensors, both with shape :math:`(N', k)` if :code:`k` :math:`\leq n_{max}`, \
           otherwise :math:`(N', n_{max})`.
 
           | where
@@ -214,12 +214,12 @@ def knn_search_torch_cluster(  # pylint: disable=too-many-locals
         second tensor contains the distances between the neighbors and the query points.
 
     Shape:
-        - :attr:`coords_support_points`: :math:`(N, 3)`
-        - :attr:`coords_query_points`: :math:`(N', 3)`
-        - :attr:`batch_indices_support_points`: :math:`(N)`
-        - :attr:`batch_indices_query_points`: :math:`(N')`
-        - :attr:`point_cloud_sizes_support_points`: :math:`(B)`
-        - Output: Tuple of two tensors, both with shape :math:`(N', k)` if :attr:`k` :math:`\leq n_{max}`, \
+        - :code:`coords_support_points`: :math:`(N, 3)`
+        - :code:`coords_query_points`: :math:`(N', 3)`
+        - :code:`batch_indices_support_points`: :math:`(N)`
+        - :code:`batch_indices_query_points`: :math:`(N')`
+        - :code:`point_cloud_sizes_support_points`: :math:`(B)`
+        - Output: Tuple of two tensors, both with shape :math:`(N', k)` if :code:`k` :math:`\leq n_{max}`, \
           otherwise :math:`(N', n_{max})`.
 
           | where

@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel AS builder
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends git
 

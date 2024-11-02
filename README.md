@@ -1,6 +1,6 @@
 <img src="https://github.com/ai4trees/pointtree/blob/main/docs/assets/pointtree-logo-color.png" alt="pointtree" width="300" height="100">
 
-## A Python Package for Individual Tree Segmentation in 3D Point Clouds.
+## A Python Package for Tree Instance Segmentation in 3D Point Clouds.
 
 ![pypi-image](https://badge.fury.io/py/pointtree.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

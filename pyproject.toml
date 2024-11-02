@@ -79,3 +79,6 @@ version_variable = "pyproject.toml:version"
 branch = "main"
 changelog_file = "CHANGELOG.md"
 build_command = "python -m build"
+
+[tool.setuptools.package-data]
+pointtree = ["*.typed"]

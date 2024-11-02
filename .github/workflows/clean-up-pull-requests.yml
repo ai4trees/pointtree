@@ -16,11 +16,11 @@ concurrency:
 jobs:
   clean-up-pr:
     runs-on: ubuntu-latest
-    container:
-      image: josafatburmeister/pointtree:latest
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
     steps:
+      - name: Install rclone
+        shell: bash
+        run: |
+          curl https://rclone.org/install.sh | bash
       - name: Remove documentation deployment
         shell: bash
         run: |

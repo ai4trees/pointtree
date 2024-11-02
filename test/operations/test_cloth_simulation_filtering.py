@@ -30,3 +30,9 @@ class TestClothSimulationFiltering:  # pylint: disable=too-few-public-methods
         )
 
         np.testing.assert_array_equal(expected_classification, classification)
+
+    def test_invalid_rigidness(self):
+        coords = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            cloth_simulation_filtering(coords, classification_threshold=0.5, resolution=0.1, rigidness=5)

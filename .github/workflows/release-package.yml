@@ -30,6 +30,7 @@ jobs:
       - name: Check out repository at workflow sha
         uses: actions/checkout@v4
         with:
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_PRIVATE_KEY }}
           fetch-depth: 0
           ref: ${{ github.sha }}
       - name: Force correct release branch on workflow sha
@@ -48,8 +49,6 @@ jobs:
           cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           semantic-release version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@master
         if: steps.release.outputs.released == 'true'

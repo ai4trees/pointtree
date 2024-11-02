@@ -67,7 +67,7 @@ jobs:
     # run tests for all supported Python versions
     strategy:
       matrix:
-        python_version: [3.9, 3.10, 3.11, 3.12, 3.13]
+        python_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0

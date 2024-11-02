@@ -21,9 +21,9 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     r"""
     Constructs a rasterized digital terrain model (DTM) from a set of terrain points. The DTM is constructed by
     creating a grid of regularly arranged DTM points and interpolating the height of the :math:`k` closest terrain
-    points for each DTM point on the grid. In the interpolation, terrain points :math:`p_t` are weighted with a
+    points for each DTM point on the grid. In the interpolation, terrain points :math:`x_t` are weighted with a
     factor proportional to a power of :math:`p` of their inverse distance to the corresponding DTM point
-    :math:`p_{dtm}`, i.e., :math:`\frac{1}{||(p_{dtm} - p)||^p}`. If there are terrain point whose distance to the
+    :math:`x_{dtm}`, i.e., :math:`\frac{1}{||(x_{dtm} - x_{t})||^p}`. If there are terrain points whose distance to the
     DTM point is zero, only these points are used to calculate the DTM height and more distant points are ignored.
     Before constructing the DTM, the terrain points can optionally be downsampled using voxel-based subsampling.
 
@@ -47,8 +47,8 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
         | where
         |
         | :math:`N = \text{ number of terrain points}`
-        | :math:`H = \text{ extent of the DTM in grid in y-direction}`
-        | :math:`W = \text{ extent of the DTM in grid in x-direction}`
+        | :math:`H = \text{ extent of the DTM grid in y-direction}`
+        | :math:`W = \text{ extent of the DTM grid in x-direction}`
     """
 
     if voxel_size is not None:

@@ -83,7 +83,6 @@ jobs:
       - name: Executing tests
         shell: bash
         run: |
-          cd /github/workspace/
           pip install torch==2.4.0
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html

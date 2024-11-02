@@ -48,7 +48,6 @@ dev = [
     "black",
     "mypy",
     "pandas-stubs",
-    "parameterized",
     "pylint",
     "pytest",
     "pytest-cov",

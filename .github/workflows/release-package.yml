@@ -45,7 +45,9 @@ jobs:
           pip install build wheel python-semantic-release
       - name: Create release
         run: |
-            semantic-release version
+          cd /github/workspace/
+          git config --global --add safe.directory $(realpath .)
+          semantic-release version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish package to TestPyPI

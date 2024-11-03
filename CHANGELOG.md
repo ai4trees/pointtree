@@ -1,5 +1,101 @@
 # CHANGELOG
 
+
+## v0.1.0 (2024-11-03)
+
+### Continuous Integration
+
+* ci: fix release workflow (#72) ([`e307a9c`](https://github.com/ai4trees/pointtree/commit/e307a9c904c60e31497f5ff288b261b763ddec18))
+
+* ci: fix release workflow (#71) ([`ede33ef`](https://github.com/ai4trees/pointtree/commit/ede33efdaa31d5c6ae7b95b49b562398afb379b4))
+
+* ci: fix release workflow (#70) ([`eea5e49`](https://github.com/ai4trees/pointtree/commit/eea5e49f930cdd1a52b4954382900ed14c9c2d61))
+
+* ci: fix release workflow (#69) ([`cd7fae1`](https://github.com/ai4trees/pointtree/commit/cd7fae103ecd806b3d10d4586dcd8ab33790ad42))
+
+* ci: fix release workflow (#68) ([`ccd0ca5`](https://github.com/ai4trees/pointtree/commit/ccd0ca5c668b361b045a9df1d7d616f51e0c4afe))
+
+* ci: fix release workflow (#67) ([`7469d70`](https://github.com/ai4trees/pointtree/commit/7469d7025221cf041831eff0c97a2bb066bc983c))
+
+* ci: install SSH client in Docker image (#66) ([`f54a0ae`](https://github.com/ai4trees/pointtree/commit/f54a0ae31c8affeb09f9f7fcc4cb3140d580560c))
+
+* ci: fix release workflow (#65) ([`1a289d9`](https://github.com/ai4trees/pointtree/commit/1a289d92ef66619a6613ed3e4e52ec2482541562))
+
+* ci: fix PR clean-up workflow (#64) ([`81fe2c0`](https://github.com/ai4trees/pointtree/commit/81fe2c02ffc2162837077aeda240898aa3a8ae4d))
+
+* ci: remove parameterized from dependencies (#63) ([`7260625`](https://github.com/ai4trees/pointtree/commit/7260625eae79b51e76c6b12eca28d7c29daefe0e))
+
+* ci: update CI workflows (#62) ([`7064ef5`](https://github.com/ai4trees/pointtree/commit/7064ef55a9a92d8c1dfdf1d5b3ff846fabadd3b2))
+
+* ci: set concurrency for PR clean-up workflow (#58) ([`d24c2e8`](https://github.com/ai4trees/pointtree/commit/d24c2e80cd65495cc0b0438a8219b290f2b6a706))
+
+* ci: add py.typed marker (#57) ([`77f51e5`](https://github.com/ai4trees/pointtree/commit/77f51e5b2e027a8eae9b74b43dda6985c2df4f6e))
+
+* ci: run tests for all supported Python versions (#54) ([`1122f89`](https://github.com/ai4trees/pointtree/commit/1122f897f79efb96fb01d3a51d7dc16336ec9e48))
+
+* ci: update Dockerfile (#53) ([`569d394`](https://github.com/ai4trees/pointtree/commit/569d394a09ff6a385b2c4c6101d4c975c7787eb5))
+
+* ci: re-add .coveragerc (#52) ([`8042fca`](https://github.com/ai4trees/pointtree/commit/8042fca7328d09ac4f2a21031344084af4dcf9c3))
+
+* ci: fix release workflow (#51) ([`468b8c1`](https://github.com/ai4trees/pointtree/commit/468b8c129d0bd2f3d82a247441c692e31562bb8e))
+
+* ci: fix release workflow (#50) ([`483cdbc`](https://github.com/ai4trees/pointtree/commit/483cdbc08842e0bc493aed80aa054671cb5e1409))
+
+* ci: rename package release workflow (#49) ([`6f1d271`](https://github.com/ai4trees/pointtree/commit/6f1d2710b551b213618cbf5127dde3a87c5ddc1b))
+
+* ci: change release trigger (#48) ([`f2944da`](https://github.com/ai4trees/pointtree/commit/f2944daae113628992800568862e6a5fa77bb8fc))
+
+* ci: remove unused .coveragerc (#45) ([`4e3ddce`](https://github.com/ai4trees/pointtree/commit/4e3ddce011e458dc00810ad3a02a5010c526195a))
+
+* ci: switch docker image (#43) ([`40dbb6e`](https://github.com/ai4trees/pointtree/commit/40dbb6ef557b14b0ba7905f9b4c3277e39a53b87))
+
+* ci: add Docker build (#42) ([`a1430fb`](https://github.com/ai4trees/pointtree/commit/a1430fbdf83177b07189410d090f3b623a53739c))
+
+* ci: use pytest-cov instead of coverage to measure code coverage (#39) ([`0e8ee0b`](https://github.com/ai4trees/pointtree/commit/0e8ee0ba225487974d3dead809fa7ad3f26d9573))
+
+* ci: fix release workflow (#30) ([`5ef3601`](https://github.com/ai4trees/pointtree/commit/5ef36011988403c12cbc1274889d833248d6f181))
+
+### Documentation
+
+* docs: update package description (#56) ([`92979fa`](https://github.com/ai4trees/pointtree/commit/92979faa313e69ba5082942c03946314af4add79))
+
+* docs: fix broken links in navigation bar (#46) ([`a3928ec`](https://github.com/ai4trees/pointtree/commit/a3928ec74968385b538fef7294ea594a7095bdb8))
+
+* docs: remove unused files (#44) ([`86fad4c`](https://github.com/ai4trees/pointtree/commit/86fad4c7dd318c11735c627a5f4a40c640612a3a))
+
+* docs: update links to documentation in Readme (#41) ([`261d26c`](https://github.com/ai4trees/pointtree/commit/261d26cb285442f506f4edff4eb5e67854659f14))
+
+* docs: add colored logo icon (#40) ([`6ba4ab1`](https://github.com/ai4trees/pointtree/commit/6ba4ab10eee59cc6bb4c304736d0b7f410163188))
+
+* docs: add package logo (#38) ([`c851b79`](https://github.com/ai4trees/pointtree/commit/c851b79674dc3454d75381ee1586db2c07b2d27d))
+
+* docs: fix workflow for removing docs deployment after a PR is closed (#36) ([`f685a3b`](https://github.com/ai4trees/pointtree/commit/f685a3bc9741fa440ac10adb7bf80fa286640d56))
+
+* docs: add PyPI badge (#37) ([`7870687`](https://github.com/ai4trees/pointtree/commit/78706875b0c1d7285e75dc9b3faa04035ec4fbdc))
+
+* docs: fix workflow for removing docs deployment after a PR is closed (#35) ([`762f188`](https://github.com/ai4trees/pointtree/commit/762f18813ee35f5f9607a578746d474b357a82b5))
+
+* docs: fix workflow for removing docs deployment after a PR is closed (#34) ([`166a2b7`](https://github.com/ai4trees/pointtree/commit/166a2b731e0a8fedf0d30f6fc9cc8cb07f004f13))
+
+* docs: deploy documentation of all package versions (#32) ([`6b09019`](https://github.com/ai4trees/pointtree/commit/6b0901982023871e535797ced3137eb6c76121c3))
+
+* docs: add PyPI badge (#31) ([`3710f20`](https://github.com/ai4trees/pointtree/commit/3710f2065c74d1bf2906c2aabbf6bfa04c61f6ec))
+
+* docs: fix coverage badge (#29) ([`b1e3b88`](https://github.com/ai4trees/pointtree/commit/b1e3b88c4e3c34e7533e72e1555e5673f9125f3a))
+
+### Features
+
+* feat: point cloud height normalization (#60) ([`8623ab5`](https://github.com/ai4trees/pointtree/commit/8623ab5016f733ad56bf7a5bcf30e17b2b4cf6d4))
+
+* feat: operation to create digital terrain model (#59) ([`e6d8ca9`](https://github.com/ai4trees/pointtree/commit/e6d8ca998d573a28d7e9ca3bdc4cbcd731892e41))
+
+* feat: cloth simulation terrain filtering (#55) ([`b675977`](https://github.com/ai4trees/pointtree/commit/b675977a497cfa806fa7b598f4dc22b47359370f))
+
+### Refactoring
+
+* refactor: specify version ranges for main package dependencies (#47) ([`7bd2724`](https://github.com/ai4trees/pointtree/commit/7bd272452a80df22e3de0d66b42d3683da7aae8e))
+
+
 ## v0.0.0 (2024-10-24)
 
 ### Continuous Integration

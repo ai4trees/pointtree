@@ -74,7 +74,9 @@ Issues = "https://github.com/ai4trees/pointtree/issues"
 Changelog = "https://ai4trees.github.io/pointtree/changelog"
 
 [tool.semantic_release]
-version_variable = "pyproject.toml:version"
+version_toml = [
+    "pyproject.toml:project.version"
+]
 branch = "main"
 changelog_file = "CHANGELOG.md"
 build_command = "python -m build"

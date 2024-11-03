@@ -40,15 +40,21 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.ref_name }} ${{ github.sha }}
-      - name: Install build dependencies
+      - name: Install build and package dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install torch==2.4.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install build wheel python-semantic-release
+          python -m pip install .
       - name: Create release
         id: release
-        uses: python-semantic-release/python-semantic-release@v9.12.0
-        with:
-          github_token: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          semantic-release version
+        env:
+          PSR_DOCKER_GITHUB_ACTION: true
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@master
         if: steps.release.outputs.released == 'true'

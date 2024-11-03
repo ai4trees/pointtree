@@ -1,4 +1,4 @@
-<img src="https://github.com/ai4trees/pointtree/blob/main/docs/assets/pointtree-logo-color.png" alt="pointtree" width="300" height="100">
+<img src="https://github.com/ai4trees/pointtree/blob/main/docs/assets/pointtree-logo-color.png?raw=true" alt="pointtree" width="300" height="100">
 
 ## A Python Package for Tree Instance Segmentation in 3D Point Clouds.
 

@@ -51,11 +51,10 @@ jobs:
           PSR_DOCKER_GITHUB_ACTION: true
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
       - name: Publish package to TestPyPI
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         if: steps.release.outputs.released == 'true'
         with:
           repository-url: https://test.pypi.org/legacy/
-          user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
       - name: Test install from TestPyPI
         run: |
@@ -64,8 +63,7 @@ jobs:
             --extra-index-url https://pypi.org/simple \
             pointtree
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@master
+        uses: pypa/gh-action-pypi-publish@release/v1
         if: steps.release.outputs.released == 'true'
         with:
-          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}

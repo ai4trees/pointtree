@@ -17,10 +17,6 @@ jobs:
   release-package:
     if: github.repository == 'ai4trees/pointtree' && github.ref_name == 'main'
     runs-on: ubuntu-latest
-    container:
-      image: josafatburmeister/pointtree:latest
-      volumes:
-        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -35,7 +31,6 @@ jobs:
           ref: ${{ github.sha }}
       - name: Force correct release branch on workflow sha
         run: |
-          cd /github/workspace/
           git config --global --add safe.directory $(realpath .)
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"

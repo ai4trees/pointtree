@@ -54,6 +54,9 @@ napoleon_use_ivar = True
 nitpicky = True
 nitpick_ignore = [
     ("py:class", "abc.ABC"),
+    ("py:class", "numpy.dtype"),
+    ("py:class", "numpy.float64"),
+    ("py:class", "numpy.int64"),
     ("py:class", "numpy.ndarray"),
     ("py:class", "pandas.core.frame.DataFrame"),
     ("py:class", "pandas.DataFrame"),

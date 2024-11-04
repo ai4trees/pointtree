@@ -4,6 +4,16 @@
    :description: Information on how to contribute to the package development.
    :twitter:description: Information on how to contribute to the package development.
 
+Pre-Commit Hooks
+------------------
+
+To set up pre-commit hooks that automatically check your code when you commit, run the following in the root directory
+of the repository
+
+.. code-block:: bash
+
+   $ pre-commit install
+
 Testing
 ------------------
 

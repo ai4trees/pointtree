@@ -161,6 +161,6 @@ version_tags.sort(reverse=True)
 
 for idx, version_tag in enumerate(version_tags):
     version_url = f"{base_url}/{version_tag}"
-    if idx == len(version_tags) - 1:
+    if idx == 0:
         version_tag = f"{version_tag} (stable)"
     html_context["versions"].append((version_tag, version_url))

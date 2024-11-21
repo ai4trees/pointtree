@@ -18,6 +18,7 @@ from torch_scatter import scatter_max
 from pointtree.evaluation import Timer
 from pointtree.operations import make_labels_consecutive
 from pointtree.visualization import save_tree_map
+from .filters import filter_instances_min_points
 from ._priority_queue import PriorityQueue
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
@@ -217,9 +218,11 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             return instance_ids, unique_instance_ids
 
         instance_ids, unique_instance_ids = self.cluster_trunks(tree_coords, classification)
-        instance_ids, unique_instance_ids = self.filter_trunk_clusters(
-            instance_ids, unique_instance_ids, self._min_trunk_points
-        )
+        with Timer("Filtering of trunk clusters", self._time_tracker):
+            self._logger.info("Filter trunk clusters...")
+            instance_ids, unique_instance_ids = filter_instances_min_points(
+                instance_ids, unique_instance_ids, self._min_trunk_points
+            )
         trunk_positions = self.compute_trunk_positions(tree_coords, instance_ids, unique_instance_ids)
 
         tree_positions = self.match_trunk_and_crown_tops(
@@ -330,45 +333,6 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             return make_labels_consecutive(  # type: ignore[return-value]
                 instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
             )
-
-    def filter_trunk_clusters(
-        self, instance_ids: np.ndarray, unique_instance_ids: np.ndarray, min_points: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        r"""
-        Removes trunk instances with less than :code:`min_points` from the set of trunk instances.
-
-        Args:
-            instance_ids: Instance IDs of each tree point.
-            unique_instance_ids: Unique instance IDs.
-            min_points: Minimum number of points an instance must have to not be discarded.
-
-        Returns:
-            Tuple of two arrays. The first contains the updated instance ID of each tree point. Points that do not
-            belong to any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
-
-        Shape:
-            - :code:`instance_ids`: :math:`(N)`
-            - :code:`unique_instance_ids`: :math:`(T)`
-            - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(T')`
-
-            | where
-            |
-            | :math:`N = \text{ number of tree points}`
-            | :math:`T = \text{ number of trunk instances}`
-            | :math:`T' = \text{ number of trunk instances after filtering}`
-        """
-
-        with Timer("Filtering of trunk clusters", self._time_tracker):
-            self._logger.info("Filter trunk clusters...")
-            for instance_id in unique_instance_ids:
-                instance_mask = instance_ids == instance_id
-                instance_points = instance_mask.sum()
-                if instance_points < min_points:
-                    instance_ids[instance_mask] = -1
-                    self._logger.info("Discard trunk cluster %d", instance_id)
-        return make_labels_consecutive(  # type: ignore[return-value]
-            instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
-        )
 
     def compute_trunk_positions(
         self, tree_coords: np.ndarray, instance_ids: np.ndarray, unique_instance_ids: np.ndarray
@@ -486,9 +450,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
         point_counts = np.zeros(num_cells)
-        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
-            point_counts_per_grid_cell.cpu().numpy()
-        )
+        point_counts[
+            unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]
+        ] = point_counts_per_grid_cell.cpu().numpy()
 
         return height_map, point_counts, first_cell * grid_size
 
@@ -919,14 +883,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     for instance_id in neighbor_instance_ids:
                         tree_position = tree_positions_grid[instance_id - 1]
                         voronoi_id = voronoi_labels_without_border[tree_position[0], tree_position[1]]
-                        voronoi_labels_without_border_remapped[voronoi_labels_without_border == voronoi_id] = (
-                            instance_id
-                        )
+                        voronoi_labels_without_border_remapped[
+                            voronoi_labels_without_border == voronoi_id
+                        ] = instance_id
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
-                    watershed_labels_without_border[neighborhood_mask_without_border] = (
-                        voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
-                    )
+                    watershed_labels_without_border[
+                        neighborhood_mask_without_border
+                    ] = voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
 
                     # find outer boundaries to other trees that were not included in the Voronoi segmentation
                     outer_boundaries = find_boundaries(neighborhood_mask_without_border, mode="inner", background=0)

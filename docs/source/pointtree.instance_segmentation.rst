@@ -1,5 +1,6 @@
-pointtree.instance\_segmentation
-================================
+pointtree.instance\_segmentation package
+========================================
+
 .. automodule:: pointtree.instance_segmentation
    :members:
    :undoc-members:

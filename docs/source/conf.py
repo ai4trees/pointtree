@@ -73,7 +73,7 @@ substitutions = [
 ]
 rst_prolog = "\n".join(substitutions)
 
-templates_path = ["apidoc_templates"]
+templates_path = ["_templates"]
 exclude_patterns: List[str] = []
 
 # -- Options for HTML output -------------------------------------------------

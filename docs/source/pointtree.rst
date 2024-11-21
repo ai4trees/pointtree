@@ -1,9 +1,16 @@
-pointtree
-=========
+pointtree package
+=================
+
+.. automodule:: pointtree
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Subpackages
+-----------
 
 .. toctree::
    :maxdepth: 4
-   :titlesonly:
 
    pointtree.config
    pointtree.evaluation
@@ -11,8 +18,3 @@ pointtree
    pointtree.io
    pointtree.operations
    pointtree.visualization
-
-.. automodule:: pointtree
-   :members:
-   :undoc-members:
-   :show-inheritance:

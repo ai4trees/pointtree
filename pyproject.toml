@@ -48,6 +48,7 @@ dev = [
     "black",
     "mypy",
     "pandas-stubs",
+    "pre-commit",
     "pylint",
     "pytest",
     "pytest-cov",

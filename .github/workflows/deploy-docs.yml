@@ -74,7 +74,7 @@ jobs:
           make html
           mv build/html "all_builds/$latest_version"
           rm -f all_builds/404.html
-          cp ./source/apidoc_templates/404.html all_builds/404.html
+          cp ./source/_templates/404.html all_builds/404.html
           sed -i -e "s/LATEST_VERSION = \"v0.0.0\";/LATEST_VERSION = \"$latest_version\";/g" all_builds/404.html
           rclone sync all_builds docs-cloud:pointtree-docs
       - name: Build docs for main branch

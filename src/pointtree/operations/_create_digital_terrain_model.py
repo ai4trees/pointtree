@@ -68,7 +68,9 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     kd_tree = KDTree(terrain_coords[:, :2])
     neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=k)
 
-    neighbor_weights = 1 / (neighbor_distances**p)
+    # ignore divide by zero warnings for this operation since those values are replaced afterwards
+    with np.errstate(divide="ignore"):
+        neighbor_weights = 1 / (neighbor_distances**p)
 
     is_exact_match = neighbor_distances == 0
 

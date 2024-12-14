@@ -33,7 +33,7 @@ jobs:
         run: |
           cd /github/workspace/
           python -m pip install --upgrade .'[dev, docs]'
-          sphinx-apidoc --force --module-first -t ./docs/source/apidoc_templates/ -o ./docs/source ./src
+          sphinx-apidoc --force --module-first -t ./docs/source/_templates/ -o ./docs/source ./src
       - name: Commit and push documentation sources
         run: |
           cd /github/workspace/

@@ -410,7 +410,8 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             dtype=np.int64,
         )
 
-        expected_corrected_watershed_mask_with_border = np.array(
+        # depending on the version of skimage, the exact position of the Watershed boundary can vary
+        expected_corrected_watershed_mask_with_border_1 = np.array(
             [
                 [0, 3, 3, 3, 3, 3],
                 [0, 3, 3, 3, 3, 3],
@@ -425,13 +426,43 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             dtype=np.int64,
         )
 
-        expected_corrected_watershed_mask_without_border = np.array(
+        expected_corrected_watershed_mask_with_border_2 = np.array(
+            [
+                [0, 3, 3, 3, 3, 3],
+                [0, 3, 3, 3, 3, 3],
+                [0, 3, 3, 3, 3, 3],
+                [0, 0, 0, 1, 0, 0],
+                [0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 2, 2, 2],
+            ],
+            dtype=np.int64,
+        )
+
+        expected_corrected_watershed_mask_without_border_1 = np.array(
             [
                 [0, 3, 3, 3, 3, 3],
                 [0, 3, 3, 3, 3, 3],
                 [0, 3, 3, 3, 3, 3],
                 [0, 3, 3, 1, 3, 3],
                 [0, 3, 1, 1, 1, 3],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 2, 2, 2],
+            ],
+            dtype=np.int64,
+        )
+
+        expected_corrected_watershed_mask_without_border_2 = np.array(
+            [
+                [0, 3, 3, 3, 3, 3],
+                [0, 3, 3, 3, 3, 3],
+                [0, 3, 3, 3, 3, 3],
+                [0, 3, 3, 1, 3, 3],
+                [0, 1, 1, 1, 1, 1],
                 [0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0],
@@ -450,13 +481,12 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             watershed_mask_with_border, watershed_mask_without_border, tree_positions_grid, "test"
         )
 
-        np.testing.assert_array_equal(
-            expected_corrected_watershed_mask_with_border, corrected_watershed_mask_with_border
-        )
-        print("corrected_watershed_mask_without_border", corrected_watershed_mask_without_border)
-        np.testing.assert_array_equal(
-            expected_corrected_watershed_mask_without_border, corrected_watershed_mask_without_border
-        )
+        assert np.array_equal(
+            expected_corrected_watershed_mask_with_border_1, corrected_watershed_mask_with_border
+        ) or np.array_equal(expected_corrected_watershed_mask_with_border_2, corrected_watershed_mask_with_border)
+        assert np.array_equal(
+            expected_corrected_watershed_mask_without_border_1, corrected_watershed_mask_without_border
+        ) or np.array_equal(expected_corrected_watershed_mask_without_border_2, corrected_watershed_mask_without_border)
 
         assert os.path.exists(os.path.join(cache_dir, "voronoi_labels_with_border_test_3.png"))
         assert os.path.exists(os.path.join(cache_dir, "voronoi_labels_without_border_test_3.png"))

@@ -7,6 +7,7 @@ from typing import Literal, Optional, Tuple, cast
 
 from numba_kdtree import KDTree
 import numpy as np
+from pointtorch.operations.numpy import make_labels_consecutive
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
@@ -16,7 +17,6 @@ import torch
 from torch_scatter import scatter_max
 
 from pointtree.evaluation import Timer
-from pointtree.operations import make_labels_consecutive
 from pointtree.visualization import save_tree_map
 from .filters import filter_instances_min_points
 from ._priority_queue import PriorityQueue

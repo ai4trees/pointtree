@@ -15,6 +15,5 @@ Subpackages
    pointtree.config
    pointtree.evaluation
    pointtree.instance_segmentation
-   pointtree.io
    pointtree.operations
    pointtree.visualization

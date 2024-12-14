@@ -6,10 +6,11 @@ pointtree.instance\_segmentation package
    :undoc-members:
    :show-inheritance:
 
+Submodules
+----------
 
-
-pointtree.instance\_segmentation.filters
-----------------------------------------
+pointtree.instance\_segmentation.filters module
+-----------------------------------------------
 
 .. automodule:: pointtree.instance_segmentation.filters
    :members:

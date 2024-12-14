@@ -7,6 +7,7 @@ from typing import Literal, Optional, Tuple, cast
 
 from numba_kdtree import KDTree
 import numpy as np
+from pointtorch.operations.numpy import make_labels_consecutive
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
@@ -16,7 +17,6 @@ import torch
 from torch_scatter import scatter_max
 
 from pointtree.evaluation import Timer
-from pointtree.operations import make_labels_consecutive
 from pointtree.visualization import save_tree_map
 from .filters import filter_instances_min_points
 from ._priority_queue import PriorityQueue
@@ -450,9 +450,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
         point_counts = np.zeros(num_cells)
-        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
-            point_counts_per_grid_cell.cpu().numpy()
-        )
+        point_counts[
+            unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]
+        ] = point_counts_per_grid_cell.cpu().numpy()
 
         return height_map, point_counts, first_cell * grid_size
 
@@ -883,14 +883,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     for instance_id in neighbor_instance_ids:
                         tree_position = tree_positions_grid[instance_id - 1]
                         voronoi_id = voronoi_labels_without_border[tree_position[0], tree_position[1]]
-                        voronoi_labels_without_border_remapped[voronoi_labels_without_border == voronoi_id] = (
-                            instance_id
-                        )
+                        voronoi_labels_without_border_remapped[
+                            voronoi_labels_without_border == voronoi_id
+                        ] = instance_id
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
-                    watershed_labels_without_border[neighborhood_mask_without_border] = (
-                        voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
-                    )
+                    watershed_labels_without_border[
+                        neighborhood_mask_without_border
+                    ] = voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
 
                     # find outer boundaries to other trees that were not included in the Voronoi segmentation
                     outer_boundaries = find_boundaries(neighborhood_mask_without_border, mode="inner", background=0)

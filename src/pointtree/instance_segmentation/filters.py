@@ -6,8 +6,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
-
-from pointtree.operations import make_labels_consecutive
+from pointtorch.operations.numpy import make_labels_consecutive
 
 
 def filter_instances_min_points(

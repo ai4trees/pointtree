@@ -10,9 +10,9 @@ import sys
 from numba_kdtree import KDTree
 import numpy as np
 import pandas as pd
+from pointtorch.operations.numpy import voxel_downsampling
 
 from pointtree.evaluation import Timer, TimeTracker
-from pointtree.operations import voxel_downsampling
 
 
 class InstanceSegmentationAlgorithm(abc.ABC):
@@ -113,7 +113,7 @@ class InstanceSegmentationAlgorithm(abc.ABC):
             if self._downsampling_voxel_size is not None:
                 with Timer("Voxel-based downsampling", self._time_tracker):
                     self._logger.info("Downsample point cloud...")
-                    _, predicted_point_indices = voxel_downsampling(
+                    _, predicted_point_indices, _, _ = voxel_downsampling(
                         tree_points.to_numpy(), self._downsampling_voxel_size, point_aggregation="nearest_neighbor"
                     )
                     downsampled_tree_points = tree_points.iloc[predicted_point_indices]

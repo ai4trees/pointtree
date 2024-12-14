@@ -6,9 +6,8 @@ from typing import Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
+from pointtorch.operations.numpy import voxel_downsampling
 from scipy.spatial import KDTree
-
-from ._voxel_downsampling import voxel_downsampling
 
 
 def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too-many-locals
@@ -52,7 +51,7 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     """
 
     if voxel_size is not None:
-        terrain_coords, _ = voxel_downsampling(terrain_coords, voxel_size=voxel_size)
+        terrain_coords, _, _ = voxel_downsampling(terrain_coords, voxel_size=voxel_size)
 
     min_coords = terrain_coords[:, :2].min(axis=0)
     max_coords = terrain_coords[:, :2].max(axis=0)

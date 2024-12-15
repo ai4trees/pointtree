@@ -5,7 +5,9 @@ from typing import Optional, Union
 import numpy.typing as npt
 
 class LinearRegression:
-    def __init__(self, *, fit_intercept: bool = ..., copy_X: bool = ..., n_jobs: Optional[int] = ..., positive=bool):
+    def __init__(
+        self, *, fit_intercept: bool = ..., copy_X: bool = ..., n_jobs: Optional[int] = ..., positive: bool = ...
+    ):
         self.coef_: npt.NDArray
         self.rank_: int
         self.singular_: npt.NDArray

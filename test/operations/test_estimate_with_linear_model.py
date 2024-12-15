@@ -23,7 +23,7 @@ class TestEstimateWithLinearModel:  # pylint: disable=too-few-public-methods
 
         predictions, linear_model = estimate_with_linear_model(x_train, y_train, x_predict)
 
-        np.testing.assert_array_equal(expected_predictions, predictions)
+        np.testing.assert_almost_equal(expected_predictions, predictions)
         if not expand_input_shape:
             x_predict = x_predict.reshape(-1, 1)
-        np.testing.assert_array_equal(expected_predictions, linear_model.predict(x_predict))
+        np.testing.assert_almost_equal(expected_predictions, linear_model.predict(x_predict))

@@ -1,13 +1,13 @@
-""" Multi-stage algorithm for tree instance segmentation. """  # pylint: disable=too-many-lines
+""" Coarse-to-fine algorithm algorithm for tree instance segmentation. """  # pylint: disable=too-many-lines
 
-__all__ = ["MultiStageAlgorithm"]
+__all__ = ["CoarseToFineAlgorithm"]
 
 import os
 from typing import Literal, Optional, Tuple, cast
 
 from numba_kdtree import KDTree
 import numpy as np
-from pointtorch.operations.numpy import make_labels_consecutive
+from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
@@ -23,9 +23,12 @@ from ._priority_queue import PriorityQueue
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 
-class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many-instance-attributes
+class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many-instance-attributes
     r"""
-    Multi-stage algorithm for tree instance segmentation.
+    Coarse-to-fine algorithm for tree instance segmentation proposed in `Burmeister, Josafat-Mattias, et al. "Tree \
+    Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." \
+    ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86. \
+    <https://doi.org/10.5194/isprs-annals-X-4-W5-2024-79-2024>`__.
 
     Args:
         trunk_class_id: Integer class ID that designates the tree trunk points.
@@ -38,6 +41,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             crown top positions as markers. :code:`"watershed_matched_tree_positions"`: A marker-controlled Watershed
             segmentation is performed, using the tree positions as markers, resulting from the matching of crown top
             positions and trunk positions.
+
         downsampling_voxel_size: Voxel size for the voxel-based downsampling of the tree points before performing the
             tree instance segmentation. Defaults to :code:`None`, which means that the tree instance segmentation is
             performed with the full resolution of the point cloud.
@@ -123,15 +127,15 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         num_neighbors_region_growing: int = 27,
         z_scale: float = 0.5,
     ):
-        super().__init__(
-            trunk_class_id,
-            crown_class_id,
-            branch_class_id=branch_class_id,
-            downsampling_voxel_size=downsampling_voxel_size,
-        )
+        super().__init__()
 
         self._algorithm = algorithm
         self._visualization_folder = visualization_folder
+
+        self._trunk_class_id = trunk_class_id
+        self._crown_class_id = crown_class_id
+        self._branch_class_id = branch_class_id
+        self._downsampling_voxel_size = downsampling_voxel_size
 
         # Parameters for the DBSCAN clustering of trunk points
         self._eps_trunk_clustering = eps_trunk_clustering
@@ -450,9 +454,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
         point_counts = np.zeros(num_cells)
-        point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
-            point_counts_per_grid_cell.cpu().numpy()
-        )
+        point_counts[
+            unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]
+        ] = point_counts_per_grid_cell.cpu().numpy()
 
         return height_map, point_counts, first_cell * grid_size
 
@@ -883,14 +887,14 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                     for instance_id in neighbor_instance_ids:
                         tree_position = tree_positions_grid[instance_id - 1]
                         voronoi_id = voronoi_labels_without_border[tree_position[0], tree_position[1]]
-                        voronoi_labels_without_border_remapped[voronoi_labels_without_border == voronoi_id] = (
-                            instance_id
-                        )
+                        voronoi_labels_without_border_remapped[
+                            voronoi_labels_without_border == voronoi_id
+                        ] = instance_id
                         voronoi_labels_with_border_remapped[voronoi_labels_with_border == voronoi_id] = instance_id
 
-                    watershed_labels_without_border[neighborhood_mask_without_border] = (
-                        voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
-                    )
+                    watershed_labels_without_border[
+                        neighborhood_mask_without_border
+                    ] = voronoi_labels_without_border_remapped[neighborhood_mask_without_border]
 
                     # find outer boundaries to other trees that were not included in the Voronoi segmentation
                     outer_boundaries = find_boundaries(neighborhood_mask_without_border, mode="inner", background=0)
@@ -1180,3 +1184,81 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             instance_ids[growing_mask] = growing_instance_ids
 
             return instance_ids
+
+    def __call__(  # pylint: disable=too-many-locals
+        self,
+        xyz: np.ndarray,
+        classification: np.ndarray,
+        point_cloud_id: Optional[str] = None,
+    ) -> np.ndarray:
+        r"""
+        Segments tree instances in a point cloud.
+
+        Args:
+            xyz: 3D coordinates the point cloud to be segmented.
+            classification: Semantic segmentation class IDs
+            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
+                `None`, which means that no visualizations are created.
+
+        Returns:
+            Instance IDs of each point. Points that do not belong to any instance are assigned the ID :math:`-1`.
+
+        Shape:
+            - :code:`xyz`: :math:`(N, 3)`
+            - :code:`classification`: :math:`(N)`
+            - Output: :math:`(N)`.
+
+            | where
+            |
+            | :math:`N = \text{ number of points}`
+        """
+
+        self._time_tracker.reset()
+        with Timer("Total", self._time_tracker):
+            # check that point cloud contains all required variables
+            if xyz.ndim != 2 or xyz.shape[1] != 3:
+                raise ValueError("xyz must have shape (N, 3).")
+            if len(xyz) != len(classification):
+                raise ValueError("xyz and classification must contain the same number of entries.")
+
+            point_cloud_size = len(xyz)
+
+            tree_mask = np.logical_or(
+                classification == self._trunk_class_id,
+                classification == self._crown_class_id,
+            )
+            if self._branch_class_id is not None:
+                tree_mask = np.logical_or(tree_mask, classification == self._branch_class_id)
+
+            if tree_mask.sum() == 0:
+                return np.full(len(xyz), fill_value=-1, dtype=np.int64)
+
+            tree_xyz = xyz[tree_mask]
+            tree_classification = classification[tree_mask]
+
+            if self._downsampling_voxel_size is not None:
+                with Timer("Voxel-based downsampling", self._time_tracker):
+                    self._logger.info("Downsample point cloud...")
+                    downsampled_tree_xyz, predicted_point_indices, inverse_indices = voxel_downsampling(
+                        tree_xyz, self._downsampling_voxel_size, point_aggregation="nearest_neighbor"
+                    )
+                    downsampled_classification = tree_classification[predicted_point_indices]
+                    self._logger.info("Points after downsampling: %d", len(downsampled_tree_xyz))
+            else:
+                downsampled_tree_xyz = tree_xyz
+                downsampled_classification = tree_classification
+
+            instance_ids, unique_instance_ids = self._segment_tree_points(
+                downsampled_tree_xyz, downsampled_classification, point_cloud_id=point_cloud_id
+            )
+
+            if self._downsampling_voxel_size is not None:
+                with Timer("Upsampling of labels", self._time_tracker):
+                    instance_ids = instance_ids[inverse_indices]
+
+            full_instance_ids = np.full(point_cloud_size, fill_value=-1, dtype=np.int64)
+            full_instance_ids[tree_mask] = instance_ids
+
+        self._logger.info("Detected %d trees.", len(unique_instance_ids))
+
+        return full_instance_ids

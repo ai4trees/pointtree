@@ -1,28 +1,28 @@
-""" Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm. """
+""" Tests for pointtree.instance_segmentation.CoarseToFineAlgorithm. """
 
 import os
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 import shutil
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from pointtree.instance_segmentation import MultiStageAlgorithm
+from pointtree.instance_segmentation import CoarseToFineAlgorithm
 
 
-class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
-    """Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm."""
+class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
+    """Tests for pointtree.instance_segmentation.CoarseToFineAlgorithm."""
 
     @pytest.fixture
     def cache_dir(self):
-        cache_dir = "./tmp/test/io/TestMultiStageAlgorithm"
+        cache_dir = "./tmp/test/io/TestCoarseToFineAlgorithm"
         os.makedirs(cache_dir, exist_ok=True)
         yield cache_dir
         shutil.rmtree(cache_dir)
 
     def test_cluster_trunk_points_empty(self):
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
 
         tree_coords = np.empty(0, dtype=float)
         classification = np.empty(0, dtype=np.int64)
@@ -35,7 +35,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
     @pytest.mark.parametrize("use_branch_points", [True, False])
     def test_cluster_trunk_points(self, use_branch_points: bool):
         branch_class_id = 2 if use_branch_points else None
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, branch_class_id=branch_class_id)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, branch_class_id=branch_class_id)
 
         trunk_coords = np.zeros((10, 3))
         trunk_coords[:, 2] = np.arange(len(trunk_coords))
@@ -72,7 +72,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         unique_instance_ids = np.array([0, 1], dtype=np.int64)
         expected_trunk_positions = np.array([[0.5, 1], [5, 6]], dtype=float)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
 
         trunk_positions = algorithm.compute_trunk_positions(tree_coords, instance_ids, unique_instance_ids)
 
@@ -81,7 +81,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
     def test_create_height_map_empty(self):
         points = np.empty((0, 0), dtype=float)
         grid_size = 1
-        height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(points, grid_size)
+        height_map, count_map, grid_origin = CoarseToFineAlgorithm.create_height_map(points, grid_size)
 
         assert len(height_map) == 0
         assert len(count_map) == 0
@@ -111,7 +111,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             expected_count_map = np.array([[0, 3, 1]], dtype=np.int64)
             expected_grid_origin = bounding_box[0]
 
-        height_map, count_map, grid_origin = MultiStageAlgorithm.create_height_map(
+        height_map, count_map, grid_origin = CoarseToFineAlgorithm.create_height_map(
             points, grid_size, bounding_box=bounding_box
         )
 
@@ -123,7 +123,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         tree_coords = np.empty((0, 0), dtype=float)
         classification = np.empty(0, dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
 
         (
             crown_top_positions,
@@ -214,7 +214,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         expected_crown_top_positions_grid = expected_crown_top_positions_grid[tree_heights > min_tree_height]
         expected_crown_top_positions = expected_crown_top_positions_grid.astype(np.float64) + expected_grid_origin
 
-        algorithm = MultiStageAlgorithm(
+        algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
             algorithm=algorithm,
@@ -277,7 +277,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         expected_crown_top_positions_grid = np.array([[4, 4]], dtype=np.int64)
         expected_crown_top_positions = expected_crown_top_positions_grid.astype(np.float64) + expected_grid_origin
 
-        algorithm = MultiStageAlgorithm(
+        algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
             grid_size_canopy_height_model=1,
@@ -303,7 +303,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         trunk_positions = np.empty(0, dtype=np.float64)
         crown_positions = np.array([[0, 0], [1, 1]], dtype=np.float64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
 
         tree_positions = algorithm.match_trunk_and_crown_tops(trunk_positions, crown_positions)
 
@@ -313,7 +313,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         trunk_positions = np.array([[0, 0], [1, 1]], dtype=np.float64)
         crown_positions = np.empty(0, dtype=np.float64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
 
         tree_positions = algorithm.match_trunk_and_crown_tops(trunk_positions, crown_positions)
 
@@ -325,7 +325,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         expected_tree_positions = np.array([[0, 0], [2, 1], [10, 10]], dtype=np.float64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, distance_match_trunk_and_crown_top=5)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, distance_match_trunk_and_crown_top=5)
 
         tree_positions = algorithm.match_trunk_and_crown_tops(trunk_positions, crown_positions)
 
@@ -370,7 +370,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             dtype=np.int64,
         )
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1)
 
         watershed_mask_with_border, watershed_mask_without_border = algorithm.watershed_segmentation(
             canopy_height_model, tree_positions
@@ -473,7 +473,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         tree_positions_grid = np.array([[3, 3], [8, 4], [2, 3]], dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(
+        algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1, visualization_folder=cache_dir
         )
 
@@ -597,7 +597,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         expected_unique_instance_ids = np.array([0, 1, 2, 3], dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(
+        algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
             visualization_folder=cache_dir,
@@ -685,7 +685,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         expected_updated_instance_ids = np.array([-1] * 8 + [-1] * 8 + [0] + [1] * 2 + [2], dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(
+        algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0, crown_class_id=1, branch_class_id=2, max_point_spacing_region_growing=2
         )
         seed_mask, updated_instance_ids = algorithm.determine_overlapping_crowns(
@@ -728,7 +728,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             dtype=np.float64,
         )
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
         distance_fields = algorithm.compute_crown_distance_fields(watershed_labels_without_border, tree_positions_grid)
 
         np.testing.assert_array_equal(expected_distance_fields, distance_fields)
@@ -741,7 +741,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         crown_distance_fields = np.zeros((0, 0, 0), dtype=np.float64)
         seed_mask = np.zeros(len(tree_coords), dtype=bool)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1)
         output_instance_ids = algorithm.grow_trees(
             tree_coords, input_instance_ids, unique_input_instance_ids, grid_origin, crown_distance_fields, seed_mask
         )
@@ -821,7 +821,7 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         seed_mask[[0, 15]] = True
 
         grid_origin = np.array([0, 0], dtype=np.float64)
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, grid_size_canopy_height_model=1)
         instance_ids = algorithm.grow_trees(
             tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask
         )
@@ -829,21 +829,6 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
         expected_instance_ids = np.array([0] * 15 + [1] * 15, dtype=np.int64)
 
         np.testing.assert_array_equal(expected_instance_ids, instance_ids)
-
-    def test_upsample_instance_ids(self):
-        original_coords = np.array([[0, 0, 0], [0, 1, 0], [0, 10, 0], [1, 10, 0]], dtype=np.float64)
-        downsampled_coords = np.array([[0, 1, 0], [0, 10, 0]], dtype=np.float64)
-        instance_ids = np.array([1, 0], dtype=np.int64)
-        non_predicted_point_indices = np.array([0, 3], dtype=np.int64)
-        predicted_point_indices = np.array([1, 2], dtype=np.int64)
-
-        expected_upsampled_instance_ids = np.array([1, 1, 0, 0], dtype=np.int64)
-
-        upsampled_instance_ids = MultiStageAlgorithm.upsample_instance_ids(
-            original_coords, downsampled_coords, instance_ids, non_predicted_point_indices, predicted_point_indices
-        )
-
-        np.testing.assert_array_equal(expected_upsampled_instance_ids, upsampled_instance_ids)
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     @pytest.mark.parametrize("branch_class_id", [None, 2])
@@ -869,31 +854,43 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
 
         point_cloud_id = "test"
 
-        algorithm = MultiStageAlgorithm(
+        algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
             branch_class_id=branch_class_id,
             algorithm=algorithm,
             downsampling_voxel_size=downsampling_voxel_size,
         )
-        instance_ids = algorithm(point_cloud, point_cloud_id)
+        instance_ids = algorithm(
+            point_cloud[["x", "y", "z"]].to_numpy(), point_cloud["classification"].to_numpy(), point_cloud_id
+        )
 
         assert len(tree_coords) == len(instance_ids)
         assert len(algorithm.runtime_stats()) > 0
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
-    @pytest.mark.parametrize("missing_columns", [["x"], ["x", "classification"]])
-    def test_invalid_inputs(
+    def test_invalid_xyz(
         self,
         algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"],
-        missing_columns: List[str],
     ):
-        point_cloud = pd.DataFrame(np.random.rand(20, 4), columns=["x", "y", "z", "classification"])
-        point_cloud = point_cloud.drop(missing_columns, axis=1)
+        xyz = np.random.rand(20, 4)
+        classification = np.zeros(len(xyz), dtype=np.int64)
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
         with pytest.raises(ValueError):
-            algorithm(point_cloud)
+            algorithm(xyz, classification)
+
+    @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
+    def test_invalid_classification(
+        self,
+        algorithm: Literal["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"],
+    ):
+        xyz = np.random.rand(20, 3)
+        classification = np.zeros(len(xyz) + 1, dtype=np.int64)
+
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
+        with pytest.raises(ValueError):
+            algorithm(xyz, classification)
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     def test_no_tree_points(
@@ -904,8 +901,8 @@ class TestMultiStageAlgorithm:  # pylint: disable=too-many-public-methods
             columns=["x", "y", "z", "classification"],
         )
 
-        algorithm = MultiStageAlgorithm(trunk_class_id=1, crown_class_id=2, algorithm=algorithm)
+        algorithm = CoarseToFineAlgorithm(trunk_class_id=1, crown_class_id=2, algorithm=algorithm)
 
-        instance_ids = algorithm(point_cloud)
+        instance_ids = algorithm(point_cloud[["x", "y", "z"]].to_numpy(), point_cloud["classification"].to_numpy())
 
         np.testing.assert_array_equal(np.full(len(point_cloud), fill_value=-1, dtype=np.int64), instance_ids)

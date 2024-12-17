@@ -1,7 +1,8 @@
 """ Tests for pointtree.instance_segmentation.CoarseToFineAlgorithm. """
 
 import os
-from typing import Literal, Optional
+from pathlib import Path
+from typing import Literal, Optional, Union
 import shutil
 
 import numpy as np
@@ -214,7 +215,7 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
         expected_crown_top_positions_grid = expected_crown_top_positions_grid[tree_heights > min_tree_height]
         expected_crown_top_positions = expected_crown_top_positions_grid.astype(np.float64) + expected_grid_origin
 
-        algorithm = CoarseToFineAlgorithm(
+        algorithm_inst = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
             algorithm=algorithm,
@@ -230,7 +231,7 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
             crown_top_positions_grid,
             canopy_height_model,
             grid_origin,
-        ) = algorithm.compute_crown_top_positions(tree_coords, classification)
+        ) = algorithm_inst.compute_crown_top_positions(tree_coords, classification)
 
         np.testing.assert_array_equal(
             np.unique(expected_crown_top_positions, axis=0), np.unique(crown_top_positions, axis=0)
@@ -492,7 +493,10 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
         assert os.path.exists(os.path.join(cache_dir, "voronoi_labels_without_border_test_3.png"))
 
     @pytest.mark.parametrize("correct_watershed", [True, False])
-    def test_coarse_segmentation(self, correct_watershed: bool, cache_dir: str):  # pylint: disable=too-many-locals
+    @pytest.mark.parametrize("create_visualizations, use_pathlib", [(False, False), (True, False), (True, True)])
+    def test_coarse_segmentation(  # pylint: disable=too-many-locals
+        self, correct_watershed: bool, create_visualizations: bool, use_pathlib: bool, cache_dir: str
+    ):
         grid_size = 0.5
         grid_origin = np.array([0, 0], dtype=np.float64)
 
@@ -597,10 +601,16 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
 
         expected_unique_instance_ids = np.array([0, 1, 2, 3], dtype=np.int64)
 
+        visualization_folder: Optional[Union[str, Path]] = None
+        if create_visualizations:
+            visualization_folder = cache_dir
+            if use_pathlib:
+                visualization_folder = Path(visualization_folder)
+
         algorithm = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
-            visualization_folder=cache_dir,
+            visualization_folder=visualization_folder,
             grid_size_canopy_height_model=grid_size,
             correct_watershed=correct_watershed,
         )
@@ -624,12 +634,13 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
         np.testing.assert_array_equal(expected_instance_ids, instance_ids)
         np.testing.assert_array_equal(expected_unique_instance_ids, unique_instance_ids)
 
-        assert os.path.exists(os.path.join(cache_dir, "watershed_with_border_test.png"))
-        assert os.path.exists(os.path.join(cache_dir, "watershed_without_border_test.png"))
+        if create_visualizations:
+            assert os.path.exists(os.path.join(cache_dir, "watershed_with_border_test.png"))
+            assert os.path.exists(os.path.join(cache_dir, "watershed_without_border_test.png"))
 
-        if correct_watershed:
-            assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_with_border_test.png"))
-            assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_without_border_test.png"))
+            if correct_watershed:
+                assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_with_border_test.png"))
+                assert os.path.exists(os.path.join(cache_dir, "watershed_labels_voronoi_without_border_test.png"))
 
     def test_determine_overlapping_crowns(self):
         tree_coords = np.array(
@@ -854,19 +865,19 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
 
         point_cloud_id = "test"
 
-        algorithm = CoarseToFineAlgorithm(
+        algorithm_inst = CoarseToFineAlgorithm(
             trunk_class_id=0,
             crown_class_id=1,
             branch_class_id=branch_class_id,
             algorithm=algorithm,
             downsampling_voxel_size=downsampling_voxel_size,
         )
-        instance_ids = algorithm(
+        instance_ids = algorithm_inst(
             point_cloud[["x", "y", "z"]].to_numpy(), point_cloud["classification"].to_numpy(), point_cloud_id
         )
 
         assert len(tree_coords) == len(instance_ids)
-        assert len(algorithm.runtime_stats()) > 0
+        assert len(algorithm_inst.runtime_stats()) > 0
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     def test_invalid_xyz(
@@ -876,9 +887,9 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
         xyz = np.random.rand(20, 4)
         classification = np.zeros(len(xyz), dtype=np.int64)
 
-        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
+        algorithm_inst = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
         with pytest.raises(ValueError):
-            algorithm(xyz, classification)
+            algorithm_inst(xyz, classification)
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     def test_invalid_classification(
@@ -888,9 +899,9 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
         xyz = np.random.rand(20, 3)
         classification = np.zeros(len(xyz) + 1, dtype=np.int64)
 
-        algorithm = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
+        algorithm_inst = CoarseToFineAlgorithm(trunk_class_id=0, crown_class_id=1, algorithm=algorithm)
         with pytest.raises(ValueError):
-            algorithm(xyz, classification)
+            algorithm_inst(xyz, classification)
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     def test_no_tree_points(
@@ -901,8 +912,8 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
             columns=["x", "y", "z", "classification"],
         )
 
-        algorithm = CoarseToFineAlgorithm(trunk_class_id=1, crown_class_id=2, algorithm=algorithm)
+        algorithm_inst = CoarseToFineAlgorithm(trunk_class_id=1, crown_class_id=2, algorithm=algorithm)
 
-        instance_ids = algorithm(point_cloud[["x", "y", "z"]].to_numpy(), point_cloud["classification"].to_numpy())
+        instance_ids = algorithm_inst(point_cloud[["x", "y", "z"]].to_numpy(), point_cloud["classification"].to_numpy())
 
         np.testing.assert_array_equal(np.full(len(point_cloud), fill_value=-1, dtype=np.int64), instance_ids)

@@ -1,15 +1,21 @@
 [build-system]
-requires = ["setuptools >=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "pointtree"
 version = "0.1.0"
 authors = [
-    {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+  {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+  {name = "Jürgen Döllner", email = "doellner@uni-potsdam.de"},
+  {name = "Markus Engel", email = "Markus.Engel@LFB.Brandenburg.de"},
+  {name = "Sebastian Mitte", email = "mitte@uni-potsdam.de"},
+  {name = "Rico Richter", email = "rico.richter.1@uni-potsdam.de"},
+  {name = "Stefan Reder", email = "Stefan.Reder@hnee.de"},
+  {name = "Andreas Tockner", email = "andreas.tockner@boku.ac.at"},
 ]
 maintainers = [
-    {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+  {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"}
 ]
 description = "A Python Package for Tree Instance Segmentation in 3D Point Clouds."
 readme = "README.md"
@@ -85,3 +91,6 @@ build_command = "python -m build"
 
 [tool.setuptools.package-data]
 pointtree = ["*.typed"]
+
+[tool.scikit-build]
+build-dir = "build/{wheel_tag}"

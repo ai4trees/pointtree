@@ -3,7 +3,8 @@
 __all__ = ["CoarseToFineAlgorithm"]
 
 import os
-from typing import Literal, Optional, Tuple, cast
+from pathlib import Path
+from typing import Literal, Optional, Tuple, Union, cast
 
 from numba_kdtree import KDTree
 import numpy as np
@@ -109,7 +110,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         branch_class_id: Optional[int] = None,
         algorithm: Literal["full", "watershed_crown_top_positions", "watershed_matched_tree_positions"] = "full",
         downsampling_voxel_size: Optional[float] = None,
-        visualization_folder: Optional[str] = None,
+        visualization_folder: Optional[Union[str, Path]] = None,
         eps_trunk_clustering: float = 2.5,
         min_samples_trunk_clustering: int = 1,
         min_trunk_points: int = 100,
@@ -130,7 +131,11 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         super().__init__()
 
         self._algorithm = algorithm
-        self._visualization_folder = visualization_folder
+
+        if visualization_folder is None or isinstance(visualization_folder, Path):
+            self._visualization_folder = visualization_folder
+        else:
+            self._visualization_folder = Path(visualization_folder)
 
         self._trunk_class_id = trunk_class_id
         self._crown_class_id = crown_class_id

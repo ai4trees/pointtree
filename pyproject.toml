@@ -35,6 +35,7 @@ classifiers = [
 keywords = ["tree", "point cloud", "segmentation"]
 requires-python = ">=3.9"
 dependencies = [
+    "circle_detection>=0.1.0, 2.0.0",
     "cloth-simulation-filter>=1.1.5, <2.0.0",
     "laspy>=2.0.0, <3.0.0",
     "numba>=0.55.0, <1.0.0",

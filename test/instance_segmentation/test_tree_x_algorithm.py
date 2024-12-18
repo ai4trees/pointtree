@@ -224,16 +224,16 @@ class TestTreeXAlgorithm:
         expected_layer_heigths = np.empty(num_layers, dtype=np.float64)
 
         for tree in range(num_trees):
-            offset = tree * 1.5
+            offset = tree * 2.0
             for layer_idx in range(num_layers):
                 current_height = trunk_search_min_z + layer_height * layer_idx + layer_height / 2 + layer_overlap / 2
                 expected_layer_heigths[layer_idx] = current_height
                 if layer_idx not in skip_layers:
                     if layer_idx in generate_valid_ellipses or layer_idx in generate_invalid_ellipses:
                         if layer_idx in generate_invalid_ellipses:
-                            ellipses = np.array([[0, 0, 0.8, 0.2, np.pi / 4]], dtype=np.float64)
+                            ellipses = np.array([[0, 0, 0.8, 0.2, np.pi / 3]], dtype=np.float64)
                         else:
-                            ellipses = np.array([[0, 0, 0.6, 0.4, np.pi / 4]], dtype=np.float64)
+                            ellipses = np.array([[0, 0, 0.6, 0.4, np.pi / 3]], dtype=np.float64)
                         points_2d = self._generate_ellipse_points(
                             ellipses,
                             min_points=10 * min_points,

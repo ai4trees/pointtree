@@ -1222,11 +1222,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         # fit GAM
         xy = np.column_stack((polar_angle, polar_radius))
-        print("xy[:, 0]", xy[:, 0])
-
-
         gam = LinearGAM(s(0, basis="cp", edge_knots=[-np.pi, np.pi])).fit(xy[:, 0], xy[:, 1])
-
 
         # predict stem outline using fitted GAM
         polar_angles = np.asarray([-np.pi + 2 * np.pi * k / 360 for k in range(360)])

@@ -58,7 +58,7 @@ def filter_instances_vertical_extent(
     coords: npt.NDArray[np.float64],
     instance_ids: npt.NDArray[np.int64],
     unique_instance_ids: npt.NDArray[np.int64],
-    min_vertical_extent: Optional[int],
+    min_vertical_extent: Optional[float],
     inplace: bool = False,
 ) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
     r"""

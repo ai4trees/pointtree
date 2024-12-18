@@ -29,6 +29,18 @@ jobs:
           python -m pip install black
           black src --check --verbose --diff --color --line-length 120
           black test --check --verbose --diff --color --line-length 120
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
+      - name: Checkout out repository
+        uses: actions/checkout@v4
+      - name: Format C++ code with clang-format
+        shell: bash
+        run: |
+          python -m pip install clang-format
+          find csrc/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format --dry-run --Werror
   mypy:
     runs-on: ubuntu-latest
     container:

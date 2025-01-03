@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Tuple, cast
 import shutil
 
 import numpy as np
@@ -11,6 +11,16 @@ import pandas as pd
 import pytest
 
 from pointtree.instance_segmentation import TreeXAlgorithm
+from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
+    collect_inputs_trunk_layers_preliminary_fitting as collect_inputs_trunk_layers_preliminary_fitting_cpp,
+    collect_inputs_trunk_layers_exact_fitting as collect_inputs_exact_fitting_cpp,
+)
+
+from test.utils import (  # pylint: disable=wrong-import-order
+    generate_circle_points,
+    generate_ellipse_points,
+    generate_grid_points,
+)
 
 
 class TestTreeXAlgorithm:
@@ -22,150 +32,6 @@ class TestTreeXAlgorithm:
         os.makedirs(cache_dir, exist_ok=True)
         yield cache_dir
         shutil.rmtree(cache_dir)
-
-    @staticmethod
-    def _generate_circle_points(  # pylint: disable=too-many-locals
-        circles: npt.NDArray[np.float64],
-        min_points: int,
-        max_points: int,
-        add_noise_points: bool = False,
-        seed: int = 0,
-        variance: Union[float, npt.NDArray[np.float64]] = 0,
-    ) -> npt.NDArray[np.float64]:
-        """
-        Generates a set of 2D points that are randomly sampled around the outlines of the specified circles.
-
-        Args:
-            circles: Parameters of the circles from which to sample (in the following order: x-coordinate of the center,
-                y-coordinate of the center, radius).
-            min_points: Minimum number of points to sample from each circle.
-            max_points: Maximum number of points to sample from each circle.
-            add_noise_points: Whether randomly placed noise points not sampled from a circle should be added to the set
-                of 2D points. Defaults to :code:`False`.
-            seed: Random seed. Defaults to 0.
-            variance: Variance of the distance of the sampled points to the circle outlines. Can be either a scalar
-                value or an array of values whose length is equal to :code:`num_circles`.
-
-        Returns:
-            Tuple of two arrays. The first contains the parameters of the generated circles (in the order x, y and
-            radius). The second contains the x- and y-coordinates of the generated 2D points.
-
-        Raises:
-            ValueError: If :code:`variance` is an arrays whose length is not equal to :code:`circles`.
-        """
-        xy = []
-        random_generator = np.random.default_rng(seed=seed)
-
-        if isinstance(variance, np.ndarray) and len(variance) != len(circles):
-            raise ValueError("Length of variance must be equal to num_circles.")
-
-        for circle_idx, circle in enumerate(circles):
-            num_points = int(random_generator.uniform(min_points, max_points))
-
-            angles = np.linspace(0, 2 * np.pi, num_points)
-            point_radii = np.full(num_points, fill_value=circle[2], dtype=np.float64)
-
-            if isinstance(variance, (float, int)):
-                current_variance = float(variance)
-            else:
-                current_variance = variance[circle_idx]
-
-            point_radii += random_generator.normal(0, current_variance, num_points)
-
-            x = point_radii * np.cos(angles)
-            y = point_radii * np.sin(angles)
-            xy.append(np.column_stack([x, y]) + circle[:2])
-
-        if add_noise_points:
-            num_points = int(random_generator.uniform(min_points * 0.1, max_points * 0.1))
-            min_xy = (circles[:, :2] - circles[:, 2]).min(axis=0).min()
-            max_xy = (circles[:, :2] + circles[:, 2]).max(axis=0).max()
-            noise_points = random_generator.uniform(min_xy, max_xy, (num_points, 2))
-            xy.append(noise_points)
-
-        return np.concatenate(xy)
-
-    @staticmethod
-    def _generate_ellipse_points(  # pylint: disable=too-many-locals
-        ellipses: npt.NDArray[np.float64],
-        min_points: int,
-        max_points: int,
-        add_noise_points: bool = False,
-        seed: int = 0,
-        variance: Union[float, npt.NDArray[np.float64]] = 0,
-    ) -> npt.NDArray[np.float64]:
-        xy = []
-        random_generator = np.random.default_rng(seed=seed)
-
-        if isinstance(variance, np.ndarray) and len(variance) != len(ellipses):
-            raise ValueError("Length of variance must be equal to num_circles.")
-
-        for ellipse_idx, ellipse in enumerate(ellipses):
-
-            num_points = int(random_generator.uniform(min_points, max_points))
-
-            # to equally distribute the sampled points over the outline of the ellipse, the sampling density is
-            # based on the rate-of-change of the ellipse's arc length
-            # see https://math.stackexchange.com/questions/3710402/generate-random-points-on-perimeter-of-ellipse
-            theta_lookup = np.linspace(0, 2 * np.pi, num_points * 10)
-
-            derivative_arc_len_angle = np.sqrt(
-                ellipse[2] ** 2 * np.sin(theta_lookup) ** 2 + ellipse[3] ** 2 * np.cos(theta_lookup) ** 2
-            )
-            cumulative_distribution = (derivative_arc_len_angle).cumsum()
-            cumulative_distribution = cumulative_distribution / cumulative_distribution[-1]
-
-            theta = np.linspace(0, 1, num_points)
-            lookup_indices = np.empty(len(theta), dtype=np.int64)
-
-            for idx, theta_val in enumerate(theta):
-                lookup_idx = min((theta_val >= cumulative_distribution).sum(), len(cumulative_distribution) - 1)
-                lookup_indices[idx] = lookup_idx
-
-            theta_corrected = theta_lookup[lookup_indices]
-
-            point_major_radii = np.full(num_points, fill_value=ellipse[2], dtype=np.float64)
-            point_minor_radii = np.full(num_points, fill_value=ellipse[3], dtype=np.float64)
-
-            if isinstance(variance, (float, int)):
-                current_variance = float(variance)
-            else:
-                current_variance = variance[ellipse_idx]
-
-            point_major_radii += random_generator.normal(0, current_variance, num_points)
-            point_minor_radii += random_generator.normal(0, current_variance, num_points)
-
-            x = point_major_radii * np.cos(theta_corrected)
-            y = point_minor_radii * np.sin(theta_corrected)
-
-            current_xy = np.column_stack([x, y]) + ellipse[:2]
-            rotation_matrix = np.array(
-                [[np.cos(ellipse[4]), np.sin(ellipse[4])], [-np.sin(ellipse[4]), np.cos(ellipse[4])]]
-            )
-            current_xy = np.matmul(current_xy, rotation_matrix)
-
-            xy.append(current_xy)
-
-        if add_noise_points:
-            num_points = int(random_generator.uniform(min_points * 0.1, max_points * 0.1))
-            min_xy = (ellipses[:, :2] - ellipses[:, 2]).min(axis=0).min()
-            max_xy = (ellipses[:, :2] + ellipses[:, 2]).max(axis=0).max()
-            noise_points = random_generator.uniform(min_xy, max_xy, (num_points, 2))
-            xy.append(noise_points)
-
-        return np.concatenate(xy)
-
-    @staticmethod
-    def _generate_grid_points(num_points: Tuple[int, ...], point_spacing: float) -> npt.NDArray[np.float64]:
-
-        coord_dims = []
-
-        for n_dim in num_points:
-            coord_dims.append(np.arange(n_dim).astype(np.float64) * point_spacing)
-
-        mesh_coords = np.meshgrid(*coord_dims)
-
-        return np.column_stack([x.flatten() for x in mesh_coords])
 
     def generate_layer_circles_and_ellipses(  # pylint: disable=too-many-locals
         self, add_noise_points: bool, variance: float
@@ -234,7 +100,7 @@ class TestTreeXAlgorithm:
                             ellipses = np.array([[0, 0, 0.8, 0.2, np.pi / 3]], dtype=np.float64)
                         else:
                             ellipses = np.array([[0, 0, 0.6, 0.4, np.pi / 3]], dtype=np.float64)
-                        points_2d = self._generate_ellipse_points(
+                        points_2d = generate_ellipse_points(
                             ellipses,
                             min_points=10 * min_points,
                             max_points=20 * min_points,
@@ -245,7 +111,7 @@ class TestTreeXAlgorithm:
                         expected_circles_or_ellipses[tree, layer_idx] = ellipses[0]
                     else:
                         circles = np.array([[0, 0, 0.5 - 0.05 * layer_idx]], dtype=np.float64)
-                        points_2d = self._generate_circle_points(
+                        points_2d = generate_circle_points(
                             circles,
                             min_points=10 * min_points,
                             max_points=20 * min_points,
@@ -278,6 +144,164 @@ class TestTreeXAlgorithm:
             expected_circles_or_ellipses,
             expected_layer_heigths,
         )
+
+    @pytest.mark.parametrize("num_workers", [1, -1])
+    def test_collect_inputs_preliminary_fitting_cpp(self, num_workers: int):  # pylint: disable=too-many-locals
+        trunk_layer_xyz = np.array(
+            [
+                [0, 0, 1],
+                [0, 0, 1.1],
+                [0, 0, 1.7],
+                [0, 0, 2.2],
+                [1, 0, 1.1],
+                [1, 0, 1.2],
+                [1, 0, 2.2],
+                [1, 0, 2.3],
+                [1, 0, 2.4],
+                [0, 0, 1.55],
+            ],
+            dtype=np.float64,
+        )
+        cluster_labels = np.array([0, 0, 0, 0, 2, 2, 2, 2, 2, 0], dtype=np.int64)
+        unique_cluster_labels = np.unique(cluster_labels)
+
+        num_layers = 3
+        trunk_search_min_z = 1.0
+        trunk_search_circle_fitting_layer_height = 0.6
+        trunk_search_circle_fitting_layer_overlap = 0.1
+        trunk_search_circle_fitting_min_points = 2
+
+        expected_indices = [[0, 1, 9], [2, 9], [], [4, 5], [], [6, 7, 8]]
+
+        trunk_layer_xy, batch_lengths = collect_inputs_trunk_layers_preliminary_fitting_cpp(
+            trunk_layer_xyz,
+            cluster_labels,
+            unique_cluster_labels,
+            trunk_search_min_z,
+            num_layers,
+            trunk_search_circle_fitting_layer_height,
+            trunk_search_circle_fitting_layer_overlap,
+            trunk_search_circle_fitting_min_points,
+            num_workers,
+        )
+
+        assert len(batch_lengths) == len(unique_cluster_labels) * num_layers
+
+        start_idx = 0
+        for i, expected_idx in enumerate(expected_indices):
+            end_idx = start_idx + batch_lengths[i]
+            xy_batch_item = trunk_layer_xy[start_idx:end_idx]
+            expected_xy_batch_item = trunk_layer_xyz[expected_idx, :2]
+
+            sorting_indices = np.lexsort((xy_batch_item[:, 1], xy_batch_item[:, 0]))
+            xy_batch_item = xy_batch_item[sorting_indices]
+
+            sorting_indices = np.lexsort((expected_xy_batch_item[:, 1], expected_xy_batch_item[:, 0]))
+            expected_xy_batch_item = expected_xy_batch_item[sorting_indices]
+
+            np.testing.assert_array_equal(expected_xy_batch_item, xy_batch_item)
+            start_idx = end_idx
+
+    def test_collect_inputs_preliminary_fitting_cpp_invalid_inputs(self):
+        trunk_layer_xyz = np.zeros((10, 3), dtype=np.float64)
+        cluster_labels = np.zeros((9), dtype=np.int64)
+        unique_cluster_labels = np.array([0], dtype=np.int64)
+
+        num_layers = 3
+        trunk_search_min_z = 1.0
+        trunk_search_circle_fitting_layer_height = 0.6
+        trunk_search_circle_fitting_layer_overlap = 0.1
+        trunk_search_circle_fitting_min_points = 2
+        num_workers = 1
+
+        with pytest.raises(ValueError):
+            collect_inputs_trunk_layers_preliminary_fitting_cpp(
+                trunk_layer_xyz,
+                cluster_labels,
+                unique_cluster_labels,
+                trunk_search_min_z,
+                num_layers,
+                trunk_search_circle_fitting_layer_height,
+                trunk_search_circle_fitting_layer_overlap,
+                trunk_search_circle_fitting_min_points,
+                num_workers,
+            )
+
+    @pytest.mark.parametrize("num_workers", [1, -1])
+    def test_collect_batch_indices_exact_fitting_cpp(self, num_workers: int):  # pylint: disable=too-many-locals
+        trunk_layer_xyz = np.array(
+            [
+                [0, 0.62, 1],
+                [0.6, 0, 1.1],
+                [-0.59, 0, 1.2],
+                [0, 0, 1.1],
+                [0, 0.61, 1.3],
+                [0, 0.52, 1.3],
+                [4 + 0.42 / np.sqrt(2), 4 + 0.42 / np.sqrt(2), 2.0],
+                [4 + 0.4 / np.sqrt(2), 4 + 0.4 / np.sqrt(2), 2.0],
+                [4 + 0.4 / np.sqrt(2), 4 + 0.41 / np.sqrt(2), 2.0],
+                [0, 0.51, 2.2],
+                [0, 0.52, 2.3],
+            ],
+            dtype=np.float64,
+        )
+
+        preliminary_layer_circles_or_ellipses = np.array(
+            [
+                [0, 0, 0.6, -1, -1],
+                [-1, -1, -1, -1, -1],
+                [4, 4, 0.4, 0.2, np.pi / 4],
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1],
+                [0, 0.3, 0.22, -1, -1],
+            ],
+            dtype=np.float64,
+        )
+
+        num_layers = 3
+        trunk_search_min_z = 1.0
+        trunk_search_circle_fitting_layer_height = 0.6
+        trunk_search_circle_fitting_layer_overlap = 0.1
+        trunk_search_circle_fitting_min_points = 2
+        trunk_search_circle_fitting_switch_buffer_threshold = 0.7
+        trunk_search_circle_fitting_small_buffer_width = 0.01
+        trunk_search_circle_fitting_large_buffer_width = 0.05
+
+        expected_indices = [[0, 1, 2, 4], [], [7, 8], [], [], [9, 10]]
+        expected_layer_heights = np.array([1.3, 1.8, 2.3])
+
+        trunk_layer_xy, batch_lengths, layer_heights = collect_inputs_exact_fitting_cpp(
+            trunk_layer_xyz,
+            preliminary_layer_circles_or_ellipses,
+            trunk_search_min_z,
+            num_layers,
+            trunk_search_circle_fitting_layer_height,
+            trunk_search_circle_fitting_layer_overlap,
+            trunk_search_circle_fitting_switch_buffer_threshold,
+            trunk_search_circle_fitting_small_buffer_width,
+            trunk_search_circle_fitting_large_buffer_width,
+            trunk_search_circle_fitting_min_points,
+            num_workers,
+        )
+
+        assert len(batch_lengths) == len(expected_indices)
+
+        start_idx = 0
+        for i, expected_idx in enumerate(expected_indices):
+            end_idx = start_idx + batch_lengths[i]
+            xy_batch_item = trunk_layer_xy[start_idx:end_idx]
+            expected_xy_batch_item = trunk_layer_xyz[expected_idx, :2]
+
+            sorting_indices = np.lexsort((xy_batch_item[:, 1], xy_batch_item[:, 0]))
+            xy_batch_item = xy_batch_item[sorting_indices]
+
+            sorting_indices = np.lexsort((expected_xy_batch_item[:, 1], expected_xy_batch_item[:, 0]))
+            expected_xy_batch_item = expected_xy_batch_item[sorting_indices]
+
+            np.testing.assert_array_equal(expected_xy_batch_item, xy_batch_item)
+            start_idx = end_idx
+
+        np.testing.assert_array_equal(expected_layer_heights, layer_heights)
 
     @pytest.mark.parametrize("variance, add_noise_points", [(0.0, False), (0.01, True)])
     @pytest.mark.parametrize("create_visualization, use_pathlib", [(False, False), (True, False), (True, True)])
@@ -343,7 +367,8 @@ class TestTreeXAlgorithm:
             layer_circles,
             layer_ellipses,
             layer_heights,
-            trunk_layers_xy,
+            trunk_layer_xy,
+            batch_lengths_xy,
         ) = algorithm.fit_exact_circles_and_ellipses_to_trunks(
             trunk_layer_xyz, preliminary_circles_or_ellipses, point_cloud_id=point_cloud_id
         )
@@ -373,8 +398,8 @@ class TestTreeXAlgorithm:
         assert len(layer_ellipses) == num_trees
         assert layer_circles.shape[1] == num_layers
         assert layer_ellipses.shape[1] == num_layers
-        assert len(trunk_layers_xy) == num_trees
-        assert len(trunk_layers_xy[0]) == num_layers
+        assert len(batch_lengths_xy) == num_trees * num_layers
+        assert batch_lengths_xy.sum() == len(trunk_layer_xy)
 
         for tree in range(num_trees):
             for layer in range(num_layers):
@@ -386,6 +411,14 @@ class TestTreeXAlgorithm:
                     expected_circles_or_ellipses[tree, layer, 3] != -1
                     and ellipse_radius_ratio < trunk_search_ellipse_filter_threshold
                 )
+                if is_skip_layer:
+                    assert batch_lengths_xy[tree * num_layers + layer] == 0
+                else:
+                    assert (
+                        batch_lengths_xy[tree * num_layers + layer]
+                        >= settings["trunk_search_circle_fitting_min_points"]
+                    )
+
                 if is_skip_layer or is_invalid_ellipse_layer:
                     assert (layer_circles[tree, layer] == -1).all()
                     assert (layer_ellipses[tree, layer] == -1).all()
@@ -505,59 +538,72 @@ class TestTreeXAlgorithm:
         algorithm = TreeXAlgorithm()
 
         circles = np.array([[1, 1, 1]])
-        points = self._generate_circle_points(circles, min_points=50, max_points=50)
+        points = generate_circle_points(circles, min_points=50, max_points=50)
 
-        radius_with_full_circle = algorithm.radius_estimation_gam(points, circles[0, :2], 6)
+        radius_with_full_circle, polygon_vertices_with_full_ellipse = algorithm.radius_estimation_gam(
+            points, circles[0, :2], 6
+        )
 
         assert circles[0, 2] == pytest.approx(radius_with_full_circle, abs=0.001)
+        assert polygon_vertices_with_full_ellipse.ndim == 2
+        assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
+        assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
 
-        radius_with_missing_part = algorithm.radius_estimation_gam(points[:30], circles[0, :2], 7)
+        radius_with_missing_part, polygon_vertices_with_missing_part = algorithm.radius_estimation_gam(
+            points[:30], circles[0, :2], 7
+        )
 
         assert circles[0, 2] == pytest.approx(radius_with_missing_part, abs=0.001)
+        assert polygon_vertices_with_missing_part.ndim == 2
+        assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
+        assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
 
     def test_radius_estimation_gam_ellipse(self):
         algorithm = TreeXAlgorithm()
 
         ellipses = np.array([[1, 1, 1.2, 0.9, 0]])
-        points = self._generate_ellipse_points(ellipses, min_points=50, max_points=50)
+        points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
 
-        radius_with_full_ellipse = algorithm.radius_estimation_gam(points, ellipses[0, :2], 8)
+        radius_with_full_ellipse, polygon_vertices_with_full_ellipse = algorithm.radius_estimation_gam(
+            points, ellipses[0, :2], 8
+        )
 
         expected_radius = (ellipses[0, 2] + ellipses[0, 3]) / 2
 
         assert expected_radius == pytest.approx(radius_with_full_ellipse, abs=0.02)
+        assert polygon_vertices_with_full_ellipse.ndim == 2
+        assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
+        assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
 
-        radius_with_missing_part = algorithm.radius_estimation_gam(points[:30], ellipses[0, :2], 9)
+        radius_with_missing_part, polygon_vertices_with_missing_part = algorithm.radius_estimation_gam(
+            points[:30], ellipses[0, :2], 9
+        )
 
         assert expected_radius == pytest.approx(radius_with_missing_part, abs=0.1)
+        assert polygon_vertices_with_missing_part.ndim == 2
+        assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
+        assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
 
-    @pytest.mark.parametrize("create_visualization, use_pathlib", [(False, False), (True, False), (True, True)])
-    def test_radius_estimation_gam_visualization(self, create_visualization: bool, use_pathlib: bool, cache_dir):
-        visualization_path: Optional[Union[str, Path]] = None
+    @pytest.mark.parametrize("create_visualization", [False, True])
+    def test_compute_trunk_diameters(  # pylint: disable=too-many-locals, too-many-branches
+        self, create_visualization: bool, cache_dir
+    ):
+        point_cloud_id = None
+        visualization_folder = None
         if create_visualization:
-            visualization_path = os.path.join(cache_dir, "test.png")
-            if use_pathlib:
-                visualization_path = Path(visualization_path)
+            point_cloud_id = "test"
+            visualization_folder = Path(cache_dir)
 
-        algorithm = TreeXAlgorithm()
-
-        circles = np.array([[1, 1, 1]])
-        points = self._generate_circle_points(circles, min_points=50, max_points=50)
-
-        algorithm.radius_estimation_gam(points, circles[0, :2], 6, visualization_path=visualization_path)
-
-        if create_visualization:
-            if not use_pathlib:
-                visualization_path = Path(visualization_path)
-            visualization_path = cast(Path, visualization_path)
-            assert visualization_path.exists()
-
-    def test_compute_trunk_diameters(self):
         num_instances = 2
         num_layers = 4
-        algorithm = TreeXAlgorithm(trunk_search_circle_fitting_std_num_layers=num_layers - 1)
+        algorithm = TreeXAlgorithm(
+            trunk_search_circle_fitting_num_layers=num_layers,
+            trunk_search_circle_fitting_std_num_layers=num_layers - 1,
+            visualization_folder=visualization_folder,
+        )
 
-        trunk_layers_xy = [[] for i in range(num_instances)]
+        trunk_layer_xy = []
+        batch_lengths_xy = np.zeros(num_instances * num_layers, dtype=np.int64)
         layer_heights = np.array([1, 2, 3, 4])
         layer_circles = np.full((num_instances, num_layers, 3), fill_value=-1, dtype=np.float64)
         layer_ellipses = np.full((num_instances, num_layers, 5), fill_value=-1, dtype=np.float64)
@@ -568,17 +614,38 @@ class TestTreeXAlgorithm:
             else:
                 circles = np.array([[0, 0, 1 - 0.1 * layer]])
             layer_circles[0, layer] = circles[0]
-            trunk_layers_xy[0].append(self._generate_circle_points(circles, min_points=50, max_points=50))
+            circle_points = generate_circle_points(circles, min_points=50, max_points=50)
+            trunk_layer_xy.append(circle_points)
+            batch_lengths_xy[layer] = len(circle_points)
 
+        for layer in range(num_layers):
             if layer == 0:
                 ellipses = np.array([[0, 0, 1.3, 0.8, 0]])
             else:
                 ellipses = np.array([[0, 0, 1.0 - 0.1 * layer, 1.0 - 0.1 * layer, 0]])
+
             layer_ellipses[1, layer] = ellipses[0]
-            trunk_layers_xy[1].append(self._generate_ellipse_points(ellipses, min_points=50, max_points=50))
+            ellipse_points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
+            trunk_layer_xy.append(ellipse_points)
+            batch_lengths_xy[num_layers + layer] = len(ellipse_points)
+
+        trunk_layer_xy_np = np.concatenate(trunk_layer_xy)
 
         best_circle_combination = np.array([[0, 2, 1], [-1, -1, -1]], dtype=np.int64)
         best_ellipse_combination = np.array([[-1, -1, -1], [2, 1, 3]], dtype=np.int64)
+
+        expected_visualization_paths = []
+        if create_visualization:
+            for label in range(2):
+                if best_circle_combination[label][0] != -1:
+                    selected_layers = best_circle_combination[label]
+                else:
+                    selected_layers = best_ellipse_combination[label]
+                for layer in selected_layers:
+                    visualization_folder = cast(Path, visualization_folder)
+                    expected_visualization_paths.append(
+                        visualization_folder / "test" / f"gam_trunk_{label}_layer_{layer}.png"
+                    )
 
         expected_trunk_radii = np.array([1 - 0.03, 1 - 0.03], dtype=np.float64)
 
@@ -586,16 +653,22 @@ class TestTreeXAlgorithm:
             layer_circles,
             layer_ellipses,
             layer_heights,
-            trunk_layers_xy,
+            trunk_layer_xy_np,
+            batch_lengths_xy,
             best_circle_combination,
             best_ellipse_combination,
+            point_cloud_id=point_cloud_id,
         )
 
         np.testing.assert_almost_equal(expected_trunk_radii * 2, trunk_diameters, decimal=4)
 
+        if create_visualization:
+            for expected_path in expected_visualization_paths:
+                assert expected_path.exists()
+
     def test_segment_crowns(self):  # pylint: disable=too-many-locals
         point_spacing = 0.1
-        ground_plane = self._generate_grid_points((100, 100), point_spacing)
+        ground_plane = generate_grid_points((100, 100), point_spacing)
         ground_plane = np.column_stack([ground_plane, np.zeros(len(ground_plane), dtype=np.float64)])
 
         trunk_1 = np.full((30, 3), fill_value=2.05, dtype=np.float64)
@@ -604,10 +677,10 @@ class TestTreeXAlgorithm:
         trunk_2 = np.full((35, 3), fill_value=4.65, dtype=np.float64)
         trunk_2[:, 2] = np.arange(35).astype(np.float64) * point_spacing
 
-        crown_1 = self._generate_grid_points((20, 20, 20), point_spacing)
+        crown_1 = generate_grid_points((20, 20, 20), point_spacing)
         crown_1[:, :2] += 1.05
         crown_1[:, 2] += 3.1
-        crown_2 = self._generate_grid_points((30, 30, 30), point_spacing)
+        crown_2 = generate_grid_points((30, 30, 30), point_spacing)
         crown_2[:, :2] += 3.15
         crown_2[:, 2] += 3.6
 
@@ -645,10 +718,26 @@ class TestTreeXAlgorithm:
         # some of the terrain points around the trunks are assigned to the tree instances
         assert (instance_ids[:start_tree_1] != -1).sum() == 8
 
-    @pytest.mark.parametrize("create_visualizations", [True, False])
+    @pytest.mark.parametrize("key", ["xyz", "distance_to_dtm", "is_tree", "tree_positions", "trunk_diameters"])
+    def test_segment_crowns_invalid_xyz(self, key: str):
+        inputs = {
+            "xyz": np.random.randn(50, 3),
+            "distance_to_dtm": np.random.randn(50),
+            "is_tree": np.ones(50, dtype=bool),
+            "tree_positions": np.zeros((3, 2), dtype=bool),
+            "trunk_diameters": np.zeros(3, dtype=bool),
+        }
+        inputs[key] = inputs[key][: len(inputs[key]) - 1]
+
+        algorithm = TreeXAlgorithm()
+
+        with pytest.raises(ValueError):
+            algorithm.segment_crowns(*inputs.values())
+
+    @pytest.mark.parametrize("create_visualizations", [False, True])
     def test_full_algorithm(self, create_visualizations: bool, cache_dir):  # pylint: disable=too-many-locals
         point_spacing = 0.1
-        ground_plane = self._generate_grid_points((100, 100), point_spacing)
+        ground_plane = generate_grid_points((100, 100), point_spacing)
         ground_plane = np.column_stack([ground_plane, np.zeros(len(ground_plane), dtype=np.float64)])
 
         points_per_layer = 200
@@ -657,7 +746,7 @@ class TestTreeXAlgorithm:
         trunk_1: List[float] = []
         for layer in range(num_layers_trunk_1):
             layer_height = layer * point_spacing
-            layer_points = self._generate_circle_points(
+            layer_points = generate_circle_points(
                 np.array([[2.05, 2.05, 0.15]]),
                 min_points=points_per_layer,
                 max_points=points_per_layer,
@@ -673,7 +762,7 @@ class TestTreeXAlgorithm:
         trunk_2: List[float] = []
         for layer in range(num_layers_trunk_2):
             layer_height = layer * point_spacing
-            layer_points = self._generate_circle_points(
+            layer_points = generate_circle_points(
                 np.array([[5.65, 5.65, 0.25]]),
                 min_points=points_per_layer,
                 max_points=points_per_layer,
@@ -685,10 +774,10 @@ class TestTreeXAlgorithm:
             )
             trunk_2.extend(layer_points)
 
-        crown_1 = self._generate_grid_points((20, 20, 20), point_spacing)
+        crown_1 = generate_grid_points((20, 20, 20), point_spacing)
         crown_1[:, :2] += 1.05
         crown_1[:, 2] += 3.1
-        crown_2 = self._generate_grid_points((30, 30, 30), point_spacing)
+        crown_2 = generate_grid_points((30, 30, 30), point_spacing)
         crown_2[:, :2] += 4.15
         crown_2[:, 2] += 3.6
 

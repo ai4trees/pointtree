@@ -53,7 +53,17 @@ endif()
 
 include_directories( ${NANOFLANN_INCLUDE_DIR} )
 
-pybind11_add_module(_tree_x_algorithm_cpp MODULE csrc/instance_segmentation/tree_x_algorithm.cpp)
+pybind11_add_module(_tree_x_algorithm_cpp MODULE
+                    csrc/instance_segmentation/tree_x_algorithm.cpp
+                    csrc/pybind/instance_segmentation/tree_x_algorithm_pybind.cpp
+                    csrc/operations/points_in_ellipse.cpp)
 target_link_libraries(_tree_x_algorithm_cpp PUBLIC OpenMP::OpenMP_CXX)
 
+pybind11_add_module(_operations_cpp MODULE
+                    csrc/operations/points_in_ellipse.cpp
+                    csrc/operations/fit_ellipse.cpp
+                    csrc/pybind/operations_pybind.cpp)
+target_link_libraries(_operations_cpp PUBLIC OpenMP::OpenMP_CXX)
+
 install(TARGETS _tree_x_algorithm_cpp DESTINATION "${SKBUILD_PROJECT_NAME}")
+install(TARGETS _operations_cpp DESTINATION "${SKBUILD_PROJECT_NAME}")

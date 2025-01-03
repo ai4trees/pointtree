@@ -21,13 +21,13 @@ class TestPointsInEllipse:
     def test_invalid_ellipse(self):
         with pytest.raises(ValueError):
             ellipse = np.array([1, 1], dtype=np.float64)
-            xy = np.array([[1, 1], [3.9, 4], [4.1, 4]])
+            xy = np.array([[1, 1], [3.9, 4], [4.1, 4]], dtype=np.float64)
 
             points_in_ellipse(xy, ellipse)
 
     def test_invalid_xy(self):
         with pytest.raises(ValueError):
             ellipse = np.array([1, 1, 1, 1, 1], dtype=np.float64)
-            xy = np.array([[0, 0, 0], [1, 1, 1]])
+            xy = np.array([[0, 0, 0], [1, 1, 1]], dtype=np.float64)
 
             points_in_ellipse(xy, ellipse)

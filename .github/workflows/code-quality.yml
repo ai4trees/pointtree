@@ -56,7 +56,10 @@ jobs:
         shell: bash
         run: |
           cd /github/workspace/
-          python -m pip install --upgrade .'[dev, docs]'
+          pip install torch==2.4.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          python -m pip install -v --upgrade .'[dev, docs]'
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
@@ -73,7 +76,10 @@ jobs:
         shell: bash
         run: |
           cd /github/workspace/
-          python -m pip install --upgrade .'[dev, docs]'
+          pip install torch==2.4.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          python -m pip install -v --upgrade .'[dev, docs]'
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:

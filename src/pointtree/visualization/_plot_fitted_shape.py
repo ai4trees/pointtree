@@ -64,8 +64,8 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
     fig_center_y = xy[:, 1].min() + fig_width_y / 2
     padding = max(0.2 * fig_width, 0.1)
 
-    axis.set_xlim([fig_center_x - fig_width / 2 - padding, fig_center_x + fig_width / 2 + padding])
-    axis.set_ylim([fig_center_y - fig_width / 2 - padding, fig_center_y + fig_width / 2 + padding])
+    axis.set_xlim((fig_center_x - fig_width / 2 - padding, fig_center_x + fig_width / 2 + padding))
+    axis.set_ylim((fig_center_y - fig_width / 2 - padding, fig_center_y + fig_width / 2 + padding))
 
     if circle is not None:
         if len(circle) != 3:

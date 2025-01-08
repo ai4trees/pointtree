@@ -49,7 +49,9 @@ def filter_instances_min_points(
     discarded_instance_ids = unique_instance_ids[point_counts < min_points]
     instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
 
-    return make_labels_consecutive(instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True)
+    return make_labels_consecutive(  # type: ignore[return-value]
+        instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
+    )
 
 
 def filter_instances_vertical_extent(
@@ -103,4 +105,6 @@ def filter_instances_vertical_extent(
     discarded_instance_ids = unique_instance_ids[max_z_per_cluster - min_z_per_cluster < min_vertical_extent]
     instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
 
-    return make_labels_consecutive(instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True)
+    return make_labels_consecutive(  # type: ignore[return-value]
+        instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
+    )

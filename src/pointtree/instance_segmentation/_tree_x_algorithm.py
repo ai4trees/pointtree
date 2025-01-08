@@ -12,7 +12,7 @@ from circle_detection import CircleDetection
 import numpy as np
 import numpy.typing as npt
 from sklearn.cluster import DBSCAN
-from pointtorch.operations.numpy import voxel_downsampling
+from pointtorch.operations.numpy import voxel_downsampling, make_labels_consecutive
 from pygam import LinearGAM, s
 
 from pointtree.evaluation import Timer
@@ -23,7 +23,7 @@ from pointtree.operations import (
     normalize_height,
     polygon_area,
 )
-from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
+from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
     segment_tree_crowns as segment_tree_crowns_cpp,
     collect_inputs_trunk_layers_preliminary_fitting as collect_inputs_trunk_layers_preliminary_fitting_cpp,
     collect_inputs_trunk_layers_exact_fitting as collect_inputs_trunk_layers_exact_fitting_cpp,
@@ -414,76 +414,81 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             self._logger.info("Found %d trunk candidates.", len(unique_cluster_labels))
 
-        cluster_labels, unique_cluster_labels = filter_instances_min_points(
-            cluster_labels, unique_cluster_labels, min_points=self._trunk_search_min_cluster_points, inplace=True
-        )
-
-        self._logger.info(
-            "%d trunk candidates remaining after discarding clusters with too few points.", len(unique_cluster_labels)
-        )
-
-        cluster_labels, unique_cluster_labels = filter_instances_vertical_extent(
-            trunk_layer_xyz_downsampled,
-            cluster_labels,
-            unique_cluster_labels,
-            min_vertical_extent=self._trunk_search_min_cluster_height,
-            inplace=True,
-        )
-
-        self._logger.info(
-            "%d trunk candidates remaining after discarding clusters with too small " + "vertical extent.",
-            len(unique_cluster_labels),
-        )
-
-        with Timer("Fitting of circles or ellipses to downsampled trunk candidates", self._time_tracker):
-            self._logger.info("Fitting circles / ellipses to downsampled trunk candidates...")
-            preliminary_layer_circles_or_ellipses = self.fit_preliminary_circles_or_ellipses_to_trunks(
-                trunk_layer_xyz_downsampled, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
+        with Timer("Filtering of trunk clusters based on point count", self._time_tracker):
+            cluster_labels, unique_cluster_labels = filter_instances_min_points(
+                cluster_labels, unique_cluster_labels, min_points=self._trunk_search_min_cluster_points, inplace=True
             )
 
-        with Timer("Fitting of circles and ellipses to full-resolution trunk candidates", self._time_tracker):
-            self._logger.info("Fitting circles / ellipses to full-resolution trunk candidates...")
-
-            (
-                layer_circles,
-                layer_ellipses,
-                layer_heights,
-                trunk_layer_xy,
-                batch_lengths_xy,
-            ) = self.fit_exact_circles_and_ellipses_to_trunks(
-                trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
+            self._logger.info(
+                "%d trunk candidates remaining after discarding clusters with too few points.",
+                len(unique_cluster_labels),
             )
 
-        filter_mask, best_circle_combination, best_ellipse_combination = self.filter_instances_trunk_layer_std(
-            layer_circles, layer_ellipses
-        )
-        layer_circles = layer_circles[filter_mask]
-        layer_ellipses = layer_ellipses[filter_mask]
+        with Timer("Filtering of trunk clusters based on vertical extent", self._time_tracker):
+            cluster_labels, unique_cluster_labels = filter_instances_vertical_extent(
+                trunk_layer_xyz_downsampled,
+                cluster_labels,
+                unique_cluster_labels,
+                min_vertical_extent=self._trunk_search_min_cluster_height,
+                inplace=True,
+            )
 
-        self.rename_visualizations_after_filtering(filter_mask, point_cloud_id=point_cloud_id)
+            self._logger.info(
+                "%d trunk candidates remaining after discarding clusters with too small " + "vertical extent.",
+                len(unique_cluster_labels),
+            )
 
-        filter_mask = np.repeat(filter_mask, self._trunk_search_circle_fitting_num_layers)
-        trunk_layer_xy = trunk_layer_xy[np.repeat(filter_mask, batch_lengths_xy)]
-        batch_lengths_xy = batch_lengths_xy[filter_mask]
-
-        self._logger.info(
-            "%d trunks remaining after discarding clusters with too high standard deviation.", len(layer_circles)
-        )
-
-        trunk_positions = self.compute_trunk_positions(
-            layer_circles, layer_ellipses, layer_heights, best_circle_combination, best_ellipse_combination
+        preliminary_layer_circles_or_ellipses = self.fit_preliminary_circles_or_ellipses_to_trunks(
+            trunk_layer_xyz_downsampled, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
         )
 
-        trunk_diameters = self.compute_trunk_diameters(
+        (
             layer_circles,
             layer_ellipses,
             layer_heights,
             trunk_layer_xy,
             batch_lengths_xy,
-            best_circle_combination,
-            best_ellipse_combination,
-            point_cloud_id=point_cloud_id,
+        ) = self.fit_exact_circles_and_ellipses_to_trunks(
+            trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
         )
+
+        with Timer(
+            "Filtering of trunk clusters based on standard deviation of circle / ellipse diameters", self._time_tracker
+        ):
+            filter_mask, best_circle_combination, best_ellipse_combination = self.filter_instances_trunk_layer_std(
+                layer_circles, layer_ellipses
+            )
+            layer_circles = layer_circles[filter_mask]
+            layer_ellipses = layer_ellipses[filter_mask]
+
+            self.rename_visualizations_after_filtering(filter_mask, point_cloud_id=point_cloud_id)
+
+            filter_mask = np.repeat(filter_mask, self._trunk_search_circle_fitting_num_layers)
+            trunk_layer_xy = trunk_layer_xy[np.repeat(filter_mask, batch_lengths_xy)]
+            batch_lengths_xy = batch_lengths_xy[filter_mask]
+
+            self._logger.info(
+                "%d trunks remaining after discarding clusters with too high standard deviation.", len(layer_circles)
+            )
+
+        with Timer("Computation of trunk positions", self._time_tracker):
+            self._logger.info("Compute trunk positions...")
+            trunk_positions = self.compute_trunk_positions(
+                layer_circles, layer_ellipses, layer_heights, best_circle_combination, best_ellipse_combination
+            )
+
+        with Timer("Computation of trunk diameters", self._time_tracker):
+            self._logger.info("Compute trunk diameters...")
+            trunk_diameters = self.compute_trunk_diameters(
+                layer_circles,
+                layer_ellipses,
+                layer_heights,
+                trunk_layer_xy,
+                batch_lengths_xy,
+                best_circle_combination,
+                best_ellipse_combination,
+                point_cloud_id=point_cloud_id,
+            )
 
         return trunk_positions, trunk_diameters
 
@@ -538,129 +543,137 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`L = \text{ number of horinzontal layers to which circles / ellipses are fitted}`
         """
 
-        num_layers = self._trunk_search_circle_fitting_num_layers
+        with Timer("Fitting of circles or ellipses to downsampled trunk candidates", self._time_tracker):
+            self._logger.info("Fitting circles / ellipses to downsampled trunk candidates...")
 
-        if len(unique_cluster_labels) == 0:
-            return np.empty((0, num_layers, 5), dtype=np.float64)
+            num_layers = self._trunk_search_circle_fitting_num_layers
 
-        layer_circles_or_ellipses = np.full(
-            (len(unique_cluster_labels), num_layers, 5),
-            fill_value=-1,
-            dtype=np.float64,
-        )
+            if len(unique_cluster_labels) == 0:
+                return np.empty((0, num_layers, 5), dtype=np.float64)
 
-        trunk_layer_xy, batch_lengths = collect_inputs_trunk_layers_preliminary_fitting_cpp(
-            trunk_layer_xyz,
-            cluster_labels,
-            unique_cluster_labels,
-            float(self._trunk_search_min_z),
-            num_layers,
-            float(self._trunk_search_circle_fitting_layer_height),
-            float(self._trunk_search_circle_fitting_layer_overlap),
-            int(self._trunk_search_circle_fitting_min_points),
-            int(self._num_workers),
-        )
+            layer_circles_or_ellipses = np.full(
+                (len(unique_cluster_labels), num_layers, 5),
+                fill_value=-1,
+                dtype=np.float64,
+            )
 
-        min_radius = self._trunk_search_circle_fitting_min_trunk_diameter / 2
-        max_radius = self._trunk_search_circle_fitting_max_trunk_diameter / 2
-        min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
-        bandwidth = 0.01
+            trunk_layer_xy, batch_lengths = collect_inputs_trunk_layers_preliminary_fitting_cpp(
+                trunk_layer_xyz,
+                cluster_labels,
+                unique_cluster_labels,
+                float(self._trunk_search_min_z),
+                num_layers,
+                float(self._trunk_search_circle_fitting_layer_height),
+                float(self._trunk_search_circle_fitting_layer_overlap),
+                int(self._trunk_search_circle_fitting_min_points),
+                int(self._num_workers),
+            )
 
-        circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
-        circle_detector.detect(
-            trunk_layer_xy,
-            batch_lengths=batch_lengths,
-            n_start_x=10,
-            n_start_y=10,
-            min_start_radius=min_radius,
-            max_start_radius=max_radius,
-            n_start_radius=5,
-            num_workers=self._num_workers,
-        )
-        circle_detector.filter(
-            max_circles=1,
-            deduplication_precision=4,
-            min_circumferential_completeness_idx=min_completeness_idx,
-            circumferential_completeness_idx_max_dist=bandwidth,
-            circumferential_completeness_idx_num_regions=int(365 / 5),
-            non_maximum_suppression=True,
-            num_workers=self._num_workers,
-        )
+            min_radius = self._trunk_search_circle_fitting_min_trunk_diameter / 2
+            max_radius = self._trunk_search_circle_fitting_max_trunk_diameter / 2
+            min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
+            bandwidth = 0.01
 
-        layers_with_ellipses = np.logical_and(circle_detector.batch_lengths_circles == 0, batch_lengths > 0)
+            circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+            circle_detector.detect(
+                trunk_layer_xy,
+                batch_lengths=batch_lengths,
+                n_start_x=10,
+                n_start_y=10,
+                min_start_radius=min_radius,
+                max_start_radius=max_radius,
+                n_start_radius=5,
+                num_workers=self._num_workers,
+            )
+            circle_detector.filter(
+                max_circles=1,
+                deduplication_precision=4,
+                min_circumferential_completeness_idx=min_completeness_idx,
+                circumferential_completeness_idx_max_dist=bandwidth,
+                circumferential_completeness_idx_num_regions=int(365 / 5),
+                non_maximum_suppression=True,
+                num_workers=self._num_workers,
+            )
 
-        ellipses = fit_ellipse(
-            trunk_layer_xy[np.repeat(layers_with_ellipses, batch_lengths)], batch_lengths[layers_with_ellipses]
-        )
+            layers_with_ellipses = np.logical_and(circle_detector.batch_lengths_circles == 0, batch_lengths > 0)
 
-        visualization_tasks: List[Tuple[Any, ...]] = []
+            ellipses = fit_ellipse(
+                trunk_layer_xy[np.repeat(layers_with_ellipses, batch_lengths)], batch_lengths[layers_with_ellipses]
+            )
 
-        circle_idx = 0
-        ellipse_idx = 0
-        batch_start_idx = 0
-        for label_idx, label in enumerate(unique_cluster_labels):
-            for layer in range(self._trunk_search_circle_fitting_num_layers):
-                flat_idx = label_idx * num_layers + layer
-                batch_end_idx = batch_start_idx + batch_lengths[flat_idx]
-                if batch_lengths[flat_idx] < self._trunk_search_circle_fitting_min_points:
-                    self._logger.info(
-                        "Layer %d of trunk cluster %d contains too few points to fit a circle or an ellipse.",
-                        layer,
-                        label,
-                    )
-                    continue
+            visualization_tasks: List[Tuple[Any, ...]] = []
 
-                if layers_with_ellipses[flat_idx]:
-                    ellipse = ellipses[ellipse_idx]
-                    ellipse_idx += 1
-                    if ellipse[2] == -1:
+            circle_idx = 0
+            ellipse_idx = 0
+            batch_start_idx = 0
+            for label_idx, label in enumerate(unique_cluster_labels):
+                for layer in range(self._trunk_search_circle_fitting_num_layers):
+                    flat_idx = label_idx * num_layers + layer
+                    batch_end_idx = batch_start_idx + batch_lengths[flat_idx]
+                    if batch_lengths[flat_idx] < self._trunk_search_circle_fitting_min_points:
                         self._logger.info(
-                            "Neither a circle nor an ellipse was found for layer %d of trunk cluster %d.",
+                            "Layer %d of trunk cluster %d contains too few points to fit a circle or an ellipse.",
                             layer,
                             label,
                         )
                         continue
 
-                    center_x, center_y, radius_major, radius_minor, theta = ellipse
-                    layer_circles_or_ellipses[label_idx, layer] = [
-                        center_x,
-                        center_y,
-                        radius_major,
-                        radius_minor,
-                        theta,
-                    ]
-
-                    if self._visualization_folder is not None and point_cloud_id is not None:
-                        visualization_path = (
-                            self._visualization_folder
-                            / point_cloud_id
-                            / f"preliminary_ellipse_trunk_{label}_layer_{layer}.png"
-                        )
-                        visualization_tasks.append(
-                            (trunk_layer_xy[batch_start_idx:batch_end_idx], visualization_path, None, ellipse)
-                        )
-                else:
-                    layer_circles_or_ellipses[label_idx, layer, :3] = circle_detector.circles[circle_idx]
-                    if self._visualization_folder is not None and point_cloud_id is not None:
-                        visualization_path = (
-                            self._visualization_folder
-                            / point_cloud_id
-                            / f"preliminary_circle_trunk_{label}_layer_{layer}.png"
-                        )
-                        visualization_tasks.append(
-                            (
-                                trunk_layer_xy[batch_start_idx:batch_end_idx],
-                                visualization_path,
-                                circle_detector.circles[circle_idx],
+                    if layers_with_ellipses[flat_idx]:
+                        ellipse = ellipses[ellipse_idx]
+                        ellipse_idx += 1
+                        if ellipse[2] == -1:
+                            self._logger.info(
+                                "Neither a circle nor an ellipse was found for layer %d of trunk cluster %d.",
+                                layer,
+                                label,
                             )
-                        )
+                            continue
 
-                circle_idx += circle_detector.batch_lengths_circles[flat_idx]
-                batch_start_idx = batch_end_idx
+                        center_x, center_y, radius_major, radius_minor, theta = ellipse
+                        layer_circles_or_ellipses[label_idx, layer] = [
+                            center_x,
+                            center_y,
+                            radius_major,
+                            radius_minor,
+                            theta,
+                        ]
+
+                        if self._visualization_folder is not None and point_cloud_id is not None:
+                            visualization_path = (
+                                self._visualization_folder
+                                / point_cloud_id
+                                / f"preliminary_ellipse_trunk_{label}_layer_{layer}.png"
+                            )
+                            visualization_tasks.append(
+                                (trunk_layer_xy[batch_start_idx:batch_end_idx], visualization_path, None, ellipse)
+                            )
+                    else:
+                        layer_circles_or_ellipses[label_idx, layer, :3] = circle_detector.circles[circle_idx]
+                        if self._visualization_folder is not None and point_cloud_id is not None:
+                            visualization_path = (
+                                self._visualization_folder
+                                / point_cloud_id
+                                / f"preliminary_circle_trunk_{label}_layer_{layer}.png"
+                            )
+                            visualization_tasks.append(
+                                (
+                                    trunk_layer_xy[batch_start_idx:batch_end_idx],
+                                    visualization_path,
+                                    circle_detector.circles[circle_idx],
+                                )
+                            )
+
+                    circle_idx += circle_detector.batch_lengths_circles[flat_idx]
+                    batch_start_idx = batch_end_idx
 
         if len(visualization_tasks) > 0:
-            with multiprocessing.Pool() as pool:
-                pool.starmap(plot_fitted_shape, visualization_tasks)
+            with Timer(
+                "Visualization of circles and ellipses fitted to downsampled trunk candidates", self._time_tracker
+            ):
+                self._logger.info("Visualize circles / ellipses fitted to downsampled trunk candidates...")
+                num_workers = self._num_workers if self._num_workers > 0 else multiprocessing.cpu_count()
+                with multiprocessing.Pool(processes=num_workers) as pool:
+                    pool.starmap(plot_fitted_shape, visualization_tasks)
 
         return layer_circles_or_ellipses
 
@@ -740,120 +753,135 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`N_{t,l} = \text{ number of points selected from the l-th layer of cluster } t`
         """
 
-        num_instances = len(preliminary_layer_circles_or_ellipses)
-        num_layers = self._trunk_search_circle_fitting_num_layers
+        with Timer("Fitting of circles and ellipses to full-resolution trunk candidates", self._time_tracker):
+            self._logger.info("Fitting circles / ellipses to full-resolution trunk candidates...")
 
-        layer_circles = np.full(
-            (num_instances, self._trunk_search_circle_fitting_num_layers, 3), fill_value=-1, dtype=np.float64
-        )
-        layer_ellipses = np.full(
-            (num_instances, self._trunk_search_circle_fitting_num_layers, 5), fill_value=-1, dtype=np.float64
-        )
+            num_instances = len(preliminary_layer_circles_or_ellipses)
+            num_layers = self._trunk_search_circle_fitting_num_layers
 
-        trunk_layer_xy, batch_lengths_xy, layer_heights = collect_inputs_trunk_layers_exact_fitting_cpp(
-            trunk_layer_xyz,
-            preliminary_layer_circles_or_ellipses.reshape((-1, 5)),
-            float(self._trunk_search_min_z),
-            num_layers,
-            float(self._trunk_search_circle_fitting_layer_height),
-            float(self._trunk_search_circle_fitting_layer_overlap),
-            float(self._trunk_search_circle_fitting_switch_buffer_threshold),
-            float(self._trunk_search_circle_fitting_small_buffer_width),
-            float(self._trunk_search_circle_fitting_large_buffer_width),
-            0,
-            int(self._num_workers),
-        )
-
-        if num_instances == 0:
-            return (
-                layer_circles,
-                layer_ellipses,
-                layer_heights,
-                np.empty((0, 2), dtype=np.int64),
-                np.empty(0, dtype=np.int64),
+            layer_circles = np.full(
+                (num_instances, self._trunk_search_circle_fitting_num_layers, 3), fill_value=-1, dtype=np.float64
+            )
+            layer_ellipses = np.full(
+                (num_instances, self._trunk_search_circle_fitting_num_layers, 5), fill_value=-1, dtype=np.float64
             )
 
-        min_radius = self._trunk_search_circle_fitting_min_trunk_diameter / 2
-        max_radius = self._trunk_search_circle_fitting_max_trunk_diameter / 2
-        min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
-        bandwidth = 0.01
+            trunk_layer_xy, batch_lengths_xy, layer_heights = collect_inputs_trunk_layers_exact_fitting_cpp(
+                trunk_layer_xyz,
+                preliminary_layer_circles_or_ellipses.reshape((-1, 5)),
+                float(self._trunk_search_min_z),
+                num_layers,
+                float(self._trunk_search_circle_fitting_layer_height),
+                float(self._trunk_search_circle_fitting_layer_overlap),
+                float(self._trunk_search_circle_fitting_switch_buffer_threshold),
+                float(self._trunk_search_circle_fitting_small_buffer_width),
+                float(self._trunk_search_circle_fitting_large_buffer_width),
+                0,
+                int(self._num_workers),
+            )
 
-        circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
-        circle_detector.detect(
-            trunk_layer_xy,
-            batch_lengths=batch_lengths_xy,
-            n_start_x=10,
-            n_start_y=10,
-            min_start_radius=min_radius,
-            max_start_radius=max_radius,
-            n_start_radius=5,
-            num_workers=self._num_workers,
-        )
-        circle_detector.filter(
-            max_circles=1,
-            deduplication_precision=4,
-            min_circumferential_completeness_idx=min_completeness_idx,
-            circumferential_completeness_idx_max_dist=bandwidth,
-            circumferential_completeness_idx_num_regions=int(365 / 5),
-            non_maximum_suppression=True,
-            num_workers=self._num_workers,
-        )
+            if num_instances == 0:
+                return (
+                    layer_circles,
+                    layer_ellipses,
+                    layer_heights,
+                    np.empty((0, 2), dtype=np.int64),
+                    np.empty(0, dtype=np.int64),
+                )
 
-        ellipses = fit_ellipse(trunk_layer_xy, batch_lengths_xy)
+            min_radius = self._trunk_search_circle_fitting_min_trunk_diameter / 2
+            max_radius = self._trunk_search_circle_fitting_max_trunk_diameter / 2
+            min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
+            bandwidth = 0.01
 
-        visualization_tasks: List[Tuple[Any, ...]] = []
+            with Timer("Circle fitting to full-resolution trunk candidates", self._time_tracker):
+                self._logger.info("Fit circles...")
 
-        circle_idx = 0
-        batch_start_idx = 0
-        for label in range(num_instances):
-            for layer in range(self._trunk_search_circle_fitting_num_layers):
-                flat_idx = label * num_layers + layer
-                batch_end_idx = batch_start_idx + batch_lengths_xy[flat_idx]
+                circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+                circle_detector.detect(
+                    trunk_layer_xy,
+                    batch_lengths=batch_lengths_xy,
+                    n_start_x=10,
+                    n_start_y=10,
+                    min_start_radius=min_radius,
+                    max_start_radius=max_radius,
+                    n_start_radius=5,
+                    num_workers=self._num_workers,
+                )
 
-                if circle_detector.batch_lengths_circles[flat_idx] > 0:
-                    layer_circles[label, layer] = circle_detector.circles[circle_idx]
+                circle_detector.filter(
+                    max_circles=1,
+                    deduplication_precision=4,
+                    min_circumferential_completeness_idx=min_completeness_idx,
+                    circumferential_completeness_idx_max_dist=bandwidth,
+                    circumferential_completeness_idx_num_regions=int(365 / 5),
+                    non_maximum_suppression=True,
+                    num_workers=self._num_workers,
+                )
 
-                    if self._visualization_folder is not None and point_cloud_id is not None:
-                        visualization_path = (
-                            self._visualization_folder
-                            / point_cloud_id
-                            / f"exact_circle_trunk_{label}_layer_{layer}.png"
-                        )
-                        visualization_tasks.append(
-                            (
-                                trunk_layer_xy[batch_start_idx:batch_end_idx],
-                                visualization_path,
-                                circle_detector.circles[circle_idx],
+            with Timer("Ellipse fitting to full-resolution trunk candidates", self._time_tracker):
+                self._logger.info("Fit ellipses...")
+
+            ellipses = fit_ellipse(trunk_layer_xy, batch_lengths_xy, num_workers=self._num_workers)
+
+            visualization_tasks: List[Tuple[Any, ...]] = []
+
+            circle_idx = 0
+            batch_start_idx = 0
+            for label in range(num_instances):
+                for layer in range(self._trunk_search_circle_fitting_num_layers):
+                    flat_idx = label * num_layers + layer
+                    batch_end_idx = batch_start_idx + batch_lengths_xy[flat_idx]
+
+                    if circle_detector.batch_lengths_circles[flat_idx] > 0:
+                        layer_circles[label, layer] = circle_detector.circles[circle_idx]
+
+                        if self._visualization_folder is not None and point_cloud_id is not None:
+                            visualization_path = (
+                                self._visualization_folder
+                                / point_cloud_id
+                                / f"exact_circle_trunk_{label}_layer_{layer}.png"
                             )
-                        )
-
-                if ellipses[flat_idx, 2] != -1:
-                    radius_major, radius_minor = ellipses[flat_idx, 2:4]
-
-                    if radius_minor / radius_major >= self._trunk_search_ellipse_filter_threshold:
-                        layer_ellipses[label, layer] = ellipses[flat_idx]
-
-                    if self._visualization_folder is not None and point_cloud_id is not None:
-                        visualization_path = (
-                            self._visualization_folder
-                            / point_cloud_id
-                            / f"exact_ellipse_trunk_{label}_layer_{layer}.png"
-                        )
-                        visualization_tasks.append(
-                            (
-                                trunk_layer_xy[batch_start_idx:batch_end_idx],
-                                visualization_path,
-                                None,
-                                ellipses[flat_idx],
+                            visualization_tasks.append(
+                                (
+                                    trunk_layer_xy[batch_start_idx:batch_end_idx],
+                                    visualization_path,
+                                    circle_detector.circles[circle_idx],
+                                )
                             )
-                        )
 
-                circle_idx += circle_detector.batch_lengths_circles[flat_idx]
-                batch_start_idx = batch_end_idx
+                    if ellipses[flat_idx, 2] != -1:
+                        radius_major, radius_minor = ellipses[flat_idx, 2:4]
+
+                        if radius_minor / radius_major >= self._trunk_search_ellipse_filter_threshold:
+                            layer_ellipses[label, layer] = ellipses[flat_idx]
+
+                        if self._visualization_folder is not None and point_cloud_id is not None:
+                            visualization_path = (
+                                self._visualization_folder
+                                / point_cloud_id
+                                / f"exact_ellipse_trunk_{label}_layer_{layer}.png"
+                            )
+                            visualization_tasks.append(
+                                (
+                                    trunk_layer_xy[batch_start_idx:batch_end_idx],
+                                    visualization_path,
+                                    None,
+                                    ellipses[flat_idx],
+                                )
+                            )
+
+                    circle_idx += circle_detector.batch_lengths_circles[flat_idx]
+                    batch_start_idx = batch_end_idx
 
         if len(visualization_tasks) > 0:
-            with multiprocessing.Pool() as pool:
-                pool.starmap(plot_fitted_shape, visualization_tasks)
+            with Timer(
+                "Visualization of circles and ellipses fitted to full-resolution trunk candidates", self._time_tracker
+            ):
+                self._logger.info("Visualize circles and ellipses fitted to full-resolution trunk candidates...")
+                num_workers = self._num_workers if self._num_workers > 0 else multiprocessing.cpu_count()
+                with multiprocessing.Pool(processes=num_workers) as pool:
+                    pool.starmap(plot_fitted_shape, visualization_tasks)
 
         return layer_circles, layer_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy
 
@@ -976,51 +1004,51 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`T = \text{ number of trunk clusters}`
         """
 
-        if self._visualization_folder is not None and point_cloud_id is not None:
-            next_valid_label = 0
-            next_invalid_label = filter_mask.sum()
-            for label, is_valid in enumerate(filter_mask):
-                for layer in range(self._trunk_search_circle_fitting_num_layers):
-                    visualization_paths = [
-                        self._visualization_folder
-                        / point_cloud_id
-                        / f"preliminary_circle_trunk_{label}_layer_{layer}.png",
-                        self._visualization_folder
-                        / point_cloud_id
-                        / f"preliminary_ellipse_trunk_{label}_layer_{layer}.png",
-                        self._visualization_folder / point_cloud_id / f"exact_circle_trunk_{label}_layer_{layer}.png",
-                        self._visualization_folder / point_cloud_id / f"exact_ellipse_trunk_{label}_layer_{layer}.png",
-                    ]
-                    for visualization_path in visualization_paths:
-                        if not visualization_path.exists():
-                            continue
+        if self._visualization_folder is None or point_cloud_id is None:
+            return
 
-                        if is_valid:
-                            new_visualization_path_str = str(visualization_path)
-                            new_visualization_path_str = new_visualization_path_str.replace(
-                                f"trunk_{label}_", f"trunk_{next_valid_label}_"
-                            )
-                            new_visualization_path_str = new_visualization_path_str.replace(
-                                f"layer_{layer}.png", f"layer_{layer}_valid.png"
-                            )
-                        else:
-                            new_visualization_path_str = str(visualization_path)
-                            new_visualization_path_str = new_visualization_path_str.replace(
-                                f"trunk_{label}_", f"trunk_{next_invalid_label}_"
-                            )
-                            new_visualization_path_str = new_visualization_path_str.replace(
-                                f"layer_{layer}.png", f"layer_{layer}_invalid.png"
-                            )
-                        new_visualization_path = Path(new_visualization_path_str)
+        next_valid_label = 0
+        next_invalid_label = filter_mask.sum()
+        for label, is_valid in enumerate(filter_mask):
+            for layer in range(self._trunk_search_circle_fitting_num_layers):
+                visualization_paths = [
+                    self._visualization_folder / point_cloud_id / f"preliminary_circle_trunk_{label}_layer_{layer}.png",
+                    self._visualization_folder
+                    / point_cloud_id
+                    / f"preliminary_ellipse_trunk_{label}_layer_{layer}.png",
+                    self._visualization_folder / point_cloud_id / f"exact_circle_trunk_{label}_layer_{layer}.png",
+                    self._visualization_folder / point_cloud_id / f"exact_ellipse_trunk_{label}_layer_{layer}.png",
+                ]
+                for visualization_path in visualization_paths:
+                    if not visualization_path.exists():
+                        continue
 
-                        if new_visualization_path.exists():
-                            new_visualization_path.unlink()
-                        visualization_path.rename(new_visualization_path)
+                    if is_valid:
+                        new_visualization_path_str = str(visualization_path)
+                        new_visualization_path_str = new_visualization_path_str.replace(
+                            f"trunk_{label}_", f"trunk_{next_valid_label}_"
+                        )
+                        new_visualization_path_str = new_visualization_path_str.replace(
+                            f"layer_{layer}.png", f"layer_{layer}_valid.png"
+                        )
+                    else:
+                        new_visualization_path_str = str(visualization_path)
+                        new_visualization_path_str = new_visualization_path_str.replace(
+                            f"trunk_{label}_", f"trunk_{next_invalid_label}_"
+                        )
+                        new_visualization_path_str = new_visualization_path_str.replace(
+                            f"layer_{layer}.png", f"layer_{layer}_invalid.png"
+                        )
+                    new_visualization_path = Path(new_visualization_path_str)
 
-                if is_valid:
-                    next_valid_label += 1
-                else:
-                    next_invalid_label += 1
+                    if new_visualization_path.exists():
+                        new_visualization_path.unlink()
+                    visualization_path.rename(new_visualization_path)
+
+            if is_valid:
+                next_valid_label += 1
+            else:
+                next_invalid_label += 1
 
     def compute_trunk_positions(
         self,
@@ -1225,7 +1253,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             trunk_diameters[label] = prediction[0]
 
         if len(visualization_tasks) > 0:
-            with multiprocessing.Pool() as pool:
+            num_workers = self._num_workers if self._num_workers > 0 else multiprocessing.cpu_count()
+            with multiprocessing.Pool(processes=num_workers) as pool:
                 pool.starmap(plot_fitted_shape, visualization_tasks)
 
         return trunk_diameters
@@ -1403,6 +1432,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             int(self._num_workers),
         )
 
+        instance_ids = make_labels_consecutive(instance_ids, ignore_id=-1, inplace=True)
+
         full_instance_ids = np.full(len(xyz), fill_value=-1, dtype=np.int64)
         full_instance_ids = instance_ids[inverse_indices]
 
@@ -1462,8 +1493,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         with Timer("Trunk identification", self._time_tracker):
             self._logger.info("Identify trunks...")
-            normalized_tree_points = normalized_xyz[is_tree]
-            trunk_positions, trunk_diameters = self.find_trunks(normalized_tree_points, point_cloud_id=point_cloud_id)
+            normalized_tree_xyz = normalized_xyz[is_tree]
+            trunk_positions, trunk_diameters = self.find_trunks(normalized_tree_xyz, point_cloud_id=point_cloud_id)
 
         if len(trunk_positions) == 0:
             return (
@@ -1472,8 +1503,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 trunk_diameters,
             )
 
-        instance_ids = self.segment_crowns(xyz, normalized_xyz[:, 2], is_tree, trunk_positions, trunk_diameters)
+        with Timer("Crown segmentation", self._time_tracker):
+            self._logger.info("Segment tree crowns...")
+            instance_ids = self.segment_crowns(xyz, normalized_xyz[:, 2], is_tree, trunk_positions, trunk_diameters)
 
         self._logger.info("Finished segmentation.")
+
+        print(self.runtime_stats())
 
         return instance_ids, trunk_positions, trunk_diameters

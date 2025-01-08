@@ -5,7 +5,7 @@ __all__ = ["fit_ellipse"]
 import numpy as np
 import numpy.typing as npt
 
-from pointtree._operations_cpp import fit_ellipse as fit_ellipse_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
+from pointtree._operations_cpp import fit_ellipse as fit_ellipse_cpp  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
 
 
 def fit_ellipse(

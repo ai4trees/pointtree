@@ -10,11 +10,6 @@ PYBIND11_MODULE(_tree_x_algorithm_cpp, m) {
     C++ extension module implementing selected steps of the TreeXAlgorithm.
   )pbdoc";
 
-  m.def("segment_tree_crowns", &segment_tree_crowns, pybind11::return_value_policy::reference_internal, R"pbdoc(
-    C++ implementation of the region-growing method for tree crown segmentation. For more details, see the documentation
-    of the Python wrapper method :code:`TreeXAlgorithm.segment_tree_crowns()`.
-  )pbdoc");
-
   m.def("collect_inputs_trunk_layers_preliminary_fitting", &collect_inputs_trunk_layers_preliminary_fitting,
         pybind11::return_value_policy::reference_internal,
         R"pbdoc(
@@ -31,6 +26,16 @@ PYBIND11_MODULE(_tree_x_algorithm_cpp, m) {
     a buffer region around the outline of each circle / ellipse are extracted and the circle / ellipse fitting is
     repeated using theses points. For this more exact circle / ellipse fitting, this method compiles the points (and the
     indices of these points) within the respective buffer region for each trunk cluster and layer.
+  )pbdoc");
+
+  m.def("collect_region_growing_seeds", &collect_region_growing_seeds,
+        pybind11::return_value_policy::reference_internal, R"pbdoc(
+    Method that collects the seed points for tree crown segmentation using region growing.
+  )pbdoc");
+
+  m.def("segment_tree_crowns", &segment_tree_crowns, pybind11::return_value_policy::reference_internal, R"pbdoc(
+    C++ implementation of the region-growing method for tree crown segmentation. For more details, see the documentation
+    of the Python wrapper method :code:`TreeXAlgorithm.segment_tree_crowns()`.
   )pbdoc");
 
 #ifdef VERSION_INFO

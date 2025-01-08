@@ -20,6 +20,10 @@ collect_inputs_trunk_layers_exact_fitting(Eigen::ArrayX3d trunk_layer_xyz,
                                           double trunk_search_circle_fitting_large_buffer_width,
                                           int64_t trunk_search_circle_fitting_min_points = 0, int num_workers = -1);
 
+std::tuple<Eigen::Array<int64_t, Eigen::Dynamic, 1>, std::vector<int64_t>> collect_region_growing_seeds(
+    Eigen::ArrayX3d xyz, Eigen::ArrayXd distance_to_dtm, Eigen::ArrayX2d tree_positions, Eigen::ArrayXd trunk_diameters,
+    double region_growing_seed_layer_height, double region_growing_seed_radius_factor, int num_workers = 1);
+
 Eigen::Array<int64_t, Eigen::Dynamic, 1> segment_tree_crowns(
     Eigen::ArrayX3d xyz, Eigen::ArrayXd distance_to_dtm, Eigen::Array<bool, Eigen::Dynamic, 1> is_tree,
     Eigen::ArrayX2d tree_positions, Eigen::ArrayXd trunk_diameters, double region_growing_voxel_size,

@@ -224,23 +224,17 @@ std::tuple<ArrayX2d, ArrayXl, ArrayXd> collect_inputs_trunk_layers_exact_fitting
   return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths, layer_heights);
 }
 
-ArrayXl segment_tree_crowns(ArrayX3d xyz, ArrayXd distance_to_dtm, ArrayXb is_tree, ArrayX2d tree_positions,
-                            ArrayXd trunk_diameters, double region_growing_voxel_size, double region_growing_z_scale,
-                            double region_growing_seed_layer_height, double region_growing_seed_radius_factor,
-                            double region_growing_min_total_assignment_ratio,
-                            double region_growing_min_tree_assignment_ratio, double region_growing_max_search_radius,
-                            int64_t region_growing_decrease_search_radius_after_num_iter,
-                            int64_t region_growing_max_iterations,
-                            double region_growing_cum_search_dist_include_terrain, int num_workers) {
+std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(ArrayX3d xyz, ArrayXd distance_to_dtm,
+                                                                       ArrayX2d tree_positions, ArrayXd trunk_diameters,
+                                                                       double region_growing_seed_layer_height,
+                                                                       double region_growing_seed_radius_factor,
+                                                                       int num_workers = 1) {
   if (num_workers != -1) {
     omp_set_num_threads(num_workers);
   }
 
   if (xyz.rows() != distance_to_dtm.rows()) {
     throw std::invalid_argument("xyz and distance_to_dtm must have the same length.");
-  }
-  if (xyz.rows() != is_tree.rows()) {
-    throw std::invalid_argument("xyz and is_tree must have the same length.");
   }
   if (tree_positions.rows() != trunk_diameters.rows()) {
     throw std::invalid_argument("tree_positions and trunk_diameters must have the same length.");
@@ -286,6 +280,34 @@ ArrayXl segment_tree_crowns(ArrayX3d xyz, ArrayXd distance_to_dtm, ArrayXb is_tr
   }
 
   delete kd_tree_2d;
+
+  return std::make_tuple(instance_ids, seed_indices);
+}
+
+ArrayXl segment_tree_crowns(ArrayX3d xyz, ArrayXd distance_to_dtm, ArrayXb is_tree, ArrayX2d tree_positions,
+                            ArrayXd trunk_diameters, double region_growing_voxel_size, double region_growing_z_scale,
+                            double region_growing_seed_layer_height, double region_growing_seed_radius_factor,
+                            double region_growing_min_total_assignment_ratio,
+                            double region_growing_min_tree_assignment_ratio, double region_growing_max_search_radius,
+                            int64_t region_growing_decrease_search_radius_after_num_iter,
+                            int64_t region_growing_max_iterations,
+                            double region_growing_cum_search_dist_include_terrain, int num_workers) {
+  if (num_workers != -1) {
+    omp_set_num_threads(num_workers);
+  }
+
+  if (xyz.rows() != is_tree.rows()) {
+    throw std::invalid_argument("xyz and is_tree must have the same length.");
+  }
+
+  auto num_trees = tree_positions.rows();
+  auto num_points = xyz.rows();
+
+  std::tuple<ArrayXl, std::vector<int64_t>> region_growing_seeds =
+      collect_region_growing_seeds(xyz, distance_to_dtm, tree_positions, trunk_diameters,
+                                   region_growing_seed_layer_height, region_growing_seed_radius_factor);
+  ArrayXl instance_ids = std::get<0>(region_growing_seeds);
+  std::vector<int64_t> seed_indices = std::get<1>(region_growing_seeds);
 
   xyz.col(2) = xyz.col(2) / region_growing_z_scale;
 

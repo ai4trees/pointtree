@@ -43,8 +43,8 @@ ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
   [2] Weisstein, Eric W. "Ellipse." From MathWorld--A Wolfram Web Resource. https://mathworld.wolfram.com/Ellipse.html
   */
 
-  if (num_workers != -1) {
-    omp_set_num_threads(num_workers);
+  if (num_workers <= 0) {
+    num_workers = omp_get_max_threads();
   }
 
   constexpr double PI = 3.14159265358979311600;

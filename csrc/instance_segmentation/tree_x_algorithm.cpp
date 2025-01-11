@@ -229,9 +229,6 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(ArrayX3d 
                                                                        double region_growing_seed_layer_height,
                                                                        double region_growing_seed_radius_factor,
                                                                        int num_workers = 1) {
-  if (num_workers != -1) {
-    omp_set_num_threads(num_workers);
-  }
 
   if (xyz.rows() != distance_to_dtm.rows()) {
     throw std::invalid_argument("xyz and distance_to_dtm must have the same length.");
@@ -292,8 +289,8 @@ ArrayXl segment_tree_crowns(ArrayX3d xyz, ArrayXd distance_to_dtm, ArrayXb is_tr
                             int64_t region_growing_decrease_search_radius_after_num_iter,
                             int64_t region_growing_max_iterations,
                             double region_growing_cum_search_dist_include_terrain, int num_workers) {
-  if (num_workers != -1) {
-    omp_set_num_threads(num_workers);
+  if (num_workers <= 0) {
+    num_workers = omp_get_max_threads();
   }
 
   if (xyz.rows() != is_tree.rows()) {

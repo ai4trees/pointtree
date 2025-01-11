@@ -6,9 +6,9 @@ import itertools
 import multiprocessing
 from pathlib import Path
 import sys
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Literal, Optional, Tuple, Union
 
-from circle_detection import CircleDetection
+from circle_detection import MEstimator, Ransac
 import numpy as np
 import numpy.typing as npt
 from sklearn.cluster import DBSCAN
@@ -131,6 +131,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_min_cluster_height (float, optional): Minimum extent in the z-direction (i.e., the height
             difference between the highest and the lowest point in the cluster) a cluster must have in order not to be
             discarded (in meters). Defaults to 1.3 m.
+        trunk_search_circle_fitting_method (str, optional): Circle fitting method to use: :code:`"m-estimator"` |
+            :code:`"ransac"`.
         trunk_search_circle_fitting_num_layers (int, optional): Number of horizontal layers used for the circle /
             ellipse fitting. Depending on the settings for :code:`trunk_search_circle_fitting_layer_height` and
             :code:`trunk_search_circle_fitting_layer_overlap`, this parameter controls which height range of the trunk
@@ -284,6 +286,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_dbscan_min_points: int = 90,
         trunk_search_min_cluster_points: Optional[int] = 500,
         trunk_search_min_cluster_height: Optional[float] = 1.3,
+        trunk_search_circle_fitting_method: Literal["m-estimator", "ransac"] = "ransac",
         trunk_search_circle_fitting_num_layers: int = 14,
         trunk_search_circle_fitting_layer_height: float = 0.15,
         trunk_search_circle_fitting_layer_overlap: float = 0.025,
@@ -331,6 +334,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._trunk_search_dbscan_min_points = trunk_search_dbscan_min_points
         self._trunk_search_min_cluster_points = trunk_search_min_cluster_points
         self._trunk_search_min_cluster_height = trunk_search_min_cluster_height
+        self._trunk_search_circle_fitting_method = trunk_search_circle_fitting_method
         self._trunk_search_circle_fitting_num_layers = trunk_search_circle_fitting_num_layers
         self._trunk_search_circle_fitting_layer_height = trunk_search_circle_fitting_layer_height
         self._trunk_search_circle_fitting_layer_overlap = trunk_search_circle_fitting_layer_overlap
@@ -574,17 +578,25 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
             bandwidth = 0.01
 
-            circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
-            circle_detector.detect(
-                trunk_layer_xy,
-                batch_lengths=batch_lengths,
-                n_start_x=10,
-                n_start_y=10,
-                min_start_radius=min_radius,
-                max_start_radius=max_radius,
-                n_start_radius=5,
-                num_workers=self._num_workers,
-            )
+            if self._trunk_search_circle_fitting_method == "m-estimator":
+                circle_detector = MEstimator(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+                circle_detector.detect(
+                    trunk_layer_xy,
+                    batch_lengths=batch_lengths,
+                    n_start_x=10,
+                    n_start_y=10,
+                    min_start_radius=min_radius,
+                    max_start_radius=max_radius,
+                    n_start_radius=5,
+                    num_workers=self._num_workers,
+                )
+            else:
+                circle_detector = Ransac(bandwidth=bandwidth)
+                circle_detector.detect(
+                    trunk_layer_xy,
+                    batch_lengths=batch_lengths,
+                    num_workers=self._num_workers,
+                )
             circle_detector.filter(
                 max_circles=1,
                 deduplication_precision=4,
@@ -797,17 +809,25 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             with Timer("Circle fitting to full-resolution trunk candidates", self._time_tracker):
                 self._logger.info("Fit circles...")
 
-                circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
-                circle_detector.detect(
-                    trunk_layer_xy,
-                    batch_lengths=batch_lengths_xy,
-                    n_start_x=10,
-                    n_start_y=10,
-                    min_start_radius=min_radius,
-                    max_start_radius=max_radius,
-                    n_start_radius=5,
-                    num_workers=self._num_workers,
-                )
+                if self._trunk_search_circle_fitting_method == "m-estimator":
+                    circle_detector = MEstimator(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+                    circle_detector.detect(
+                        trunk_layer_xy,
+                        batch_lengths=batch_lengths_xy,
+                        n_start_x=10,
+                        n_start_y=10,
+                        min_start_radius=min_radius,
+                        max_start_radius=max_radius,
+                        n_start_radius=5,
+                        num_workers=self._num_workers,
+                    )
+                else:
+                    circle_detector = Ransac(bandwidth=bandwidth)
+                    circle_detector.detect(
+                        trunk_layer_xy,
+                        batch_lengths=batch_lengths_xy,
+                        num_workers=self._num_workers,
+                    )
 
                 circle_detector.filter(
                     max_circles=1,

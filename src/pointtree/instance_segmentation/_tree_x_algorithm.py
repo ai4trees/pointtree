@@ -1520,7 +1520,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._logger.info("Identify trunks...")
             normalized_tree_xyz = np.empty((is_tree.sum(), 3), dtype=np.float64)
             normalized_tree_xyz[:, :2] = xyz[is_tree, :2]
-            normalized_tree_xyz[:, 2] = distance_to_dtm[is_tree]
+            normalized_tree_xyz[:, 2] = dists_to_dtm[is_tree]
             trunk_positions, trunk_diameters = self.find_trunks(normalized_tree_xyz, point_cloud_id=point_cloud_id)
 
         if len(trunk_positions) == 0:

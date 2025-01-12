@@ -54,7 +54,7 @@ class PerformanceTracker:
             and :code:`"Memory Increment [GB]"`.
         """
 
-        performance_metrics_list = [[key] for key in self._performance_metrics["Wallclock Time"].keys()]
+        performance_metrics_list = [[key] for key in self._performance_metrics["Wallclock Time [s]"].keys()]
 
         metric_names = self._performance_metrics.keys()
         for metric_name in metric_names:

@@ -43,6 +43,7 @@ dependencies = [
     "numpy>=1.21.0, <3.0.0",
     "pandas>=2.0.0, <3.0.0",
     "pointtorch>=0.1.0, <1.0.0",
+    "psutil>=5.9.0, < 7.0.0",
     "pyclesperanto-prototype>=0.22.0, <1.0.0",
     "pygam>=0.8.0, <1.0.0",
     "scipy>=1.8.0, <2.0.0",

@@ -2,11 +2,11 @@
 
 __all__ = ["Profiler"]
 
-import psutil
 import os
 import time
 
 import numpy as np
+import psutil
 
 from ._performance_tracker import PerformanceTracker
 

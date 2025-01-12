@@ -9,7 +9,7 @@ from typing import Any
 
 import pandas as pd
 
-from pointtree.evaluation import TimeTracker
+from pointtree.evaluation import PerformanceTracker
 
 
 class InstanceSegmentationAlgorithm(abc.ABC):
@@ -18,7 +18,7 @@ class InstanceSegmentationAlgorithm(abc.ABC):
     """
 
     def __init__(self):
-        self._time_tracker = TimeTracker()
+        self._performance_tracker = PerformanceTracker()
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s:%(levelname)s: %(message)s",
@@ -28,17 +28,18 @@ class InstanceSegmentationAlgorithm(abc.ABC):
         self._logger = logging.getLogger(__name__)
         self._logger.setLevel(logging.INFO)
 
-    def runtime_stats(
+    def performance_metrics(
         self,
     ) -> pd.DataFrame:
         """
         Returns:
-            Tracked execution times as
+            Tracked performance metrics as
             `pandas.DataFrame <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`__ with the columns
-            :code:`"Description"` and :code:`"Runtime"`.
+            :code:`"Description"`, :code:`"Wallclock Time [s]"`, :code:`"CPU Time [s]"`, :code:`"Memory Usage [GB]"`,
+            and :code:`"Memory Increment [GB]"`.
         """
 
-        return self._time_tracker.to_pandas()
+        return self._performance_tracker.to_pandas()
 
     @abc.abstractmethod
     def __call__(self, *args, **kwargs) -> Any:

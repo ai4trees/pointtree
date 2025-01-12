@@ -15,7 +15,7 @@ from sklearn.cluster import DBSCAN
 from pointtorch.operations.numpy import voxel_downsampling, make_labels_consecutive
 from pygam import LinearGAM, s
 
-from pointtree.evaluation import Timer
+from pointtree.evaluation import Profiler
 from pointtree.operations import (
     create_digital_terrain_model,
     cloth_simulation_filtering,
@@ -404,7 +404,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             trunk_layer_xyz, voxel_size=self._trunk_search_voxel_size
         )
 
-        with Timer("Clustering of trunk points", self._time_tracker):
+        with Profiler("Clustering of trunk points", self._performance_tracker):
             self._logger.info("Cluster trunk points...")
             dbscan = DBSCAN(
                 eps=self._trunk_search_dbscan_eps,
@@ -418,7 +418,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             self._logger.info("Found %d trunk candidates.", len(unique_cluster_labels))
 
-        with Timer("Filtering of trunk clusters based on point count", self._time_tracker):
+        with Profiler("Filtering of trunk clusters based on point count", self._performance_tracker):
             cluster_labels, unique_cluster_labels = filter_instances_min_points(
                 cluster_labels, unique_cluster_labels, min_points=self._trunk_search_min_cluster_points, inplace=True
             )
@@ -428,7 +428,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 len(unique_cluster_labels),
             )
 
-        with Timer("Filtering of trunk clusters based on vertical extent", self._time_tracker):
+        with Profiler("Filtering of trunk clusters based on vertical extent", self._performance_tracker):
             cluster_labels, unique_cluster_labels = filter_instances_vertical_extent(
                 trunk_layer_xyz_downsampled,
                 cluster_labels,
@@ -456,8 +456,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
         )
 
-        with Timer(
-            "Filtering of trunk clusters based on standard deviation of circle / ellipse diameters", self._time_tracker
+        with Profiler(
+            "Filtering of trunk clusters based on standard deviation of circle / ellipse diameters",
+            self._performance_tracker,
         ):
             filter_mask, best_circle_combination, best_ellipse_combination = self.filter_instances_trunk_layer_std(
                 layer_circles, layer_ellipses
@@ -475,13 +476,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 "%d trunks remaining after discarding clusters with too high standard deviation.", len(layer_circles)
             )
 
-        with Timer("Computation of trunk positions", self._time_tracker):
+        with Profiler("Computation of trunk positions", self._performance_tracker):
             self._logger.info("Compute trunk positions...")
             trunk_positions = self.compute_trunk_positions(
                 layer_circles, layer_ellipses, layer_heights, best_circle_combination, best_ellipse_combination
             )
 
-        with Timer("Computation of trunk diameters", self._time_tracker):
+        with Profiler("Computation of trunk diameters", self._performance_tracker):
             self._logger.info("Compute trunk diameters...")
             trunk_diameters = self.compute_trunk_diameters(
                 layer_circles,
@@ -547,7 +548,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`L = \text{ number of horinzontal layers to which circles / ellipses are fitted}`
         """
 
-        with Timer("Fitting of circles or ellipses to downsampled trunk candidates", self._time_tracker):
+        with Profiler("Fitting of circles or ellipses to downsampled trunk candidates", self._performance_tracker):
             self._logger.info("Fitting circles / ellipses to downsampled trunk candidates...")
 
             num_layers = self._trunk_search_circle_fitting_num_layers
@@ -679,8 +680,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     batch_start_idx = batch_end_idx
 
         if len(visualization_tasks) > 0:
-            with Timer(
-                "Visualization of circles and ellipses fitted to downsampled trunk candidates", self._time_tracker
+            with Profiler(
+                "Visualization of circles and ellipses fitted to downsampled trunk candidates",
+                self._performance_tracker,
             ):
                 self._logger.info("Visualize circles / ellipses fitted to downsampled trunk candidates...")
                 num_workers = self._num_workers if self._num_workers > 0 else multiprocessing.cpu_count()
@@ -765,7 +767,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`N_{t,l} = \text{ number of points selected from the l-th layer of cluster } t`
         """
 
-        with Timer("Fitting of circles and ellipses to full-resolution trunk candidates", self._time_tracker):
+        with Profiler("Fitting of circles and ellipses to full-resolution trunk candidates", self._performance_tracker):
             self._logger.info("Fitting circles / ellipses to full-resolution trunk candidates...")
 
             num_instances = len(preliminary_layer_circles_or_ellipses)
@@ -806,7 +808,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
             bandwidth = 0.01
 
-            with Timer("Circle fitting to full-resolution trunk candidates", self._time_tracker):
+            with Profiler("Circle fitting to full-resolution trunk candidates", self._performance_tracker):
                 self._logger.info("Fit circles...")
 
                 if self._trunk_search_circle_fitting_method == "m-estimator":
@@ -839,7 +841,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     num_workers=self._num_workers,
                 )
 
-            with Timer("Ellipse fitting to full-resolution trunk candidates", self._time_tracker):
+            with Profiler("Ellipse fitting to full-resolution trunk candidates", self._performance_tracker):
                 self._logger.info("Fit ellipses...")
 
             ellipses = fit_ellipse(trunk_layer_xy, batch_lengths_xy, num_workers=self._num_workers)
@@ -895,8 +897,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     batch_start_idx = batch_end_idx
 
         if len(visualization_tasks) > 0:
-            with Timer(
-                "Visualization of circles and ellipses fitted to full-resolution trunk candidates", self._time_tracker
+            with Profiler(
+                "Visualization of circles and ellipses fitted to full-resolution trunk candidates",
+                self._performance_tracker,
             ):
                 self._logger.info("Visualize circles and ellipses fitted to full-resolution trunk candidates...")
                 num_workers = self._num_workers if self._num_workers > 0 else multiprocessing.cpu_count()
@@ -1482,7 +1485,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`N = \text{ number of points}`
         """
 
-        with Timer("Terrain filtering", self._time_tracker):
+        with Profiler("Terrain filtering", self._performance_tracker):
             self._logger.info("Filter terrain points...")
             terrain_classification = cloth_simulation_filtering(
                 xyz,
@@ -1495,7 +1498,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             is_terrain = terrain_classification == 0
             is_tree = np.logical_not(is_terrain)
 
-        with Timer("Construction of digital terrain model", self._time_tracker):
+        with Profiler("Construction of digital terrain model", self._performance_tracker):
             self._logger.info("Construct digital terrain model...")
             terrain_xyz = xyz[is_terrain]
             dtm, dtm_offset = create_digital_terrain_model(
@@ -1507,11 +1510,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 num_workers=self._num_workers,
             )
 
-        with Timer("Height normalization", self._time_tracker):
+        with Profiler("Height normalization", self._performance_tracker):
             self._logger.info("Normalize point heights...")
             normalized_xyz = normalize_height(xyz, dtm, dtm_offset, self._dtm_resolution)
 
-        with Timer("Trunk identification", self._time_tracker):
+        with Profiler("Trunk identification", self._performance_tracker):
             self._logger.info("Identify trunks...")
             normalized_tree_xyz = normalized_xyz[is_tree]
             trunk_positions, trunk_diameters = self.find_trunks(normalized_tree_xyz, point_cloud_id=point_cloud_id)
@@ -1523,12 +1526,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 trunk_diameters,
             )
 
-        with Timer("Crown segmentation", self._time_tracker):
+        with Profiler("Crown segmentation", self._performance_tracker):
             self._logger.info("Segment tree crowns...")
             instance_ids = self.segment_crowns(xyz, normalized_xyz[:, 2], is_tree, trunk_positions, trunk_diameters)
 
         self._logger.info("Finished segmentation.")
 
-        print(self.runtime_stats())
+        print(self.performance_metrics())
 
         return instance_ids, trunk_positions, trunk_diameters

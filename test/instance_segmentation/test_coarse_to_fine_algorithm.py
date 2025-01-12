@@ -877,7 +877,7 @@ class TestCoarseToFineAlgorithm:  # pylint: disable=too-many-public-methods
         )
 
         assert len(tree_coords) == len(instance_ids)
-        assert len(algorithm_inst.runtime_stats()) > 0
+        assert len(algorithm_inst.performance_metrics()) > 0
 
     @pytest.mark.parametrize("algorithm", ["watershed_crown_top_positions", "watershed_matched_tree_positions", "full"])
     def test_invalid_xyz(

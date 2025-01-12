@@ -1351,7 +1351,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     def segment_crowns(
         self,
         xyz: npt.NDArray[np.float64],
-        distance_to_dtm: npt.NDArray[np.float64],
+        dists_to_dtm: npt.NDArray[np.float64],
         is_tree: npt.NDArray[np.bool_],
         tree_positions: npt.NDArray[np.float64],
         trunk_diameters: npt.NDArray[np.float64],
@@ -1398,7 +1398,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         Args:
             xyz: Non-normalized coordinates of the points which to consider in the region growing. This can include
                 both terrain and non-terrain points.
-            distance_to_dtm: Height of each point above the ground.
+            dists_to_dtm: Height of each point above the ground.
             is_tree: Boolean array indicating which points have been identified as potential tree points, i.e.,
                 non-vegetation points. The points for which the corresponding entry is :code:`True` are considered in
                 all region growing iterations, while terrain points are only considered if the cumulative search
@@ -1410,12 +1410,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             Tree instance labels for all points. For points not belonging to any tree, the label is set to -1.
 
         Raises:
-            ValueError: If :code:`xyz`, :code:`distance_to_dtm`, and :code:`is_tree` have different lengths or if
+            ValueError: If :code:`xyz`, :code:`dists_to_dtm`, and :code:`is_tree` have different lengths or if
                 :code:`tree_positions` and :code:`trunk_diameters` have different lengths.
 
         Shape:
             - :code:`xyz`: :math:`(N, 3)`
-            - :code:`distance_to_dtm`: :math:`(N)`
+            - :code:`dists_to_dtm`: :math:`(N)`
             - :code:`is_tree`: :math:`(N)`
             - :code:`tree_positions`: :math:`(T, 2)`
             - :code:`trunk_diameters`: :math:`(T)`
@@ -1427,20 +1427,20 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`T = \text{ number of tree instances}`
         """
 
-        if len(xyz) != len(distance_to_dtm):
-            raise ValueError("xyz and distance_to_dtm must have the same length.")
+        if len(xyz) != len(dists_to_dtm):
+            raise ValueError("xyz and dists_to_dtm must have the same length.")
         if len(xyz) != len(is_tree):
             raise ValueError("xyz and is_tree must have the same length.")
 
         downsampled_xyz, downsampled_indices, inverse_indices = voxel_downsampling(
             xyz, voxel_size=self._region_growing_voxel_size
         )
-        distance_to_dtm = distance_to_dtm[downsampled_indices]
+        dists_to_dtm = dists_to_dtm[downsampled_indices]
         is_tree = is_tree[downsampled_indices]
 
         instance_ids = segment_tree_crowns_cpp(
             downsampled_xyz,
-            distance_to_dtm,
+            dists_to_dtm,
             is_tree,
             tree_positions,
             trunk_diameters,

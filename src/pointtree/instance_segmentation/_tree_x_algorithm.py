@@ -19,8 +19,8 @@ from pointtree.evaluation import Profiler
 from pointtree.operations import (
     create_digital_terrain_model,
     cloth_simulation_filtering,
+    distance_to_dtm,
     estimate_with_linear_model,
-    normalize_height,
     polygon_area,
 )
 from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
@@ -1514,11 +1514,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         with Profiler("Height normalization", self._performance_tracker):
             self._logger.info("Normalize point heights...")
-            normalized_xyz = normalize_height(xyz, dtm, dtm_offset, self._dtm_resolution)
+            dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, self._dtm_resolution)
 
         with Profiler("Trunk identification", self._performance_tracker):
             self._logger.info("Identify trunks...")
-            normalized_tree_xyz = normalized_xyz[is_tree]
+            normalized_tree_xyz = np.empty((is_tree.sum(), 3), dtype=np.float64)
+            normalized_tree_xyz[:, :2] = xyz[is_tree, :2]
+            normalized_tree_xyz[:, 2] = distance_to_dtm[is_tree]
             trunk_positions, trunk_diameters = self.find_trunks(normalized_tree_xyz, point_cloud_id=point_cloud_id)
 
         if len(trunk_positions) == 0:
@@ -1530,7 +1532,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         with Profiler("Crown segmentation", self._performance_tracker):
             self._logger.info("Segment tree crowns...")
-            instance_ids = self.segment_crowns(xyz, normalized_xyz[:, 2], is_tree, trunk_positions, trunk_diameters)
+            instance_ids = self.segment_crowns(xyz, dists_to_dtm, is_tree, trunk_positions, trunk_diameters)
 
         self._logger.info("Finished segmentation.")
 

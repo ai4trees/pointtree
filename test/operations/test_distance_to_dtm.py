@@ -11,7 +11,6 @@ class TestDistanceToDtm:
 
     def test_distance_to_dtm(self):
         coords = np.array([[0, 0, 2], [1, 1, 4], [3, 4, 5]], dtype=np.float64)
-        original_coords = coords.copy()
         dtm_offset = np.array([-2, -2], dtype=np.float64)
         dtm = np.array([[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 2, 2], [0, 0, 2, 4]])
         dtm_resolution = 2

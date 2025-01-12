@@ -497,7 +497,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         return trunk_positions, trunk_diameters
 
-    def fit_preliminary_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals
+    def fit_preliminary_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-statements
         self,
         trunk_layer_xyz: npt.NDArray[np.float64],
         cluster_labels: npt.NDArray[np.int64],
@@ -579,6 +579,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
             bandwidth = 0.01
 
+            circle_detector: Union[MEstimator, Ransac]
             if self._trunk_search_circle_fitting_method == "m-estimator":
                 circle_detector = MEstimator(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
                 circle_detector.detect(
@@ -811,6 +812,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             with Profiler("Circle fitting to full-resolution trunk candidates", self._performance_tracker):
                 self._logger.info("Fit circles...")
 
+                circle_detector: Union[MEstimator, Ransac]
                 if self._trunk_search_circle_fitting_method == "m-estimator":
                     circle_detector = MEstimator(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
                     circle_detector.detect(

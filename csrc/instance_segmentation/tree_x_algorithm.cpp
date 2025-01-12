@@ -229,7 +229,6 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(ArrayX3d 
                                                                        double region_growing_seed_layer_height,
                                                                        double region_growing_seed_radius_factor,
                                                                        int num_workers = 1) {
-
   if (xyz.rows() != distance_to_dtm.rows()) {
     throw std::invalid_argument("xyz and distance_to_dtm must have the same length.");
   }

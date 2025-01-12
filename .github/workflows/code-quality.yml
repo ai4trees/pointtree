@@ -60,6 +60,7 @@ jobs:
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           python -m pip install -v --upgrade .'[dev, docs]'
+          pip uninstall -y circle_detection && pip install git+https://github.com/josafatburmeister/circle_detection.git  
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
@@ -80,6 +81,7 @@ jobs:
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           python -m pip install -v --upgrade .'[dev, docs]'
+          pip uninstall -y circle_detection && pip install git+https://github.com/josafatburmeister/circle_detection.git  
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:

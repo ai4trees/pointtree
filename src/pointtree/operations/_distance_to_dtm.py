@@ -1,23 +1,22 @@
-""" Point cloud normalization. """
+""" Calculates the point's height above the terrain. """
 
-__all__ = ["normalize_height"]
+__all__ = ["distance_to_dtm"]
 
 import numpy as np
 import numpy.typing as npt
 
 
-def normalize_height(  # pylint: disable=too-many-locals
+def distance_to_dtm(  # pylint: disable=too-many-locals
     coords: npt.NDArray[np.float64],
     dtm: npt.NDArray[np.float64],
     dtm_offset: npt.NDArray[np.float64],
     dtm_resolution: float,
     allow_outside_points: bool = True,
-    inplace: bool = False,
 ) -> npt.NDArray[np.float64]:
     r"""
-    Normalizes the height of a point cloud by subtracting the corresponding terrain height from the z-coordinate of
-    each point. The terrain height for a given point is obtained by bilinearly interpolating the terrain heights of
-    the four closest grid points of the digital terrain model.
+    Compute the height above the terrain for each point of a point cloud by subtracting the corresponding terrain height
+    from the z-coordinate of the point. The terrain height for a given point is obtained by bilinearly interpolating the
+    terrain heights of the four closest grid points of the digital terrain model.
 
     Args:
         coords: Point coordinates of the point cloud to normalize.
@@ -27,11 +26,9 @@ def normalize_height(  # pylint: disable=too-many-locals
             not in the area covered by the DTM, the height of the nearest DTM points is still determined and used for
             normalization. Otherwise, a :code:`ValueError` is thrown if points are outside the area covered by the DTM.
             Defaults to :code:`True`.
-        inplace: Whether the normalization should be applied in place to the :code:`coords` array. Defaults to
-            :code:`False`.
 
     Returns:
-        Height-normalized point cloud.
+        Height above the terrain of each point.
 
     Raises:
         ValueError: If the point cloud to be normalized covers a larger base area than the DTM.
@@ -40,7 +37,7 @@ def normalize_height(  # pylint: disable=too-many-locals
         - :code:`coords`: :math:`(N, 3)`
         - :code:`dtm`: :math:`(H, W)`
         - :code:`dtm_offset`: :math:`(2)`
-        - Output: :math:`(N, 3)`
+        - Output: :math:`(N)`
 
         | where
         |
@@ -74,10 +71,4 @@ def normalize_height(  # pylint: disable=too-many-locals
     interp_height_2 = height_3 * (1 - grid_fractions[:, 0]) + height_4 * (grid_fractions[:, 0])
     terrain_height = interp_height_1 * (1 - grid_fractions[:, 1]) + interp_height_2 * (grid_fractions[:, 1])
 
-    if inplace:
-        normalized_coords = coords
-    else:
-        normalized_coords = coords.copy()
-    normalized_coords[:, 2] -= terrain_height
-
-    return normalized_coords
+    return coords[:, 2] - terrain_height

@@ -17,7 +17,12 @@ class PerformanceTracker:
         Deletes all tracked execution times.
         """
 
-        self._performance_metrics = {"Wallclock Time [s]": {}, "CPU Time [s]": {}, "Memory Usage [GB]": {}, "Memory Increment [GB]": {}}
+        self._performance_metrics = {
+            "Wallclock Time [s]": {},
+            "CPU Time [s]": {},
+            "Memory Usage [GB]": {},
+            "Memory Increment [GB]": {},
+        }
 
     def save(self, desc: str, wall_clock_time: float, cpu_time: float, memory_usage: float, memory_increment: float):
         """

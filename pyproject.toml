@@ -63,6 +63,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "types-Pillow",
+    "types-psutil",
 ]
 docs = [
     "sphinx",

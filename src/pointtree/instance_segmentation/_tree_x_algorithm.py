@@ -370,14 +370,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._visualization_folder = Path(visualization_folder)
 
     def find_trunks(  # pylint: disable=too-many-locals
-        self, normalized_tree_xyz: npt.NDArray[np.float64], point_cloud_id: Optional[str] = None
+        self, trunk_layer_xyz: npt.NDArray[np.float64], point_cloud_id: Optional[str] = None
     ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         r"""
         Identifies tree trunks in a 3D point cloud.
 
         Args:
-            normalized_tree_xyz: Point coordinates, normalized by subtracting the corresponding terrain height from
-                the point's coordinates.
+            trunk_layer_xyz: Point coordinates of the points within the trunk layer, normalized by subtracting the
+                corresponding terrain height from the point's coordinates.
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 :code:`None`, which means that no visualizations are created.
 
@@ -395,11 +395,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`T = \text{ number of trunks}`
         """
 
-        height_filter = np.logical_and(
-            normalized_tree_xyz[:, 2] >= self._trunk_search_min_z,
-            normalized_tree_xyz[:, 2] < self._trunk_search_max_z,
-        )
-        trunk_layer_xyz = normalized_tree_xyz[height_filter]
         trunk_layer_xyz_downsampled, _, _ = voxel_downsampling(
             trunk_layer_xyz, voxel_size=self._trunk_search_voxel_size
         )
@@ -446,6 +441,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             trunk_layer_xyz_downsampled, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
         )
 
+        del cluster_labels
+        del unique_cluster_labels
+        del trunk_layer_xyz_downsampled
+
         (
             layer_circles,
             layer_ellipses,
@@ -455,6 +454,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         ) = self.fit_exact_circles_and_ellipses_to_trunks(
             trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
         )
+        del trunk_layer_xyz
+        del preliminary_layer_circles_or_ellipses
 
         with Profiler(
             "Filtering of trunk clusters based on standard deviation of circle / ellipse diameters",
@@ -1497,14 +1498,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 correct_steep_slope=self._csf_correct_steep_slope,
                 iterations=self._csf_iterations,
             )
-            is_terrain = terrain_classification == 0
-            is_tree = np.logical_not(is_terrain)
+            is_tree = terrain_classification != 0
+            del terrain_classification
 
         with Profiler("Construction of digital terrain model", self._performance_tracker):
             self._logger.info("Construct digital terrain model...")
-            terrain_xyz = xyz[is_terrain]
             dtm, dtm_offset = create_digital_terrain_model(
-                terrain_xyz,
+                xyz[np.logical_not(is_tree)],
                 grid_resolution=self._dtm_resolution,
                 k=self._dtm_k,
                 p=self._dtm_p,
@@ -1515,13 +1515,22 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         with Profiler("Height normalization", self._performance_tracker):
             self._logger.info("Normalize point heights...")
             dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, self._dtm_resolution)
+            del dtm
+            del dtm_offset
 
         with Profiler("Trunk identification", self._performance_tracker):
             self._logger.info("Identify trunks...")
-            normalized_tree_xyz = np.empty((is_tree.sum(), 3), dtype=np.float64)
-            normalized_tree_xyz[:, :2] = xyz[is_tree, :2]
-            normalized_tree_xyz[:, 2] = dists_to_dtm[is_tree]
-            trunk_positions, trunk_diameters = self.find_trunks(normalized_tree_xyz, point_cloud_id=point_cloud_id)
+            trunk_layer_filter = np.logical_and(
+                dists_to_dtm >= self._trunk_search_min_z,
+                dists_to_dtm < self._trunk_search_max_z,
+            )
+            trunk_layer_filter = np.logical_and(is_tree, trunk_layer_filter)
+            trunk_layer_xyz = np.empty((trunk_layer_filter.sum(), 3), dtype=np.float64)
+            trunk_layer_xyz[:, :2] = xyz[trunk_layer_filter, :2]
+            trunk_layer_xyz[:, 2] = dists_to_dtm[trunk_layer_filter]
+            del trunk_layer_filter
+            trunk_positions, trunk_diameters = self.find_trunks(trunk_layer_xyz, point_cloud_id=point_cloud_id)
+            del trunk_layer_xyz
 
         if len(trunk_positions) == 0:
             return (

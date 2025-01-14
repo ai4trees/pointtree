@@ -11,6 +11,10 @@ from pointtree._operations_cpp import points_in_ellipse as points_in_ellipse_cpp
 def points_in_ellipse(xy: npt.NDArray[np.float64], ellipse: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
     r"""
     Tests whether 2D points are within the boundaries of an ellipse.
+    
+    If the input arrays have a row-major storage layout
+    (`numpy's <https://numpy.org/doc/stable/dev/internals.html>`__ default), a copy of the input arrays is created. To
+    pass them by reference, they must be in column-major format.
 
     Args:
         xy: Coordinates of the points to test.
@@ -40,5 +44,12 @@ def points_in_ellipse(xy: npt.NDArray[np.float64], ellipse: npt.NDArray[np.float
 
     if ellipse.shape != (5,):
         raise ValueError("ellipse must contain five parameters.")
+
+    if not xy.flags.f_contiguous:
+        xy = xy.copy(order="F")  # ensure that the input array is in column-major
+
+    ellipse = ellipse.astype(xy.dtype)
+    if not ellipse.flags.f_contiguous:
+        ellipse = ellipse.copy(order="F")  # ensure that the input array is in column-major
 
     return points_in_ellipse_cpp(xy, ellipse)

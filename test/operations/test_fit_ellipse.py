@@ -15,10 +15,12 @@ class TestFitEllipse:
     """Tests for pointtree.operations.fit_ellipse."""
 
     @pytest.mark.parametrize("num_workers", [1, -1])
-    def test_ellipse_fitting(self, num_workers: int):
+    @pytest.mark.parametrize("storage_format", ["C", "F"])
+    @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+    def test_ellipse_fitting(self, num_workers: int, storage_format: str, scalar_type: np.dtype):
         batch_size = 3
         batch_lengths = np.zeros(batch_size, dtype=np.int64)
-        xy: List[npt.NDArray[np.float64]] = []
+        xy_list: List[npt.NDArray[np.float64]] = []
         expected_ellipses: List[npt.NDArray[np.float64]] = []
 
         start_idx = 0
@@ -26,14 +28,19 @@ class TestFitEllipse:
             ellipses = np.array([[0, batch_idx, 2 * (batch_idx + 1), 1, np.pi * batch_idx / 3]], dtype=np.float64)
             expected_ellipses.append(ellipses)
             current_ellipse_points = generate_ellipse_points(ellipses, min_points=100, max_points=200)
-            xy.append(current_ellipse_points)
+            xy_list.append(current_ellipse_points)
             batch_lengths[batch_idx] = len(current_ellipse_points)
             start_idx += len(current_ellipse_points)
 
-        fitted_ellipses = fit_ellipse(np.concatenate(xy), batch_lengths, num_workers=num_workers)
+        xy = np.concatenate(xy_list).astype(scalar_type).copy(order=storage_format)
+        fitted_ellipses = fit_ellipse(xy, batch_lengths, num_workers=num_workers)
 
+        assert fitted_ellipses.dtype == scalar_type
+        assert fitted_ellipses.flags.owndata is False
+
+        decimal = 12 if scalar_type == np.float64 else 3
         np.testing.assert_almost_equal(  # type: ignore[call-overload]
-            np.concatenate(expected_ellipses), fitted_ellipses
+            np.concatenate(expected_ellipses).astype(scalar_type), fitted_ellipses, decimal=decimal
         )
 
     def test_invalid_xy(self):

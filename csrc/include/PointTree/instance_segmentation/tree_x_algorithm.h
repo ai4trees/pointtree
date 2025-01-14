@@ -137,14 +137,16 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
     for (int64_t label = 0; label < num_labels; ++label) {
       std::vector<int64_t> current_batch_indices;
 
-      bool is_circle_or_ellipse = preliminary_layer_circles_or_ellipses(label * num_layers + layer, 2) != -1;
+      int64_t flat_idx = label *  num_layers + layer;
+
+      bool is_circle_or_ellipse = preliminary_layer_circles_or_ellipses(flat_idx, 2) != -1;
       if (!is_circle_or_ellipse) {
         continue;
       }
-      bool is_circle = preliminary_layer_circles_or_ellipses(label * num_layers + layer, 3) == -1;
+      bool is_circle = preliminary_layer_circles_or_ellipses(flat_idx, 3) == -1;
       if (is_circle) {
-        ArrayX<scalar_T> circle_center = preliminary_layer_circles_or_ellipses(label * num_layers + layer, {0, 1});
-        scalar_T circle_radius = preliminary_layer_circles_or_ellipses(label * num_layers + layer, 2);
+        ArrayX<scalar_T> circle_center = preliminary_layer_circles_or_ellipses(flat_idx, {0, 1});
+        scalar_T circle_radius = preliminary_layer_circles_or_ellipses(flat_idx, 2);
         scalar_T buffer_width;
         if (circle_radius * 2 <= trunk_search_circle_fitting_switch_buffer_threshold) {
           buffer_width = trunk_search_circle_fitting_small_buffer_width;
@@ -169,7 +171,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
           }
         }
       } else {
-        auto ellipse = preliminary_layer_circles_or_ellipses(label * num_layers + layer, Eigen::all);
+        auto ellipse = preliminary_layer_circles_or_ellipses(flat_idx, Eigen::all);
         ArrayX2<scalar_T> ellipse_center = ellipse.leftCols(2);
         scalar_T ellipse_diameter = ellipse(2) + ellipse(3);
         scalar_T buffer_width;
@@ -207,8 +209,8 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
       }
 
       if (current_batch_indices.size() >= trunk_search_circle_fitting_min_points) {
-        batch_indices[label * num_layers + layer] = current_batch_indices;
-        batch_lengths[label * num_layers + layer] = current_batch_indices.size();
+        batch_indices[flat_idx] = current_batch_indices;
+        batch_lengths[flat_idx] = current_batch_indices.size();
       }
     }
   }

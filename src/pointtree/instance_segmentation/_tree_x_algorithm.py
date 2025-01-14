@@ -370,8 +370,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._visualization_folder = Path(visualization_folder)
 
     def find_trunks(  # pylint: disable=too-many-locals
-        self, trunk_layer_xyz: npt.NDArray[np.float64], point_cloud_id: Optional[str] = None
-    ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+        self, trunk_layer_xyz: npt.NDArray, point_cloud_id: Optional[str] = None
+    ) -> Tuple[npt.NDArray, npt.NDArray]:
         r"""
         Identifies tree trunks in a 3D point cloud.
 
@@ -500,11 +500,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
     def fit_preliminary_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-statements
         self,
-        trunk_layer_xyz: npt.NDArray[np.float64],
+        trunk_layer_xyz: npt.NDArray,
         cluster_labels: npt.NDArray[np.int64],
         unique_cluster_labels: npt.NDArray[np.int64],
         point_cloud_id: Optional[str] = None,
-    ) -> npt.NDArray[np.float64]:
+    ) -> npt.NDArray:
         r"""
         Given a set of point clusters that may represent individual tree trunks, circles are fitted to multiple
         horinzontal layers of each cluster. If the circle fitting does not converge, an ellipse is fitted instead. If a
@@ -555,13 +555,16 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             num_layers = self._trunk_search_circle_fitting_num_layers
 
             if len(unique_cluster_labels) == 0:
-                return np.empty((0, num_layers, 5), dtype=np.float64)
+                return np.empty((0, num_layers, 5), dtype=trunk_layer_xyz.dtype)
 
             layer_circles_or_ellipses = np.full(
                 (len(unique_cluster_labels), num_layers, 5),
                 fill_value=-1,
-                dtype=np.float64,
+                dtype=trunk_layer_xyz.dtype,
             )
+
+            if not trunk_layer_xyz.flags.f_contiguous:
+                trunk_layer_xyz = trunk_layer_xyz.copy(order="F")
 
             trunk_layer_xy, batch_lengths = collect_inputs_trunk_layers_preliminary_fitting_cpp(
                 trunk_layer_xyz,
@@ -695,14 +698,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
     def fit_exact_circles_and_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
         self,
-        trunk_layer_xyz: npt.NDArray[np.float64],
-        preliminary_layer_circles_or_ellipses: npt.NDArray[np.float64],
+        trunk_layer_xyz: npt.NDArray,
+        preliminary_layer_circles_or_ellipses: npt.NDArray,
         point_cloud_id: Optional[str] = None,
     ) -> Tuple[
-        npt.NDArray[np.float64],
-        npt.NDArray[np.float64],
-        npt.NDArray[np.float64],
-        npt.NDArray[np.float64],
+        npt.NDArray,
+        npt.NDArray,
+        npt.NDArray,
+        npt.NDArray,
         npt.NDArray[np.int64],
     ]:
         r"""
@@ -776,15 +779,25 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             num_layers = self._trunk_search_circle_fitting_num_layers
 
             layer_circles = np.full(
-                (num_instances, self._trunk_search_circle_fitting_num_layers, 3), fill_value=-1, dtype=np.float64
+                (num_instances, self._trunk_search_circle_fitting_num_layers, 3),
+                fill_value=-1,
+                dtype=trunk_layer_xyz.dtype,
             )
             layer_ellipses = np.full(
-                (num_instances, self._trunk_search_circle_fitting_num_layers, 5), fill_value=-1, dtype=np.float64
+                (num_instances, self._trunk_search_circle_fitting_num_layers, 5),
+                fill_value=-1,
+                dtype=trunk_layer_xyz.dtype,
+            )
+
+            if not trunk_layer_xyz.flags.f_contiguous:
+                trunk_layer_xyz = trunk_layer_xyz.copy(order="F")
+            preliminary_layer_circles_or_ellipses = preliminary_layer_circles_or_ellipses.reshape((-1, 5)).astype(
+                trunk_layer_xyz.dtype, order="F"
             )
 
             trunk_layer_xy, batch_lengths_xy, layer_heights = collect_inputs_trunk_layers_exact_fitting_cpp(
                 trunk_layer_xyz,
-                preliminary_layer_circles_or_ellipses.reshape((-1, 5)),
+                preliminary_layer_circles_or_ellipses,
                 float(self._trunk_search_min_z),
                 num_layers,
                 float(self._trunk_search_circle_fitting_layer_height),
@@ -912,7 +925,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         return layer_circles, layer_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy
 
     def filter_instances_trunk_layer_std(  # pylint: disable=too-many-locals
-        self, layer_circles: npt.NDArray[np.float64], layer_ellipses: npt.NDArray[np.float64]
+        self, layer_circles: npt.NDArray, layer_ellipses: npt.NDArray
     ) -> Tuple[npt.NDArray[np.bool_], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
         r"""
         Filters the point clusters that may represent individual tree trunks based on the circles and ellipses fitted to
@@ -1078,12 +1091,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
     def compute_trunk_positions(
         self,
-        layer_circles: npt.NDArray[np.float64],
-        layer_ellipses: npt.NDArray[np.float64],
-        layer_heights: npt.NDArray[np.float64],
+        layer_circles: npt.NDArray,
+        layer_ellipses: npt.NDArray,
+        layer_heights: npt.NDArray,
         best_circle_combination: npt.NDArray[np.int64],
         best_ellipse_combination: npt.NDArray[np.int64],
-    ) -> npt.NDArray[np.float64]:
+    ) -> npt.NDArray:
         r"""
         Calculates the trunk positions using the circles or ellipses fitted to the horizontal layers of the trunks. For
         this purpose, the combination of those :code:`self._trunk_search_circle_fitting_std_num_layers` circles or
@@ -1133,7 +1146,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         num_instances = len(layer_circles)
 
-        trunk_positions = np.empty((num_instances, 2), dtype=np.float64)
+        trunk_positions = np.empty((num_instances, 2), dtype=layer_circles.dtype, order="F")
 
         for label in range(num_instances):
             has_circle_combination = best_circle_combination[label, 0] != -1
@@ -1147,11 +1160,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             centers = circles_or_ellipses[:, :2]
 
             prediction_x, _ = estimate_with_linear_model(
-                layer_heights_combination, centers[:, 0], np.array([1.3], dtype=np.float64)
+                layer_heights_combination, centers[:, 0], np.array([1.3], dtype=layer_circles.dtype)
             )
             trunk_positions[label, 0] = prediction_x[0]
             prediction_y, _ = estimate_with_linear_model(
-                layer_heights_combination, centers[:, 1], np.array([1.3], dtype=np.float64)
+                layer_heights_combination, centers[:, 1], np.array([1.3], dtype=layer_circles.dtype)
             )
             trunk_positions[label, 1] = prediction_y[0]
 
@@ -1159,16 +1172,16 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
     def compute_trunk_diameters(  # pylint: disable=too-many-locals,
         self,
-        layer_circles: npt.NDArray[np.float64],
-        layer_ellipses: npt.NDArray[np.float64],
-        layer_heights: npt.NDArray[np.float64],
-        trunk_layer_xy: npt.NDArray[np.float64],
+        layer_circles: npt.NDArray,
+        layer_ellipses: npt.NDArray,
+        layer_heights: npt.NDArray,
+        trunk_layer_xy: npt.NDArray,
         batch_lengths_xy: npt.NDArray[np.int64],
         best_circle_combination: npt.NDArray[np.int64],
         best_ellipse_combination: npt.NDArray[np.int64],
         *,
         point_cloud_id: Optional[str] = None,
-    ) -> npt.NDArray[np.float64]:
+    ) -> npt.NDArray:
         r"""
         Calculates the trunk diameters using the circles or ellipses fitted to the horizontal layers of the trunks. For
         this purpose, the combination of those :code:`self._trunk_search_circle_fitting_std_num_layers` circles or
@@ -1230,7 +1243,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         len_layer_combination = best_circle_combination.shape[1]
         num_layers = self._trunk_search_circle_fitting_num_layers
 
-        trunk_diameters = np.empty(num_instances, dtype=np.float64)
+        trunk_diameters = np.empty(num_instances, dtype=trunk_layer_xy.dtype)
 
         visualization_tasks = []
 
@@ -1246,7 +1259,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             centers = circles_or_ellipses[:, :2]
 
-            layer_diameters = np.empty(len_layer_combination, dtype=np.float64)
+            layer_diameters = np.empty(len_layer_combination, dtype=trunk_layer_xy.dtype)
 
             best_combination = (
                 best_circle_combination[label] if has_circle_combination else best_ellipse_combination[label]
@@ -1274,7 +1287,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     )
 
             prediction, _ = estimate_with_linear_model(
-                layer_heights_combination, layer_diameters, np.array([1.3], dtype=np.float64)
+                layer_heights_combination, layer_diameters, np.array([1.3], dtype=trunk_layer_xy.dtype)
             )
             trunk_diameters[label] = prediction[0]
 
@@ -1287,10 +1300,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
     def radius_estimation_gam(  # pylint: disable=too-many-locals
         self,
-        points: npt.NDArray[np.float64],
-        center: npt.NDArray[np.float64],
+        points: npt.NDArray,
+        center: npt.NDArray,
         eps: Optional[float] = None,
-    ) -> Tuple[float, npt.NDArray[np.float64]]:
+    ) -> Tuple[float, npt.NDArray]:
         r"""
         Estimates the radius of a tree trunk using a GAM. It is assumed that a circle or an ellipse has already been
         fitted to the points of the tree trunk. To create the GAM, the points are converted into polar coordinates,
@@ -1351,11 +1364,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
     def segment_crowns(
         self,
-        xyz: npt.NDArray[np.float64],
-        dists_to_dtm: npt.NDArray[np.float64],
+        xyz: npt.NDArray,
+        dists_to_dtm: npt.NDArray,
         is_tree: npt.NDArray[np.bool_],
-        tree_positions: npt.NDArray[np.float64],
-        trunk_diameters: npt.NDArray[np.float64],
+        tree_positions: npt.NDArray,
+        trunk_diameters: npt.NDArray,
     ) -> npt.NDArray[np.int64]:
         r"""
         Computes a point-wise segmentation of the individual trees using a region growing procedure. In the first step,
@@ -1439,6 +1452,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         dists_to_dtm = dists_to_dtm[downsampled_indices]
         is_tree = is_tree[downsampled_indices]
 
+        if not downsampled_xyz.flags.f_contiguous:
+            downsampled_xyz = downsampled_xyz.copy(order="F")
+        if not tree_positions.flags.f_contiguous:
+            tree_positions = tree_positions.copy(order="F")
+
         instance_ids = segment_tree_crowns_cpp(
             downsampled_xyz,
             dists_to_dtm,
@@ -1466,8 +1484,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         return full_instance_ids
 
     def __call__(
-        self, xyz: np.ndarray, point_cloud_id: Optional[str] = None
-    ) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+        self, xyz: npt.NDArray, point_cloud_id: Optional[str] = None
+    ) -> Tuple[npt.NDArray[np.int64], npt.NDArray, npt.NDArray]:
         r"""
         Runs the tree instance segmentation for the given point cloud.
 
@@ -1525,7 +1543,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 dists_to_dtm < self._trunk_search_max_z,
             )
             trunk_layer_filter = np.logical_and(is_tree, trunk_layer_filter)
-            trunk_layer_xyz = np.empty((trunk_layer_filter.sum(), 3), dtype=np.float64)
+            trunk_layer_xyz = np.empty((trunk_layer_filter.sum(), 3), dtype=xyz.dtype)
             trunk_layer_xyz[:, :2] = xyz[trunk_layer_filter, :2]
             trunk_layer_xyz[:, 2] = dists_to_dtm[trunk_layer_filter]
             del trunk_layer_filter

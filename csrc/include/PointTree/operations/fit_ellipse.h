@@ -39,7 +39,7 @@ ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths,
     num_workers = omp_get_max_threads();
   }
 
-  constexpr double PI = 3.14159265358979311600;
+  constexpr scalar_T PI = 3.14159265358979311600;
 
   if (xy.rows() != batch_lengths.sum()) {
     throw std::invalid_argument("The number of points must be equal to the sum of batch_lengths.");
@@ -72,7 +72,7 @@ ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths,
 
     current_xy = current_xy.rowwise() - origin.transpose();
 
-    double scale = stddev<scalar_T>(current_xy);
+    scalar_T scale = stddev<scalar_T>(current_xy);
 
     current_xy = current_xy / scale;
 
@@ -130,16 +130,16 @@ ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths,
     cond.maxCoeff(&a1_index);
     ArrayX<scalar_T> a1 = eigen_vectors.col(a1_index);
 
-    double a = a1(0);
-    double b = a1(1);
-    double c = a1(2);
+    scalar_T a = a1(0);
+    scalar_T b = a1(1);
+    scalar_T c = a1(2);
 
     // |d e g> = -S3^(-1)*S2^(T)*|a b c> [eqn. 24]
     ArrayX<scalar_T> a2 = -S3.inverse() * S2.transpose() * a1.matrix();
 
-    double d = a2(0);
-    double e = a2(1);
-    double f = a2(2);
+    scalar_T d = a2(0);
+    scalar_T e = a2(1);
+    scalar_T f = a2(2);
 
     // eigenvectors are the coefficients of an ellipse in general form
     // a*x^2 + 2*b*x*y + c*y^2 + 2*d*x + 2*e*y + f = 0 (eqn. 15) from [2]
@@ -148,26 +148,26 @@ ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths,
     e /= 2.0;
 
     // finding center of ellipse [eqn.19 and 20] from [2]
-    double center_x = (c * d - b * e) / (b * b - a * c);
-    double center_y = (a * e - b * d) / (b * b - a * c);
+    scalar_T center_x = (c * d - b * e) / (b * b - a * c);
+    scalar_T center_y = (a * e - b * d) / (b * b - a * c);
 
     // find the semi-axes lengths [eqn. 21 and 22] from [2]
-    double numerator = a * e * e + c * d * d + f * b * b - 2 * b * d * e - a * c * f;
-    double term = sqrt(pow((a - c), 2) + 4 * b * b);
-    double denominator1 = (b * b - a * c) * (term - (a + c));
-    double denominator2 = (b * b - a * c) * (-term - (a + c));
-    double radius_major = sqrt(2 * numerator / denominator1);
-    double radius_minor = sqrt(2 * numerator / denominator2);
+    scalar_T numerator = a * e * e + c * d * d + f * b * b - 2 * b * d * e - a * c * f;
+    scalar_T term = sqrt(pow((a - c), 2) + 4 * b * b);
+    scalar_T denominator1 = (b * b - a * c) * (term - (a + c));
+    scalar_T denominator2 = (b * b - a * c) * (-term - (a + c));
+    scalar_T radius_major = sqrt(2 * numerator / denominator1);
+    scalar_T radius_minor = sqrt(2 * numerator / denominator2);
 
     // angle of counterclockwise rotation of major-axis of ellipse to x-axis [eqn. 23] from [2].
-    double phi = 0.5 * atan((2.0 * b) / (a - c));
+    scalar_T phi = 0.5 * atan((2.0 * b) / (a - c));
     if (a > c) {
       phi += 0.5 * PI;
     }
 
     // stabilize parameters: sometimes small fluctuations in data can cause height and width to swap
     if (radius_major < radius_minor) {
-      double radius_major_old = radius_major;
+      scalar_T radius_major_old = radius_major;
       radius_major = radius_minor;
       radius_minor = radius_major_old;
       phi += PI / 2;

@@ -11,14 +11,14 @@ namespace PointTree {
 
 template <typename scalar_T>
 ArrayXb points_in_ellipse(RefArrayX2<scalar_T> xy, RefArrayX<scalar_T> ellipse) {
-  double center_x = ellipse(0);
-  double center_y = ellipse(1);
-  double radius_major = ellipse(2);
-  double radius_minor = ellipse(3);
-  double theta = ellipse(4);
+  scalar_T center_x = ellipse(0);
+  scalar_T center_y = ellipse(1);
+  scalar_T radius_major = ellipse(2);
+  scalar_T radius_minor = ellipse(3);
+  scalar_T theta = ellipse(4);
 
-  double cos_theta = cos(theta);
-  double sin_theta = sin(theta);
+  scalar_T cos_theta = cos(theta);
+  scalar_T sin_theta = sin(theta);
 
   ArrayX<scalar_T> a = (cos_theta * (xy(Eigen::all, 0) - center_x) + sin_theta * (xy(Eigen::all, 1) - center_y));
   a = a * a;

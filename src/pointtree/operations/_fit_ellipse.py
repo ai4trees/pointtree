@@ -8,9 +8,7 @@ import numpy.typing as npt
 from pointtree._operations_cpp import fit_ellipse as fit_ellipse_cpp  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
 
 
-def fit_ellipse(
-    xy: npt.NDArray[np.float64], batch_lengths: npt.NDArray[np.int64], num_workers: int = 1
-) -> npt.NDArray[np.float64]:
+def fit_ellipse(xy: npt.NDArray, batch_lengths: npt.NDArray, num_workers: int = 1) -> npt.NDArray:
     r"""
     Fits an ellipse to a set of 2D points using the least-squares method described in `Halir, Radim, and Jan Flusser. \
     "Numerically Stable Direct Least Squares Fitting of Ellipses." Proc. 6th International Conference in Central \

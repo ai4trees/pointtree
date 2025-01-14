@@ -8,10 +8,10 @@ import numpy.typing as npt
 from pointtree._operations_cpp import points_in_ellipse as points_in_ellipse_cpp  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
 
 
-def points_in_ellipse(xy: npt.NDArray[np.float64], ellipse: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
+def points_in_ellipse(xy: npt.NDArray, ellipse: npt.NDArray) -> npt.NDArray[np.bool_]:
     r"""
     Tests whether 2D points are within the boundaries of an ellipse.
-    
+
     If the input arrays have a row-major storage layout
     (`numpy's <https://numpy.org/doc/stable/dev/internals.html>`__ default), a copy of the input arrays is created. To
     pass them by reference, they must be in column-major format.

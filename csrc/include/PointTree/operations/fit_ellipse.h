@@ -8,24 +8,16 @@
 #include <stdexcept>
 #include <vector>
 
-namespace {
+#include "../type_aliases.h"
+#include "stddev.h"
 
-using namespace Eigen;
-using ArrayXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
-using ArrayX5d = Eigen::Array<double, Eigen::Dynamic, 5>;
-using ArrayXl = Eigen::Array<int64_t, Eigen::Dynamic, 1>;
+#ifndef FIT_ELLIPSE_H
+#define FIT_ELLIPSE_H
 
-double stddev(ArrayX2d x) {
-  double mean = x.mean();
-  double variance = (x - mean).square().mean();
-  double stddev = std::sqrt(variance);
+namespace PointTree {
 
-  return stddev;
-}
-
-}  // namespace
-
-ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
+template <typename scalar_T>
+ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths, int num_workers = 1) {
   /*
   This C++ implementation is based on the Python implementation from the scikit-image package:
 
@@ -63,11 +55,11 @@ ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
     batch_start += batch_lengths(batch_idx);
   }
 
-  ArrayX5d ellipse_params(num_batches, 5);
+  ArrayX5<scalar_T> ellipse_params(num_batches, 5);
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t i = 0; i < num_batches; ++i) {
-    ArrayX2d current_xy = xy(seqN(batch_starts(i), batch_lengths(i)), Eigen::all);
+    ArrayX2<scalar_T> current_xy = xy(Eigen::seqN(batch_starts(i), batch_lengths(i)), Eigen::all);
 
     if (current_xy.rows() == 0) {
       ellipse_params.row(i) = -1;
@@ -76,36 +68,36 @@ ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
 
     // normalize value range to avoid misfitting due to numeric errors if
     // the relative distanceses are small compared to absolute distances
-    ArrayXd origin = current_xy.colwise().mean();
+    ArrayX<scalar_T> origin = current_xy.colwise().mean();
 
     current_xy = current_xy.rowwise() - origin.transpose();
 
-    double scale = stddev(current_xy);
+    double scale = stddev<scalar_T>(current_xy);
 
     current_xy = current_xy / scale;
 
     // quadratic part of design matrix [eqn. 15] from [1]
-    MatrixX3d D1(current_xy.rows(), 3);
+    MatrixX3<scalar_T> D1(current_xy.rows(), 3);
     D1(Eigen::all, 0) = current_xy.col(0) * current_xy.col(0);
     D1(Eigen::all, 1) = current_xy.col(0) * current_xy.col(1);
     D1(Eigen::all, 2) = current_xy.col(1) * current_xy.col(1);
 
     // linear part of design matrix [eqn. 16] from [1]
-    MatrixX3d D2(current_xy.rows(), 3);
+    MatrixX3<scalar_T> D2(current_xy.rows(), 3);
     D2(Eigen::all, 0) = current_xy.col(0);
     D2(Eigen::all, 1) = current_xy.col(1);
-    D2(Eigen::all, 2) = ArrayXd::Constant(current_xy.rows(), 1);
+    D2(Eigen::all, 2) = ArrayX<scalar_T>::Constant(current_xy.rows(), 1);
 
     // forming scatter matrix [eqn. 17] from [1]
-    MatrixX3d S1 = D1.matrix().transpose() * D1.matrix();
-    MatrixX3d S2 = D1.matrix().transpose() * D2.matrix();
-    MatrixX3d S3 = D2.matrix().transpose() * D2.matrix();
+    MatrixX3<scalar_T> S1 = D1.matrix().transpose() * D1.matrix();
+    MatrixX3<scalar_T> S2 = D1.matrix().transpose() * D2.matrix();
+    MatrixX3<scalar_T> S3 = D2.matrix().transpose() * D2.matrix();
 
     // constraint matrix [eqn. 18]
-    MatrixX3d C1(3, 3);
+    MatrixX3<scalar_T> C1(3, 3);
     C1 << 0.0, 0.0, 2.0, 0.0, -1.0, 0.0, 2.0, 0.0, 0.0;
 
-    MatrixX3d M;
+    MatrixX3<scalar_T> M;
     if (C1.matrix().determinant() != 0 && S3.matrix().determinant() != 0) {
       // Reduced scatter matrix [eqn. 29]
       M = C1.inverse() * (S1 - S2 * S3.inverse() * S2.transpose());
@@ -114,12 +106,12 @@ ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
       continue;
     }
 
-    Eigen::EigenSolver<MatrixX3d> eigen_solver(M);
+    Eigen::EigenSolver<MatrixX3<scalar_T>> eigen_solver(M);
 
     // M*|a b c >=l|a b c >. Find eigenvalues and eigenvectors
     // from this equation [eqn. 28]
-    ArrayX3d eigen_vectors = eigen_solver.eigenvectors().real();
-    ArrayXd eigen_values = eigen_solver.eigenvalues().real();
+    ArrayX3<scalar_T> eigen_vectors = eigen_solver.eigenvectors().real();
+    ArrayX<scalar_T> eigen_values = eigen_solver.eigenvalues().real();
 
     if ((eigen_solver.eigenvectors().imag().array() != 0).sum()) {
       ellipse_params.row(i) = -1;
@@ -136,14 +128,14 @@ ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
 
     Eigen::Index a1_index;
     cond.maxCoeff(&a1_index);
-    ArrayXd a1 = eigen_vectors.col(a1_index);
+    ArrayX<scalar_T> a1 = eigen_vectors.col(a1_index);
 
     double a = a1(0);
     double b = a1(1);
     double c = a1(2);
 
     // |d e g> = -S3^(-1)*S2^(T)*|a b c> [eqn. 24]
-    ArrayXd a2 = -S3.inverse() * S2.transpose() * a1.matrix();
+    ArrayX<scalar_T> a2 = -S3.inverse() * S2.transpose() * a1.matrix();
 
     double d = a2(0);
     double e = a2(1);
@@ -192,3 +184,7 @@ ArrayX5d fit_ellipse(ArrayX2d xy, ArrayXl batch_lengths, int num_workers = 1) {
 
   return ellipse_params;
 }
+
+}  // namespace PointTree
+
+#endif  // FIT_ELLIPSE_H

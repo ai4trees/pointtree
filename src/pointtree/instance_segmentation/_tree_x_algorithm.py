@@ -498,7 +498,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         return trunk_positions, trunk_diameters
 
-    def fit_preliminary_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-statements
+    def fit_preliminary_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-statements, too-many-branches
         self,
         trunk_layer_xyz: npt.NDArray,
         cluster_labels: npt.NDArray[np.int64],

@@ -1456,6 +1456,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             downsampled_xyz = downsampled_xyz.copy(order="F")
         if not tree_positions.flags.f_contiguous:
             tree_positions = tree_positions.copy(order="F")
+        dists_to_dtm = dists_to_dtm.astype(downsampled_xyz.dtype)
+        tree_positions = tree_positions.astype(downsampled_xyz.dtype)
+        trunk_diameters = trunk_diameters.astype(downsampled_xyz.dtype)
 
         instance_ids = segment_tree_crowns_cpp(
             downsampled_xyz,

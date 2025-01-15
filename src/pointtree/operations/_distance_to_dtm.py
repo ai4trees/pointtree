@@ -7,12 +7,12 @@ import numpy.typing as npt
 
 
 def distance_to_dtm(  # pylint: disable=too-many-locals
-    coords: npt.NDArray[np.float64],
-    dtm: npt.NDArray[np.float64],
-    dtm_offset: npt.NDArray[np.float64],
+    coords: npt.NDArray,
+    dtm: npt.NDArray,
+    dtm_offset: npt.NDArray,
     dtm_resolution: float,
     allow_outside_points: bool = True,
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray:
     r"""
     Compute the height above the terrain for each point of a point cloud by subtracting the corresponding terrain height
     from the z-coordinate of the point. The terrain height for a given point is obtained by bilinearly interpolating the
@@ -48,9 +48,10 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
 
     grid_positions = (coords[:, :2] - dtm_offset) / dtm_resolution
     if allow_outside_points:
-        grid_positions = np.clip(grid_positions, 0, np.array(dtm.shape) - 1)
-    grid_indices = np.floor(grid_positions).astype(np.int64)
+        grid_positions = np.clip(grid_positions, 0, np.array(dtm.shape, dtype=coords.dtype) - 1)
+    grid_indices = np.floor(grid_positions)
     grid_fractions = grid_positions - grid_indices
+    grid_indices = grid_indices.astype(np.int64)
 
     if not allow_outside_points and (
         (grid_positions < 0).any()

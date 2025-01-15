@@ -568,7 +568,7 @@ class TestTreeXAlgorithm:
             layer_circles, layer_ellipses, layer_heights, best_circle_combination, best_ellipse_combination
         )
 
-        assert expected_trunk_positions.dtype == trunk_positions
+        assert expected_trunk_positions.dtype == trunk_positions.dtype
         np.testing.assert_almost_equal(expected_trunk_positions, trunk_positions)
 
     def test_radius_estimation_gam_circle(self):
@@ -847,7 +847,7 @@ class TestTreeXAlgorithm:
         instance_ids, trunk_positions, trunk_diameters = algorithm(xyz, point_cloud_id=point_cloud_id)
 
         assert trunk_positions.dtype == scalar_type
-        assert trunk_diameters == scalar_type
+        assert trunk_diameters.dtype == scalar_type
 
         point_cloud = pd.DataFrame(xyz, columns=["x", "y", "z"])
         point_cloud["instance_id"] = instance_ids

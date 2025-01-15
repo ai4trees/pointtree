@@ -137,7 +137,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
     for (int64_t label = 0; label < num_labels; ++label) {
       std::vector<int64_t> current_batch_indices;
 
-      int64_t flat_idx = label *  num_layers + layer;
+      int64_t flat_idx = label * num_layers + layer;
 
       bool is_circle_or_ellipse = preliminary_layer_circles_or_ellipses(flat_idx, 2) != -1;
       if (!is_circle_or_ellipse) {

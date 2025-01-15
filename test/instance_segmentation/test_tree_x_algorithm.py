@@ -323,7 +323,7 @@ class TestTreeXAlgorithm:
     @pytest.mark.parametrize("create_visualization, use_pathlib", [(False, False), (True, False), (True, True)])
     @pytest.mark.parametrize("storage_layout", ["C", "F"])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
-    def test_fit_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+    def test_fit_circles_or_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements, too-many-positional-arguments
         self,
         circle_fitting_method: str,
         variance: float,
@@ -782,7 +782,7 @@ class TestTreeXAlgorithm:
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     def test_full_algorithm(
         self, create_visualizations: bool, storage_layout: str, scalar_type: np.dtype, cache_dir
-    ):  # pylint: disable=too-many-locals
+    ):  # pylint: disable=too-many-locals, too-many-statements
         point_spacing = 0.1
         ground_plane = generate_grid_points((100, 100), point_spacing)
         ground_plane = np.column_stack([ground_plane, np.zeros(len(ground_plane), dtype=np.float64)])

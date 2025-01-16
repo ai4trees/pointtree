@@ -48,7 +48,7 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
 
     grid_positions = (coords[:, :2] - dtm_offset) / dtm_resolution
     if allow_outside_points:
-        grid_positions = np.clip(grid_positions, 0, np.array(dtm.shape, dtype=coords.dtype) - 1)
+        grid_positions = np.clip(grid_positions, 0, np.flip(np.array(dtm.shape, dtype=coords.dtype)) - 1)
     grid_indices = np.floor(grid_positions)
     grid_fractions = grid_positions - grid_indices
     grid_indices = grid_indices.astype(np.int64)

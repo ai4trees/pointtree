@@ -22,9 +22,10 @@ class TestDistanceToDtm:
         np.testing.assert_array_equal(expected_dists, dists)
 
     def test_allow_outside_points(self):
-        coords = np.zeros((10, 3), dtype=np.float64)
-        coords[:, 2] = 2
-        dtm = np.ones((1, 1), dtype=np.float64)
+        coords = np.empty((10, 3), dtype=np.float64)
+        coords[:, 0] = 5
+        coords[:, 1:] = 2
+        dtm = np.ones((3, 2), dtype=np.float64)
         dtm_offset = np.zeros((1, 1), dtype=np.float64)
         dtm_resolution = 1
 

@@ -10,13 +10,16 @@ from numba_kdtree import KDTree
 import numpy as np
 from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
-from skimage.morphology import diamond, disk, rectangle, dilation, erosion
+from skimage.morphology import diamond, disk, footprint_rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
 from skimage.segmentation import watershed, find_boundaries
 from sklearn.cluster import DBSCAN
 import torch
 from torch_scatter import scatter_max
 
+from pointtree._coarse_to_fine_algorithm_cpp import (  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
+    grow_trees as grow_trees_cpp,
+)
 from pointtree.evaluation import Profiler
 from pointtree.visualization import save_tree_map
 from .filters import filter_instances_min_points
@@ -776,9 +779,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             )
             border_mask = np.logical_and(watershed_labels_with_border == 0, foreground_mask)
             watershed_labels_without_border = watershed_labels_with_border.copy()
-            watershed_labels_without_border[border_mask] = dilation(watershed_labels_with_border, rectangle(3, 3))[
-                border_mask
-            ]
+            watershed_labels_without_border[border_mask] = dilation(
+                watershed_labels_with_border, footprint_rectangle((3, 3))
+            )[border_mask]
 
         return watershed_labels_with_border, watershed_labels_without_border
 
@@ -826,7 +829,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
                 instance_mask = watershed_labels_without_border == instance_id
 
-                dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
+                dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
                 neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask])
 
                 if instance_mask.sum() == 1 or (len(neighbor_instance_ids) == 2) and (0 not in neighbor_instance_ids):
@@ -859,9 +862,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                     )
                     border_mask = np.logical_and(voronoi_labels_with_border == 0, neighborhood_mask_without_border)
                     voronoi_labels_without_border = voronoi_labels_with_border.copy()
-                    voronoi_labels_without_border[border_mask] = dilation(voronoi_labels_with_border, rectangle(3, 3))[
-                        border_mask
-                    ]
+                    voronoi_labels_without_border[border_mask] = dilation(
+                        voronoi_labels_with_border, footprint_rectangle((3, 3))
+                    )[border_mask]
 
                     if self._visualization_folder is not None and point_cloud_id is not None:
 
@@ -1011,7 +1014,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 instances_to_refine, average_point_spacings, instance_seed_masks
             ):
                 instance_mask = watershed_labels_without_border == instance_id + 1
-                dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
+                dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
                 neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask]) - 1
 
                 has_neighbor_to_refine = False
@@ -1081,7 +1084,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def grow_trees(  # pylint: disable=too-many-locals
         self,
-        tree_coords: np.ndarray,
+        tree_xyz: np.ndarray,
         instance_ids: np.ndarray,
         unique_instances_ids: np.ndarray,
         grid_origin: np.ndarray,
@@ -1092,7 +1095,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         Region growing segmentation.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             instance_ids: Instance IDs of each tree point.
             grid_origin: 2D coordinates of the origin of the crown distance fields.
             crown_distance_fields: 2D signed distance fields idicating the distance to the crown boundary of each tree
@@ -1103,7 +1106,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             Updated instance IDs.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`instance_ids`: :math:`(N)`
             - :code:`grid_origin`: :math:`(2)`
             - :code:`crown_distance_fields`: :math:`(I', W, H)`
@@ -1120,75 +1123,24 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         """
         with Profiler("Region growing", self._performance_tracker):
             self._logger.info("Region growing...")
-            if seed_mask.sum() == 0:
-                return instance_ids
 
-            growing_mask = np.logical_or(instance_ids == -1, seed_mask)
-            growing_points = tree_coords[growing_mask]
-            growing_points[:, 2] *= self._z_scale
-            growing_instance_ids = instance_ids[growing_mask]
-            growing_seed_mask = growing_instance_ids != -1
+            if not tree_xyz.flags.f_contiguous:
+                tree_xyz = tree_xyz.copy(order="F")
+            grid_origin = grid_origin.astype(tree_xyz.dtype)
 
-            # the region growing is only executed for certain trees
-            # the following code maps the instance IDs of the trees for which region growing is executed to a
-            # continuous range
-            instance_id_mapping = np.full(len(unique_instances_ids), fill_value=-1, dtype=np.int64)
-            inverse_instance_id_mapping = np.full(len(crown_distance_fields), fill_value=-1, dtype=np.int64)
-
-            region_growing_instance_ids = np.unique(instance_ids[seed_mask])
-
-            remapped_id = 0
-            for instance_id in unique_instances_ids:
-                if instance_id in region_growing_instance_ids:
-                    instance_id_mapping[instance_id] = remapped_id
-                    inverse_instance_id_mapping[remapped_id] = instance_id
-                    remapped_id += 1
-
-            point_indices = np.arange(len(growing_points), dtype=np.int64)
-
-            kd_tree = KDTree(growing_points)
-            neighbor_dists, neighbor_indices, _ = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
-
-            pq = PriorityQueue()
-            for idx, instance_id in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):
-                pq.add(idx, instance_id, priority=-1 * np.inf)
-
-            i = 0
-            while len(pq) > 0:
-                seed_index: int
-                _, seed_index, instance_id = pq.pop()  # type: ignore[assignment]
-                if i % 10000 == 0:
-                    self._logger.info("Iteration %d, seeds to process: %d.", i, len(pq))
-                growing_instance_ids[seed_index] = instance_id
-
-                current_neighbor_indices = neighbor_indices[seed_index]
-                current_neighbor_dists = neighbor_dists[seed_index]
-                current_neighbor_instance_ids = growing_instance_ids[current_neighbor_indices]
-
-                neighbor_mask = np.logical_and(
-                    current_neighbor_instance_ids == -1, current_neighbor_dists <= self._max_radius_region_growing
-                )
-                neighbor_indices_to_add = current_neighbor_indices[neighbor_mask]
-                neighbor_dists_to_add = current_neighbor_dists[neighbor_mask]
-
-                for idx, dist in zip(neighbor_indices_to_add, neighbor_dists_to_add):
-                    grid_index = np.floor((growing_points[idx, :2] - grid_origin) / self._grid_size_canopy_height_model)
-                    grid_index = grid_index.astype(int)
-                    distance_to_crown_border = crown_distance_fields[
-                        instance_id_mapping[instance_id], grid_index[0], grid_index[1]
-                    ]
-                    if distance_to_crown_border > 0:
-                        dist *= self._multiplier_outside_coarse_border
-
-                    entry = pq.get(idx)
-                    if entry is None or entry[0] > dist:
-                        pq.add(idx, instance_id, priority=dist)
-
-                i += 1
-
-            instance_ids[growing_mask] = growing_instance_ids
-
-            return instance_ids
+            return grow_trees_cpp(
+                tree_xyz,
+                instance_ids,
+                unique_instances_ids,
+                grid_origin,
+                crown_distance_fields,
+                seed_mask,
+                float(self._z_scale),
+                int(self._num_neighbors_region_growing),
+                float(self._max_radius_region_growing),
+                float(self._grid_size_canopy_height_model),
+                float(self._multiplier_outside_coarse_border),
+            )
 
     def __call__(  # pylint: disable=too-many-locals
         self,

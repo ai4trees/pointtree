@@ -40,6 +40,16 @@ template <typename scalar_T>
 using RefArrayX5 = Eigen::Ref<ArrayX5<scalar_T>>;
 
 template <typename scalar_T>
+using ArrayXX = Eigen::Array<scalar_T, Eigen::Dynamic, Eigen::Dynamic>;
+
+template <typename scalar_T>
+using RefArrayXX = Eigen::Ref<Eigen::Array<scalar_T, Eigen::Dynamic, Eigen::Dynamic>>;
+
+using ArrayXXl = Eigen::Array<int64_t, Eigen::Dynamic, Eigen::Dynamic>;
+
+using RefArrayXXl = Eigen::Ref<Eigen::Array<int64_t, Eigen::Dynamic, Eigen::Dynamic>>;
+
+template <typename scalar_T>
 using MatrixX2 = Eigen::Matrix<scalar_T, Eigen::Dynamic, 2>;
 
 template <typename scalar_T>
@@ -50,6 +60,9 @@ using KDTree2 = nanoflann::KDTreeEigenMatrixAdaptor<MatrixX2<scalar_T>, 2, nanof
 
 template <typename scalar_T>
 using KDTree3 = nanoflann::KDTreeEigenMatrixAdaptor<MatrixX3<scalar_T>, 3, nanoflann::metric_L2_Simple>;
+
+template <typename scalar_T>
+using QueueElementType = std::tuple<int64_t, int64_t, scalar_T>;
 
 }  // namespace PointTree
 

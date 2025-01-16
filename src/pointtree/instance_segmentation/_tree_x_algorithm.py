@@ -585,15 +585,22 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             circle_detector: Union[MEstimator, Ransac]
             if self._trunk_search_circle_fitting_method == "m-estimator":
-                circle_detector = MEstimator(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+                circle_detector = MEstimator(
+                    bandwidth=bandwidth,
+                    break_min_change=1e-6,
+                    min_step_size=1e-10,
+                    max_iterations=300,
+                    armijo_min_decrease_percentage=0.5,
+                    armijo_attenuation_factor=0.25,
+                )
                 circle_detector.detect(
                     trunk_layer_xy,
                     batch_lengths=batch_lengths,
-                    n_start_x=10,
-                    n_start_y=10,
+                    n_start_x=3,
+                    n_start_y=3,
                     min_start_radius=min_radius,
                     max_start_radius=max_radius,
-                    n_start_radius=5,
+                    n_start_radius=3,
                     num_workers=self._num_workers,
                 )
             else:
@@ -828,15 +835,22 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
                 circle_detector: Union[MEstimator, Ransac]
                 if self._trunk_search_circle_fitting_method == "m-estimator":
-                    circle_detector = MEstimator(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+                    circle_detector = MEstimator(
+                        bandwidth=bandwidth,
+                        break_min_change=1e-6,
+                        min_step_size=1e-10,
+                        max_iterations=300,
+                        armijo_min_decrease_percentage=0.5,
+                        armijo_attenuation_factor=0.25,
+                    )
                     circle_detector.detect(
                         trunk_layer_xy,
                         batch_lengths=batch_lengths_xy,
-                        n_start_x=10,
-                        n_start_y=10,
+                        n_start_x=3,
+                        n_start_y=3,
                         min_start_radius=min_radius,
                         max_start_radius=max_radius,
-                        n_start_radius=5,
+                        n_start_radius=3,
                         num_workers=self._num_workers,
                     )
                 else:

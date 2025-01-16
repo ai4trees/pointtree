@@ -237,6 +237,10 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     scalar_T region_growing_seed_layer_height,
     scalar_T region_growing_seed_radius_factor,
     int num_workers = 1) {
+  if (num_workers <= 0) {
+    num_workers = omp_get_max_threads();
+  }
+
   if (xyz.rows() != distance_to_dtm.rows()) {
     throw std::invalid_argument("xyz and distance_to_dtm must have the same length.");
   }
@@ -249,13 +253,22 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
   ArrayXl instance_ids = ArrayXl::Constant(num_points, -1);
 
-  MatrixX2<scalar_T> xy_mat = xyz.leftCols(2).matrix();
-  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(xy_mat), 10 /* max leaf size */);
+  std::vector<int64_t> trunk_layer_indices;
+  for (int64_t i = 0; i < xyz.rows(); ++i) {
+    if ((distance_to_dtm(i) >= 1.3 - region_growing_seed_layer_height / 2) &&
+        (distance_to_dtm(i) <= 1.3 + region_growing_seed_layer_height / 2)) {
+      trunk_layer_indices.push_back(i);
+    }
+  }
+
+  MatrixX2<scalar_T> trunk_layer_xy = xyz(trunk_layer_indices, {0, 1}).matrix();
+  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(trunk_layer_xy), 10 /* max leaf size */);
 
   std::vector<int64_t> seed_indices = {};
 
   ArrayX<scalar_T> search_radii = trunk_diameters / 2 * region_growing_seed_radius_factor;
 
+#pragma omp parallel for num_threads(num_workers)
   for (int64_t tree_id = 0; tree_id < num_trees; ++tree_id) {
     ArrayX<scalar_T> tree_position = tree_positions.row(tree_id);
 
@@ -264,22 +277,24 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     const size_t num_neighbors =
         kd_tree_2d->index_->radiusSearch(tree_position.data(), search_radii(tree_id), search_result);
 
-    bool found_seed_points = false;
-
-    for (size_t i = 0; i < num_neighbors; i++) {
-      auto idx = search_result[i].first;
-      scalar_T height_above_ground = distance_to_dtm(idx);
-
-      if ((height_above_ground >= 1.3 - region_growing_seed_layer_height / 2) &&
-          (height_above_ground <= 1.3 + region_growing_seed_layer_height / 2)) {
-        found_seed_points = true;
-        instance_ids[idx] = tree_id;
-        seed_indices.push_back(idx);
-      }
+    if (num_neighbors == 0) {
+      std::cout << "No seed points were found for tree " << tree_id << std::endl;
+      continue;
     }
 
-    if (!found_seed_points) {
-      std::cout << "No seed points were found for tree " << tree_id << std::endl;
+    std::vector<int64_t> current_seed_indices(search_result.size());
+
+    std::transform(
+        search_result.begin(), search_result.end(), current_seed_indices.begin(),
+        [trunk_layer_indices](const nanoflann::ResultItem<int64_t, scalar_T> &x) {
+          return trunk_layer_indices[x.first];
+        });
+
+#pragma omp critical
+    {
+      seed_indices.reserve(seed_indices.size() + search_result.size());
+      seed_indices.insert(seed_indices.end(), current_seed_indices.begin(), current_seed_indices.end());
+      instance_ids(current_seed_indices) = tree_id;
     }
   }
 
@@ -353,7 +368,6 @@ ArrayXl segment_tree_crowns(
     if (unassigned_indices.size() == 0) {
       break;
     }
-    ArrayX3<scalar_T> unassigned_xyz = xyz(unassigned_indices, Eigen::all);
 
     std::cout << "Iteration " << i << ", " << unassigned_indices.size()
               << " unassigned points remaining, search radius: " << search_radius << ", seeds: " << seed_indices.size()
@@ -370,11 +384,9 @@ ArrayXl segment_tree_crowns(
       std::vector<int64_t> knn_index(1);
       std::vector<scalar_T> knn_dist(1);
 
-      ArrayX3<scalar_T> query_xyz = unassigned_xyz.row(j);
+      ArrayX3<scalar_T> query_xyz = xyz(unassigned_indices[j], Eigen::all);
 
       auto num_results = kd_tree_seeds_3d.index_->knnSearch(query_xyz.data(), 1, &knn_index[0], &knn_dist[0]);
-
-      assert(num_results == 1);
 
       if (knn_dist[0] > search_radius_squared) {
         continue;

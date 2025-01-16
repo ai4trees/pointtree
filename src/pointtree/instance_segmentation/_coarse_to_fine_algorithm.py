@@ -23,7 +23,6 @@ from pointtree._coarse_to_fine_algorithm_cpp import (  # type: ignore[import-not
 from pointtree.evaluation import Profiler
 from pointtree.visualization import save_tree_map
 from .filters import filter_instances_min_points
-from ._priority_queue import PriorityQueue
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 

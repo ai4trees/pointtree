@@ -32,7 +32,7 @@ from pointtree.operations import fit_ellipse
 from pointtree.visualization import plot_fitted_shape
 
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
-from .filters import filter_instances_min_points, filter_instances_vertical_extent
+from .filters import filter_instances_min_points, filter_instances_vertical_extent, filter_instances_intensity
 
 
 class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many-instance-attributes
@@ -83,16 +83,32 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     normalized point cloud, which contains all points within a certain height range above the terrain (the height range
     is defined by :code:`trunk_search_min_z` and :code:`trunk_search_max_z`). This layer should
     be chosen so that it contains all tree trunks and as few other objects as possible. The points within this slice are
-    downsampled using voxel-based subsampling and then clustered using the DBSCAN algorithm proposed in
+    downsampled using voxel-based subsampling and then clustered in 2D using the DBSCAN algorithm proposed in
     `Ester, Martin, et al. "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise." \
-    KDD. Vol. 96. No. 34, pp. 226-231. 1996. <https://dl.acm.org/doi/10.5555/3001460.3001507>`__ The clusters obtained
-    with the DBSCAN algorithm may still contain some false positives, i.e., clusters that do not represent trunks. To
+    KDD. Vol. 96. No. 34, pp. 226-231. 1996. <https://dl.acm.org/doi/10.5555/3001460.3001507>`__ To
     filter out false positive clusters, the following filtering rules are applied to the clusters:
 
     1. Clusters with less than :code:`trunk_search_min_cluster_points` points are discarded.
     2. Clusters whose extent in the z-direction (i.e., the height difference between the highest and the lowest point in
        the cluster) is less than :code:`trunk_search_min_cluster_height` are discarded.
-    3. From the remaining clusters :code:`trunk_search_circle_fitting_num_layers` horizontal and potentially
+
+    Since, in some cases, several trunks that are located close to each other are assigned into a single cluster, an
+    additional DBSCAN clustering step is done in 3D. The parameters for this clustering step are selected depending on
+    the horizontal extent of a cluster (calculated as range of x-coordinates :math:\times` the range of y-coordinates):
+    If the horizontal extent of a cluster is greater than or equal to 0.22 m<sup>2</sup>, the parameters
+    :code:`trunk_search_dbscan_3d_eps_large` and :code:`trunk_search_dbscan_3d_min_points_large` are used, and otherwise
+    :code:`trunk_search_dbscan_3d_eps_small` and :code:`trunk_search_dbscan_3d_min_points_small`.
+
+    After the 3D clustering, points classified as noise are removed and the following filtering rules are applied to the
+    clusters:
+
+    1. Clusters with less than :code:`trunk_search_min_cluster_points` points are discarded.
+    2. Clusters whose extent in the z-direction (i.e., the height difference between the highest and the lowest point in
+       the cluster) is less than :code:`trunk_search_min_cluster_height` are discarded.
+    3. The 80% quantile of the reflection intensities of the points in a cluster is calculated. Clusters that
+       have an 80% quantile of intensities equal to or smaller than :code:`trunk_search_min_cluster_intensity` are
+       discarded.
+    4. From the remaining clusters :code:`trunk_search_circle_fitting_num_layers` horizontal and potentially
        overlapping layers are extracted, each with a height of :code:`trunk_search_circle_fitting_layer_height` and an
        overlap of :code:`trunk_search_circle_fitting_layer_overlap`. A circle or ellipse (if the circle fitting does not
        converge) is fitted to the points from each layer. Then, for all possible combinations of
@@ -119,18 +135,37 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             for the DBSCAN clustering (in meters). Defaults to 3 m.
         trunk_search_voxel_size (float, optional): Voxel size with which the points from the horizontal slice are
             downsampled before performing the DBSCAN clustering (in meters). Defaults to 0.015 m.
-        trunk_search_dbscan_eps (float, optional): Parameter :math:`\epsilon` of the DBSCAN algorithm, i.e., the radius
-            of the circular neighborhood that is used to determine the number of neighbors for a given point (in
-            meters). Defaults to 0.025 m.
-        trunk_search_dbscan_min_points (int, optional): Parameter :math:`MinPnts` of the DBSCAN algorithm, i.e., the
-            number of neighbors a given point must have in order to be considered as a core point. All neighbors of a
-            core point are added to the clusters and then checked whether they are core points themselves. Defaults to
-            90.
+        trunk_search_dbscan_2d_eps (float, optional): Parameter :math:`\epsilon` of the DBSCAN algorithm for the initial
+            clustering in 2D. The parameter defined the radius of the circular neighborhood that is used to determine
+            the number of neighbors for a given point (in meters). Defaults to 0.025 m.
+        trunk_search_dbscan_2d_min_points (int, optional): Parameter :math:`MinPnts` of the DBSCAN algorithm for the
+            initial clustering in 2D. The parameter defines the number of neighbors a given point must have in order to
+            be considered as a core point. All neighbors of a core point are added to the clusters and then checked
+            whether they are core points themselves. Defaults to 90.
+        trunk_search_switch_clustering_3d_params_treshold (float, optional): Threshold on the horizontal extent of trunk
+            clusters at which the parameters for the DBSCAN clustering in 3D are switched. Defaults to
+            0.22 m<sup>2</sup>.
+        trunk_search_dbscan_3d_eps_large (float, optional): Parameter :math:`\epsilon` of the DBSCAN algorithm that is
+            used for the clustering in 3D if the horizontal extent of a cluster obtained from the initial clustering in
+            2D is larger than or equal to :code:`trunk_search_switch_clustering_3d_params_treshold`. Defaults to 0.02 m.
+        trunk_search_dbscan_3d_min_points_large (int, optional): Parameter :math:`MinPnts` of the DBSCAN algorithm that
+            is used for the clustering in 3D if the horizontal extent of a cluster obtained from the initial clustering
+            in 2D is larger than or equal to :code:`trunk_search_switch_clustering_3d_params_treshold`. Defaults to 20.
+        trunk_search_dbscan_3d_eps_small (float, optional): Parameter :math:`\epsilon` of the DBSCAN algorithm that is
+            used for the clustering in 3D if the horizontal extent of a cluster obtained from the initial clustering in
+            2D is smaller than to :code:`trunk_search_switch_clustering_3d_params_treshold`. Defaults to 0.023 m.
+        trunk_search_dbscan_3d_min_points_small (int, optional): Parameter :math:`MinPnts` of the DBSCAN algorithm that
+            is used for the clustering in 3D if the horizontal extent of a cluster obtained from the initial clustering
+            in 2D is smaller than :code:`trunk_search_switch_clustering_3d_params_treshold`. Defaults to 18.
         trunk_search_min_cluster_points (int, optional): Minimum number of points a cluster must contain in order not to
             be discarded. Defaults to 500.
         trunk_search_min_cluster_height (float, optional): Minimum extent in the z-direction (i.e., the height
             difference between the highest and the lowest point in the cluster) a cluster must have in order not to be
             discarded (in meters). Defaults to 1.3 m.
+        trunk_search_min_cluster_intensity (float, optional): Threshold for filtering of clusters based on reflection
+            intensity values. Clusters are discarded if the 80 % percentile of the reflection intensities of the points
+            in the cluster is below the given threshold. Defaults to 6000. If no reflection intensity values are input
+            to the algorithm, the intensity-based filtering is skipped.
         trunk_search_circle_fitting_method (str, optional): Circle fitting method to use: :code:`"m-estimator"` |
             :code:`"ransac"`.
         trunk_search_circle_fitting_num_layers (int, optional): Number of horizontal layers used for the circle /
@@ -282,10 +317,16 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_min_z: float = 1.0,
         trunk_search_max_z: float = 3.0,
         trunk_search_voxel_size: float = 0.015,
-        trunk_search_dbscan_eps: float = 0.025,
-        trunk_search_dbscan_min_points: int = 90,
+        trunk_search_dbscan_2d_eps: float = 0.025,
+        trunk_search_dbscan_2d_min_points: int = 90,
+        trunk_search_switch_clustering_3d_params_treshold: Optional[float] = 0.22,
+        trunk_search_dbscan_3d_eps_large: Optional[float] = 0.02,
+        trunk_search_dbscan_3d_min_points_large: Optional[int] = 20,
+        trunk_search_dbscan_3d_eps_small: Optional[float] = 0.023,
+        trunk_search_dbscan_3d_min_points_small: Optional[int] = 18,
         trunk_search_min_cluster_points: Optional[int] = 500,
         trunk_search_min_cluster_height: Optional[float] = 1.3,
+        trunk_search_min_cluster_intensity: Optional[float] = 6000,
         trunk_search_circle_fitting_method: Literal["m-estimator", "ransac"] = "ransac",
         trunk_search_circle_fitting_num_layers: int = 14,
         trunk_search_circle_fitting_layer_height: float = 0.15,
@@ -330,10 +371,17 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._trunk_search_min_z = trunk_search_min_z
         self._trunk_search_max_z = trunk_search_max_z
         self._trunk_search_voxel_size = trunk_search_voxel_size
-        self._trunk_search_dbscan_eps = trunk_search_dbscan_eps
-        self._trunk_search_dbscan_min_points = trunk_search_dbscan_min_points
+        self._trunk_search_dbscan_2d_eps = trunk_search_dbscan_2d_eps
+        self._trunk_search_dbscan_2d_min_points = trunk_search_dbscan_2d_min_points
+        self._trunk_search_switch_clustering_3d_params_treshold = trunk_search_switch_clustering_3d_params_treshold
+        self._trunk_search_dbscan_3d_eps_large = trunk_search_dbscan_3d_eps_large
+        self._trunk_search_dbscan_3d_min_points_large = trunk_search_dbscan_3d_min_points_large
+        self._trunk_search_dbscan_3d_eps_small = trunk_search_dbscan_3d_eps_small
+        self._trunk_search_dbscan_3d_min_points_small = trunk_search_dbscan_3d_min_points_small
+
         self._trunk_search_min_cluster_points = trunk_search_min_cluster_points
         self._trunk_search_min_cluster_height = trunk_search_min_cluster_height
+        self._trunk_search_min_cluster_intensity = trunk_search_min_cluster_intensity
         self._trunk_search_circle_fitting_method = trunk_search_circle_fitting_method
         self._trunk_search_circle_fitting_num_layers = trunk_search_circle_fitting_num_layers
         self._trunk_search_circle_fitting_layer_height = trunk_search_circle_fitting_layer_height
@@ -370,7 +418,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._visualization_folder = Path(visualization_folder)
 
     def find_trunks(  # pylint: disable=too-many-locals
-        self, trunk_layer_xyz: npt.NDArray, point_cloud_id: Optional[str] = None
+        self, trunk_layer_xyz: npt.NDArray, intensities: Optional[npt.NDArray], point_cloud_id: Optional[str] = None
     ) -> Tuple[npt.NDArray, npt.NDArray]:
         r"""
         Identifies tree trunks in a 3D point cloud.
@@ -395,15 +443,18 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             | :math:`T = \text{ number of trunks}`
         """
 
-        trunk_layer_xyz_downsampled, _, _ = voxel_downsampling(
+        trunk_layer_xyz_downsampled, selected_indices, _ = voxel_downsampling(
             trunk_layer_xyz, voxel_size=self._trunk_search_voxel_size
         )
+        intensities_downsampled = None
+        if intensities is not None:
+            intensities_downsampled = intensities[selected_indices]
 
-        with Profiler("Clustering of trunk points", self._performance_tracker):
-            self._logger.info("Cluster trunk points...")
+        with Profiler("2D clustering of trunk points", self._performance_tracker):
+            self._logger.info("Cluster trunk points in 2D...")
             dbscan = DBSCAN(
-                eps=self._trunk_search_dbscan_eps,
-                min_samples=self._trunk_search_dbscan_min_points,
+                eps=self._trunk_search_dbscan_2d_eps,
+                min_samples=self._trunk_search_dbscan_2d_min_points,
                 n_jobs=self._num_workers,
             )
             dbscan.fit(trunk_layer_xyz_downsampled[:, :2])
@@ -436,6 +487,83 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 "%d trunk candidates remaining after discarding clusters with too small " + "vertical extent.",
                 len(unique_cluster_labels),
             )
+
+        with Profiler("3D clustering of trunk points", self._performance_tracker):
+            self._logger.info("Cluster trunk points in 3D...")
+
+            next_label = unique_cluster_labels.max() + 1 if len(unique_cluster_labels) > 0 else 0
+            for label in unique_cluster_labels:
+                label_mask = cluster_labels == label
+
+                cluster_xyz = trunk_layer_xyz_downsampled[label_mask]
+                horizontal_extent = np.prod(cluster_xyz[:, :2].max(axis=0) - cluster_xyz[:, :2].min(axis=0))
+
+                if horizontal_extent >= self._trunk_search_switch_clustering_3d_params_treshold:
+                    eps = self._trunk_search_dbscan_3d_eps_large
+                    min_points = self._trunk_search_dbscan_3d_min_points_large
+                else:
+                    eps = self._trunk_search_dbscan_3d_eps_small
+                    min_points = self._trunk_search_dbscan_3d_min_points_small
+
+                dbscan = DBSCAN(
+                    eps=eps,
+                    min_samples=min_points,
+                    n_jobs=self._num_workers,
+                )
+
+                dbscan.fit(cluster_xyz)
+                new_labels = dbscan.labels_.astype(np.int64)
+                new_labels[new_labels != -1] += next_label
+                next_label = new_labels.max() + 1
+                cluster_labels[label_mask] = new_labels
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(
+                cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
+            )
+
+            self._logger.info(
+                "%d trunk candidates after clustering in 3D.",
+                len(unique_cluster_labels),
+            )
+
+        with Profiler("Filtering of trunk clusters based on point count", self._performance_tracker):
+            cluster_labels, unique_cluster_labels = filter_instances_min_points(
+                cluster_labels, unique_cluster_labels, min_points=self._trunk_search_min_cluster_points, inplace=True
+            )
+
+            self._logger.info(
+                "%d trunk candidates remaining after discarding clusters with too few points.",
+                len(unique_cluster_labels),
+            )
+
+        with Profiler("Filtering of trunk clusters based on vertical extent", self._performance_tracker):
+            cluster_labels, unique_cluster_labels = filter_instances_vertical_extent(
+                trunk_layer_xyz_downsampled,
+                cluster_labels,
+                unique_cluster_labels,
+                min_vertical_extent=self._trunk_search_min_cluster_height,
+                inplace=True,
+            )
+
+            self._logger.info(
+                "%d trunk candidates remaining after discarding clusters with too small " + "vertical extent.",
+                len(unique_cluster_labels),
+            )
+
+        if intensities_downsampled is not None:
+            with Profiler("Filtering of trunk clusters based on intensity values", self._performance_tracker):
+                cluster_labels, unique_cluster_labels = filter_instances_intensity(
+                    intensities_downsampled,
+                    cluster_labels,
+                    unique_cluster_labels,
+                    min_intensity=self._trunk_search_min_cluster_intensity,
+                    threshold_percentile=0.8,
+                    inplace=True,
+                )
+
+                self._logger.info(
+                    "%d trunk candidates remaining after discarding clusters with small intensity.",
+                    len(unique_cluster_labels),
+                )
 
         preliminary_layer_circles_or_ellipses = self.fit_preliminary_circles_or_ellipses_to_trunks(
             trunk_layer_xyz_downsampled, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
@@ -821,7 +949,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     layer_circles,
                     layer_ellipses,
                     layer_heights,
-                    np.empty((0, 2), dtype=np.int64),
+                    np.empty((0, 2), dtype=trunk_layer_xyz.dtype),
                     np.empty(0, dtype=np.int64),
                 )
 
@@ -1501,21 +1629,28 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         return full_instance_ids
 
     def __call__(
-        self, xyz: npt.NDArray, point_cloud_id: Optional[str] = None
+        self, xyz: npt.NDArray, intensities: Optional[npt.NDArray] = None, point_cloud_id: Optional[str] = None
     ) -> Tuple[npt.NDArray[np.int64], npt.NDArray, npt.NDArray]:
         r"""
         Runs the tree instance segmentation for the given point cloud.
 
         Args:
             xyz: 3D coordinates of all points in the point cloud.
+            intensities: Reflection intensities of all points in the point cloud. If set to :code:`None`, filtering
+                steps that use intensity values are skipped. Defaults to :code:`None`.
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 :code:`None`, which means that no visualizations are created.
 
         Returns:
             Tree instance labels for all points. For points not belonging to any tree, the label is set to -1.
 
+        Raises:
+            ValueError: If :code:`intensities` is not :code:`None`, and :code:`xyz` and :code:`intensities` have
+                different lengths.
+
         Shape:
             - :code:`xyz`: :math:`(N, 3)`
+            - :code:`intensities`: :math:`(N)`
             - Output: :math:`(N)`
 
             | where
@@ -1524,6 +1659,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         """
 
         with Profiler("Terrain filtering", self._performance_tracker):
+            if intensities is not None and len(xyz) != len(intensities):
+                raise ValueError("xyz and intensities must have the same length.")
+
             self._logger.info("Filter terrain points...")
             terrain_classification = cloth_simulation_filtering(
                 xyz,
@@ -1563,13 +1701,17 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             trunk_layer_xyz = np.empty((trunk_layer_filter.sum(), 3), dtype=xyz.dtype)
             trunk_layer_xyz[:, :2] = xyz[trunk_layer_filter, :2]
             trunk_layer_xyz[:, 2] = dists_to_dtm[trunk_layer_filter]
+            trunk_positions, trunk_diameters = self.find_trunks(
+                trunk_layer_xyz,
+                intensities=intensities[trunk_layer_filter] if intensities is not None else None,
+                point_cloud_id=point_cloud_id,
+            )
             del trunk_layer_filter
-            trunk_positions, trunk_diameters = self.find_trunks(trunk_layer_xyz, point_cloud_id=point_cloud_id)
             del trunk_layer_xyz
 
         if len(trunk_positions) == 0:
             return (
-                np.full(len(xyz), fill_value=-1, dtype=np.int64),
+                np.full(len(xyz), fill_value=-1, dtype=xyz.dtype),
                 trunk_positions,
                 trunk_diameters,
             )

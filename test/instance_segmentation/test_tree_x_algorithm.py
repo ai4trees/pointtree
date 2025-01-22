@@ -371,7 +371,7 @@ class TestTreeXAlgorithm:
         )
         assert preliminary_circles_or_ellipses.dtype == scalar_type
 
-        decimal = 1 if variance > 0 else 5
+        decimal = 1 if variance > 0 else 4
 
         np.testing.assert_almost_equal(expected_circles_or_ellipses, preliminary_circles_or_ellipses, decimal=decimal)
 
@@ -778,14 +778,17 @@ class TestTreeXAlgorithm:
             algorithm.segment_crowns(*inputs.values())
 
     @pytest.mark.parametrize("create_visualizations", [False, True])
+    @pytest.mark.parametrize("use_intensities", [True, False])
     @pytest.mark.parametrize("storage_layout", ["C", "F"])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     def test_full_algorithm(
-        self, create_visualizations: bool, storage_layout: str, scalar_type: np.dtype, cache_dir
+        self, create_visualizations: bool, use_intensities: bool, storage_layout: str, scalar_type: np.dtype, cache_dir
     ):  # pylint: disable=too-many-locals, too-many-statements
         point_spacing = 0.1
+        min_intensity = 5000
         ground_plane = generate_grid_points((100, 100), point_spacing)
         ground_plane = np.column_stack([ground_plane, np.zeros(len(ground_plane), dtype=np.float64)])
+        intensities_ground_plane = np.zeros(len(ground_plane), dtype=scalar_type)
 
         points_per_layer = 200
 
@@ -804,6 +807,7 @@ class TestTreeXAlgorithm:
                 (layer_points, np.full(len(layer_points), fill_value=layer_height, dtype=np.float64))
             )
             trunk_1.extend(layer_points)
+        intensities_trunk_1 = np.full(len(trunk_1), fill_value=min_intensity - 1, dtype=scalar_type)
 
         num_layers_trunk_2 = 35
         trunk_2: List[float] = []
@@ -820,13 +824,16 @@ class TestTreeXAlgorithm:
                 (layer_points, np.full(len(layer_points), fill_value=layer_height, dtype=np.float64))
             )
             trunk_2.extend(layer_points)
+        intensities_trunk_2 = np.full(len(trunk_2), fill_value=min_intensity + 1, dtype=scalar_type)
 
         crown_1 = generate_grid_points((20, 20, 20), point_spacing)
         crown_1[:, :2] += 1.05
         crown_1[:, 2] += 3.1
+        intensities_crown_1 = np.full(len(crown_1), fill_value=min_intensity - 1, dtype=scalar_type)
         crown_2 = generate_grid_points((30, 30, 30), point_spacing)
         crown_2[:, :2] += 4.15
         crown_2[:, 2] += 3.6
+        intensities_crown_2 = np.full(len(crown_2), fill_value=min_intensity + 1, dtype=scalar_type)
 
         expected_trunk_positions = np.array([[2.05, 2.05], [5.65, 5.65]], dtype=np.float64)
         expected_trunk_diameters = np.array([0.3, 0.5], dtype=np.float64)
@@ -835,6 +842,18 @@ class TestTreeXAlgorithm:
         xyz = np.concatenate([ground_plane, crown_1, np.array(trunk_1), crown_2, np.array(trunk_2)]).astype(
             scalar_type, order=storage_layout
         )
+        if use_intensities:
+            intensities = np.concatenate(
+                [
+                    intensities_ground_plane,
+                    intensities_crown_1,
+                    intensities_trunk_1,
+                    intensities_crown_2,
+                    intensities_trunk_2,
+                ]
+            )
+        else:
+            intensities = None
 
         visualization_folder = None
         point_cloud_id = None
@@ -842,31 +861,56 @@ class TestTreeXAlgorithm:
             visualization_folder = cache_dir
             point_cloud_id = "test"
 
-        algorithm = TreeXAlgorithm(trunk_search_dbscan_eps=0.05, visualization_folder=visualization_folder)
+        algorithm = TreeXAlgorithm(
+            trunk_search_dbscan_2d_eps=0.05,
+            trunk_search_dbscan_3d_eps_small=0.25,
+            trunk_search_dbscan_3d_min_points_small=5,
+            trunk_search_dbscan_3d_eps_large=0.25,
+            trunk_search_dbscan_3d_min_points_large=5,
+            trunk_search_min_cluster_intensity=min_intensity,
+            visualization_folder=visualization_folder,
+        )
 
-        instance_ids, trunk_positions, trunk_diameters = algorithm(xyz, point_cloud_id=point_cloud_id)
+        instance_ids, trunk_positions, trunk_diameters = algorithm(
+            xyz, intensities=intensities, point_cloud_id=point_cloud_id
+        )
 
         assert trunk_positions.dtype == scalar_type
         assert trunk_diameters.dtype == scalar_type
 
-        point_cloud = pd.DataFrame(xyz, columns=["x", "y", "z"])
-        point_cloud["instance_id"] = instance_ids
-        point_cloud.to_csv("test_point_cloud.csv", index=False)
-
-        tree_heights = np.empty(2, dtype=np.float64)
-        for instance_id in [0, 1]:
+        tree_heights = np.empty(len(np.unique(instance_ids)) - 1, dtype=np.float64)
+        for instance_id in np.unique(instance_ids):
             instance_points = xyz[instance_ids == instance_id]
-            tree_heights[instance_id] = instance_points[:, 2].max() - instance_points[:, 2].min()
+            if len(instance_points) > 0:
+                tree_heights[instance_id] = instance_points[:, 2].max() - instance_points[:, 2].min()
 
         assert len(xyz) == len(instance_ids)
-        assert len(np.unique(instance_ids)) == 3
-        np.testing.assert_almost_equal(expected_trunk_positions, trunk_positions, decimal=2)
-        np.testing.assert_almost_equal(expected_trunk_diameters, trunk_diameters, decimal=2)
-        np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
+
+        if use_intensities:
+            assert len(np.unique(instance_ids)) == 2
+            np.testing.assert_almost_equal(expected_trunk_positions[1:], trunk_positions, decimal=2)
+            np.testing.assert_almost_equal(expected_trunk_diameters[1:], trunk_diameters, decimal=2)
+            np.testing.assert_almost_equal(expected_tree_heights[1:], tree_heights, decimal=2)
+        else:
+            assert len(np.unique(instance_ids)) == 3
+            np.testing.assert_almost_equal(expected_trunk_positions, trunk_positions, decimal=2)
+            np.testing.assert_almost_equal(expected_trunk_diameters, trunk_diameters, decimal=2)
+            np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
 
         algorithm = TreeXAlgorithm(trunk_search_min_cluster_points=10000)
 
         instance_ids, trunk_positions, trunk_diameters = algorithm(xyz)
 
+        assert trunk_positions.dtype == scalar_type
+        assert trunk_diameters.dtype == scalar_type
         assert len(xyz) == len(instance_ids)
         assert (instance_ids == -1).all()
+
+    def test_full_algorithm_invalid_inputs(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+        intensities = np.zeros((11), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, intensities)

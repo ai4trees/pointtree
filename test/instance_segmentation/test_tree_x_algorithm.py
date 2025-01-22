@@ -543,13 +543,16 @@ class TestTreeXAlgorithm:
             existing_path.parent.mkdir(exist_ok=True, parents=True)
             existing_path.touch()
 
+        # create target file for first file to test that existing files are overwritten
+        paths[0][1].touch()
+
         algorithm.rename_visualizations_after_filtering(filter_mask, point_cloud_id=point_cloud_id)
 
         for _, renamed_path in paths:
             assert renamed_path.exists()
 
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
-    def test_compute_trunk_positions(self, scalar_type: np.dtype):
+    def test_compute_trunk_positions_circles(self, scalar_type: np.dtype):
         algorithm = TreeXAlgorithm(trunk_search_circle_fitting_std_num_layers=3)
 
         layer_circles = np.array([[[0, 0, 1], [0.5, 0, 1], [1, 0, 1], [2, 0, 0.1]]], dtype=scalar_type)
@@ -561,6 +564,29 @@ class TestTreeXAlgorithm:
 
         best_circle_combination = np.array([[0, 2, 1]], dtype=np.int64)
         best_ellipse_combination = np.array([[-1, -1, -1]], dtype=np.int64)
+
+        expected_trunk_positions = np.array([[0.3, 0]], dtype=scalar_type)
+
+        trunk_positions = algorithm.compute_trunk_positions(
+            layer_circles, layer_ellipses, layer_heights, best_circle_combination, best_ellipse_combination
+        )
+
+        assert expected_trunk_positions.dtype == trunk_positions.dtype
+        np.testing.assert_almost_equal(expected_trunk_positions, trunk_positions)
+
+    @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+    def test_compute_trunk_positions_ellipses(self, scalar_type: np.dtype):
+        algorithm = TreeXAlgorithm(trunk_search_circle_fitting_std_num_layers=3)
+
+        layer_circles = np.array([[[0, 0, 1], [-1, -1, -1], [1, 0, 1], [-1, -1, -1]]], dtype=scalar_type)
+        layer_ellipses = np.array(
+            [[[0, 0, 1, 1, 0.1], [0.5, 0, 1, 1, 0], [1, 0, 1, 1, 0.2], [-1, -1, -1, -1, -1]]],
+            dtype=scalar_type,
+        )
+        layer_heights = np.array([1, 1.5, 2, 2.5])
+
+        best_circle_combination = np.array([[-1, -1, -1]], dtype=np.int64)
+        best_ellipse_combination = np.array([[0, 2, 1]], dtype=np.int64)
 
         expected_trunk_positions = np.array([[0.3, 0]], dtype=scalar_type)
 

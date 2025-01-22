@@ -292,6 +292,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         region_growing_cum_search_dist_include_terrain (float, optional): Maximum cumulative search distance between the
             initial seed point and a terrain point to include that terrain point in a tree instance (in meters).
             Defaults to 2 m.
+        invalid_tree_id: ID that is assigned to points that do not belong to any tree instance. Defaults to -1.
         num_workers (int, optional): Number of workers to use for parallel processing. If :code:`workers` is set to -1,
             all CPU threads are used. Defaults to :code:`-1`.
         visualization_folder (str | pathlib.Path, optional): Path of a directory in which to store visualizations of
@@ -352,6 +353,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         region_growing_decrease_search_radius_after_num_iter: int = 10,
         region_growing_max_iterations: int = 1000,
         region_growing_cum_search_dist_include_terrain: float = 2,
+        invalid_tree_id: int = -1,
         num_workers: Optional[int] = -1,
         visualization_folder: Optional[Union[str, Path]] = None,
     ):
@@ -410,6 +412,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._region_growing_max_iterations = region_growing_max_iterations
         self._region_growing_cum_search_dist_include_terrain = region_growing_cum_search_dist_include_terrain
 
+        self._invalid_tree_id = invalid_tree_id
         self._num_workers = num_workers if num_workers is not None else 1
 
         if visualization_folder is None or isinstance(visualization_folder, Path):
@@ -1563,7 +1566,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             trunk_diameters: Trunk diameters of of the trees to be used for seed point selection.
 
         Returns:
-            Tree instance labels for all points. For points not belonging to any tree, the label is set to -1.
+            Tree instance labels for all points. For points not belonging to any tree, the label is set to the invalid
+            tree ID specified in the algorithm's constructor.
 
         Raises:
             ValueError: If :code:`xyz`, :code:`dists_to_dtm`, and :code:`is_tree` have different lengths or if
@@ -1623,7 +1627,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         instance_ids = make_labels_consecutive(instance_ids, ignore_id=-1, inplace=True)
 
-        full_instance_ids = np.full(len(xyz), fill_value=-1, dtype=np.int64)
+        if self._invalid_tree_id != -1:
+            instance_ids[instance_ids == -1] = self._invalid_tree_id
+
+        full_instance_ids = np.full(len(xyz), fill_value=self._invalid_tree_id, dtype=np.int64)
         full_instance_ids = instance_ids[inverse_indices]
 
         return full_instance_ids

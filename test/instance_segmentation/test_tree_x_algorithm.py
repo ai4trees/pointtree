@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 import shutil
 
 import numpy as np
@@ -730,6 +730,27 @@ class TestTreeXAlgorithm:
         if create_visualization:
             for expected_path in expected_visualization_paths:
                 assert expected_path.exists()
+
+    @pytest.mark.parametrize("crs", [None, "EPSG:4326"])
+    def test_export_dtm(self, crs: Optional[str], cache_dir):
+        algorithm = TreeXAlgorithm(visualization_folder=cache_dir)
+
+        dtm = np.array([[1.1, 2, 1], [1.2, 1.4, 1.3]], dtype=np.float64)
+        dtm_offset = np.array([10, 20], dtype=np.float64)
+        expected_file_path = Path(cache_dir) / "test_dtm.tif"
+
+        algorithm.export_dtm(dtm, dtm_offset, "test", crs=crs)
+
+        assert expected_file_path.exists()
+
+    def test_export_dtm_invalid(self):
+        algorithm = TreeXAlgorithm(visualization_folder=None)
+
+        dtm = np.array([[1.1, 2, 1], [1.2, 1.4, 1.3]], dtype=np.float64)
+        dtm_offset = np.array([10, 20], dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm.export_dtm(dtm, dtm_offset, "test")
 
     @pytest.mark.parametrize("storage_layout", ["C", "F"])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])

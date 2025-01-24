@@ -11,9 +11,11 @@ from typing import Any, List, Literal, Optional, Tuple, Union
 from circle_detection import MEstimator, Ransac
 import numpy as np
 import numpy.typing as npt
-from sklearn.cluster import DBSCAN
 from pointtorch.operations.numpy import voxel_downsampling, make_labels_consecutive
 from pygam import LinearGAM, s
+from sklearn.cluster import DBSCAN
+import rasterio
+from rasterio.transform import from_origin
 
 from pointtree.evaluation import Profiler
 from pointtree.operations import (
@@ -423,6 +425,52 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._visualization_folder = visualization_folder
         else:
             self._visualization_folder = Path(visualization_folder)
+
+    def export_dtm(
+        self, dtm: npt.NDArray, dtm_offset: npt.NDArray, point_cloud_id: str, crs: Optional[str] = None
+    ) -> None:
+        r"""
+        Exports the given digital terran model as GeoTIF.
+
+        Args:
+            dtm: Digital terrain model.
+            dtm_offset: X- and y-coordinate of the top left corner of the DTM grid.
+            point_cloud_id: ID of the point cloud to be used in the file name.
+
+        Returns:
+            ValueError: If :code:`self._visualization_folder` is :code:`None`.
+
+        Shape:
+            - :code:`dtm`: :math:`(H, W)`
+            - :code:`dtm_offset`: :math:`(2)`
+            - Output: Tuple of two arrays. The first has shape :math:`(H, W)` and second has shape :math:`(2)`.
+
+            | where
+            |
+            | :math:`N = \text{ number of terrain points}`
+            | :math:`H = \text{ extent of the DTM grid in y-direction}`
+            | :math:`W = \text{ extent of the DTM grid in x-direction}`
+        """
+
+        if self._visualization_folder is None:
+            raise ValueError("To create a DTM file, the visualization folder must be set.")
+
+        dtm_origin = dtm_offset - self._dtm_resolution / 2
+
+        transform = from_origin(dtm_origin[0], dtm_origin[1], self._dtm_resolution, self._dtm_resolution)
+
+        with rasterio.open(
+            self._visualization_folder / f"{point_cloud_id}_dtm.tif",
+            "w",
+            driver="GTiff",
+            height=dtm.shape[0],
+            width=dtm.shape[1],
+            count=1,  # single-band raster
+            dtype=dtm.dtype,
+            crs=crs,
+            transform=transform,
+        ) as tif_file:
+            tif_file.write(dtm, 1)
 
     def find_trunks(  # pylint: disable=too-many-locals
         self, trunk_layer_xyz: npt.NDArray, intensities: Optional[npt.NDArray], point_cloud_id: Optional[str] = None
@@ -1641,7 +1689,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         return full_instance_ids
 
     def __call__(
-        self, xyz: npt.NDArray, intensities: Optional[npt.NDArray] = None, point_cloud_id: Optional[str] = None
+        self,
+        xyz: npt.NDArray,
+        intensities: Optional[npt.NDArray] = None,
+        point_cloud_id: Optional[str] = None,
+        crs: Optional[str] = None,
     ) -> Tuple[npt.NDArray[np.int64], npt.NDArray, npt.NDArray]:
         r"""
         Runs the tree instance segmentation for the given point cloud.
@@ -1652,6 +1704,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 steps that use intensity values are skipped. Defaults to :code:`None`.
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 :code:`None`, which means that no visualizations are created.
+            crs: EPSG code of the coordinate reference system of the input point cloud. The EPSG code is used to set the
+                coordinate reference system when exporting intermediate data, such as a digital terrain model file.
+                Defaults to :code:`None`, which means that no coordinate reference system is set for the exported data.
 
         Returns:
             Tree instance labels for all points. For points not belonging to any tree, the label is set to -1.
@@ -1696,6 +1751,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 voxel_size=self._dtm_voxel_size,
                 num_workers=self._num_workers,
             )
+
+            if self._visualization_folder is not None and point_cloud_id is not None:
+                self.export_dtm(dtm, dtm_offset, point_cloud_id, crs=crs)
 
         with Profiler("Height normalization", self._performance_tracker):
             self._logger.info("Normalize point heights...")

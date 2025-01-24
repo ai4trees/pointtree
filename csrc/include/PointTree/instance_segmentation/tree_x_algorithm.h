@@ -173,7 +173,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
       } else {
         auto ellipse = preliminary_layer_circles_or_ellipses(flat_idx, Eigen::all);
         ArrayX2<scalar_T> ellipse_center = ellipse.leftCols(2);
-        scalar_T ellipse_diameter = ellipse(2) + ellipse(3);
+        scalar_T ellipse_diameter = std::sqrt(ellipse(2) * *2 + ellipse(3) * *2);
         scalar_T buffer_width;
 
         if (ellipse_diameter <= trunk_search_circle_fitting_switch_buffer_threshold) {

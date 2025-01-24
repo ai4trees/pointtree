@@ -1155,7 +1155,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         minimum_std = diameter_std
                         best_circle_combination[label] = combination
             else:
-                ellipse_diameters = (layer_ellipses[label, :, 2:3] * 2).mean(axis=-1)
+                ellipse_diameters = np.sqrt((layer_ellipses[label, :, 2:3] ** 2).sum(axis=-1))
                 combinations = list(
                     itertools.combinations(existing_ellipse_layers, self._trunk_search_circle_fitting_std_num_layers)
                 )

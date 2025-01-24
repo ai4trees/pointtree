@@ -235,7 +235,8 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     RefArrayX2<scalar_T> tree_positions,
     RefArrayX<scalar_T> trunk_diameters,
     scalar_T region_growing_seed_layer_height,
-    scalar_T region_growing_seed_radius_factor,
+    scalar_T region_growing_seed_diameter_factor,
+    scalar_T region_growing_seed_min_diameter,
     int num_workers = 1) {
   if (num_workers <= 0) {
     num_workers = omp_get_max_threads();
@@ -266,7 +267,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
   std::vector<int64_t> seed_indices = {};
 
-  ArrayX<scalar_T> search_radii = trunk_diameters / 2 * region_growing_seed_radius_factor;
+  ArrayX<scalar_T> search_radii = trunk_diameters / 2 * region_growing_seed_diameter_factor;
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t tree_id = 0; tree_id < num_trees; ++tree_id) {
@@ -274,8 +275,10 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
     std::vector<nanoflann::ResultItem<int64_t, scalar_T>> search_result;
 
-    const size_t num_neighbors =
-        kd_tree_2d->index_->radiusSearch(tree_position.data(), search_radii(tree_id), search_result);
+    scalar_T search_radius = search_radii(tree_id) > region_growing_seed_min_diameter / 2
+                                 ? search_radii(tree_id)
+                                 : region_growing_seed_min_diameter / 2;
+    const size_t num_neighbors = kd_tree_2d->index_->radiusSearch(tree_position.data(), search_radius, search_result);
 
     if (num_neighbors == 0) {
       std::cout << "No seed points were found for tree " << tree_id << std::endl;
@@ -313,7 +316,8 @@ ArrayXl segment_tree_crowns(
     scalar_T region_growing_voxel_size,
     scalar_T region_growing_z_scale,
     scalar_T region_growing_seed_layer_height,
-    scalar_T region_growing_seed_radius_factor,
+    scalar_T region_growing_seed_diameter_factor,
+    sclara_T region_growing_seed_min_diameter,
     scalar_T region_growing_min_total_assignment_ratio,
     scalar_T region_growing_min_tree_assignment_ratio,
     scalar_T region_growing_max_search_radius,
@@ -334,7 +338,7 @@ ArrayXl segment_tree_crowns(
 
   std::tuple<ArrayXl, std::vector<int64_t>> region_growing_seeds = collect_region_growing_seeds<scalar_T>(
       xyz, distance_to_dtm, tree_positions, trunk_diameters, region_growing_seed_layer_height,
-      region_growing_seed_radius_factor);
+      region_growing_seed_diameter_factor, region_growing_seed_min_diameter);
   ArrayXl instance_ids = std::get<0>(region_growing_seeds);
   std::vector<int64_t> seed_indices = std::get<1>(region_growing_seeds);
 

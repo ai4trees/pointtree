@@ -236,7 +236,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     points to be processed or the maximum number of iterations is reached.
 
     To select the initial seed points for a given tree, the following approach is used: A cylinder with a height of
-    :code:`region_growing_seed_layer_height` and a diameter of :code:`region_growing_seed_radius_factor * d` is
+    :code:`region_growing_seed_layer_height` and a diameter of :code:`region_growing_seed_diameter_factor * d` is
     considered, where :code:`d` is the tree's trunk diameter at breast height, which has been computed in the previous
     step. The cylinder's center is positioned at the trunk center at breast height, which also has been computed in the
     previous step. All points within the cylinder are selected as seed points.
@@ -272,8 +272,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             the region growing. To promote upward growth, this factor should be larger than 1. Defaults to 2.
         region_growing_seed_layer_height (float, optional): Height of the cylinders that are placed around the trunk
             centers at breast height for seed point selection (in meters). Defaults to 0.6 m.
-        region_growing_seed_radius_factor (float, optional): Factor to multiply with the trunk diameter at breast height
-            to obtain the diameter of the cylinder used for seed point selection. Defaults to 1.2.
+        region_growing_seed_dbh_factor (float, optional): Factor to multiply with the trunk diameter at breast height
+            to obtain the diameter of the cylinder used for seed point selection. Defaults to 1.05.
+        region_growing_seed_min_diameter (float, optional): Minimum diameter of the cylinder used for seed point
+            selection. Defaults to 0.05 m.
         region_growing_min_total_assignment_ratio (float, optional): Threshold controlling when to increase the search
             radius. If the ratio between the number of points newly assigned to trees in an iteration and the number of
             remaining, unassigned points is below this threshold, the search radius is increased by
@@ -346,7 +348,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         region_growing_voxel_size: float = 0.05,
         region_growing_z_scale: float = 2,
         region_growing_seed_layer_height: float = 0.6,
-        region_growing_seed_radius_factor: float = 1.2,
+        region_growing_seed_diameter_factor: float = 1.05,
+        region_growing_seed_min_diameter: float = 0.05,
         region_growing_min_total_assignment_ratio: float = 0.002,
         region_growing_min_tree_assignment_ratio: float = 0.3,
         region_growing_max_search_radius: float = 0.5,
@@ -401,7 +404,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         self._region_growing_voxel_size = region_growing_voxel_size
         self._region_growing_z_scale = region_growing_z_scale
-        self._region_growing_seed_radius_factor = region_growing_seed_radius_factor
+        self._region_growing_seed_diameter_factor = region_growing_seed_diameter_factor
+        self._region_growing_seed_min_diameter = region_growing_seed_min_diameter
         self._region_growing_seed_layer_height = region_growing_seed_layer_height
         self._region_growing_min_total_assignment_ratio = region_growing_min_total_assignment_ratio
         self._region_growing_min_tree_assignment_ratio = region_growing_min_tree_assignment_ratio
@@ -1525,7 +1529,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         are no more seed points to be processed or the maximum number of iterations is reached.
 
         To select the initial seed points for a given tree, the following approach is used: A cylinder with a height of
-        :code:`region_growing_seed_layer_height` and a diameter of :code:`self._region_growing_seed_radius_factor * d`
+        :code:`region_growing_seed_layer_height` and a diameter of :code:`self._region_growing_seed_diameter_factor * d`
         is considered, where :code:`d` is the tree's trunk diameter at breast height, which has been computed in the
         previous step. The cylinder's center is positioned at the trunk center at breast height, which also has been
         computed in the previous step. All points within the cylinder are selected as seed points.
@@ -1615,7 +1619,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             float(self._region_growing_voxel_size),
             float(self._region_growing_z_scale),
             float(self._region_growing_seed_layer_height),
-            float(self._region_growing_seed_radius_factor),
+            float(self._region_growing_seed_diameter_factor),
+            float(self._region_growing_seed_min_diameter),
             float(self._region_growing_min_total_assignment_ratio),
             float(self._region_growing_min_tree_assignment_ratio),
             float(self._region_growing_max_search_radius),

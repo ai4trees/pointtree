@@ -1,7 +1,7 @@
 """ Evaluation tools. """
 
 from ._metrics import *
-from ._timer import *
-from ._time_tracker import *
+from ._profiler import *
+from ._performance_tracker import *
 
 __all__ = [name for name in globals().keys() if not name.startswith("_")]

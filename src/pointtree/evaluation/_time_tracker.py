@@ -1,4 +1,4 @@
-""" A tracker that stores the execution times of different code sections. """
+"""A tracker that stores the execution times of different code sections."""
 
 __all__ = ["TimeTracker"]
 

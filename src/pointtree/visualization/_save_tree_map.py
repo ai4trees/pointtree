@@ -1,4 +1,4 @@
-""" Visualization of 2D maps. """
+"""Visualization of 2D maps."""
 
 __all__ = ["save_tree_map"]
 

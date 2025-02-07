@@ -1,4 +1,4 @@
-""" Trains a linear model and computes the predictions of the model for the given data. """
+"""Trains a linear model and computes the predictions of the model for the given data."""
 
 __all__ = ["estimate_with_linear_model"]
 

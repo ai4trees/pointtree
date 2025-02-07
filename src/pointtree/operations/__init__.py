@@ -1,4 +1,4 @@
-""" Algorithms for tree instance segmentation. """
+"""Algorithms for tree instance segmentation."""
 
 from ._cloth_simulation_filtering import *
 from ._create_digital_terrain_model import *

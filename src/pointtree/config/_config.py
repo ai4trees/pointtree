@@ -1,4 +1,4 @@
-""" Utilities for configuring the package setup. """
+"""Utilities for configuring the package setup."""
 
 __all__ = ["pytorch3d_is_available"]
 

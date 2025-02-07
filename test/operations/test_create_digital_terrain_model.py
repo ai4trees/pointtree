@@ -1,4 +1,4 @@
-""" Tests for the create_digital_terrain_model method in pointtree.operations. """
+"""Tests for the create_digital_terrain_model method in pointtree.operations."""
 
 from typing import Optional
 

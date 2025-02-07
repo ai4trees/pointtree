@@ -1,4 +1,4 @@
-""" Tests for pointtree.operations.points_in_ellipse """
+"""Tests for pointtree.operations.points_in_ellipse"""
 
 import pytest
 import numpy as np

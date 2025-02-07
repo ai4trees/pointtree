@@ -1,4 +1,4 @@
-""" Computation of a polygon's area. """
+"""Computation of a polygon's area."""
 
 __all__ = ["polygon_area"]
 

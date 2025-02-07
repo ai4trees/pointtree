@@ -1,4 +1,4 @@
-""" Color conversion. """
+"""Color conversion."""
 
 __all__ = ["hex_to_rgb"]
 

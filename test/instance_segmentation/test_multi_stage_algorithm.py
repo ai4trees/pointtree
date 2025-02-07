@@ -1,4 +1,4 @@
-""" Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm. """
+"""Tests for pointtree.instance_segmentation.MultiStageSegmentationAlgorithm."""
 
 import os
 from typing import List, Literal, Optional

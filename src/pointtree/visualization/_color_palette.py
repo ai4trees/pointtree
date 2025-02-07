@@ -1,4 +1,4 @@
-""" Color palette. """
+"""Color palette."""
 
 __all__ = ["acm_red", "acm_blue", "tree_color", "color_palette"]
 

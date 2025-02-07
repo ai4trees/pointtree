@@ -39,10 +39,7 @@ dependencies = [
     "pyclesperanto-prototype>=0.22.0, <1.0.0",
     "scipy>=1.8.0, <2.0.0",
     "scikit-image>=0.21.0, <1.0.0",
-    "scikit-learn>=1.2.0, <2.0.0",
-    "torch>=2.0.0, <2.5.0",
-    "torch-cluster>=1.6.0, <2.0.0",
-    "torch-scatter>=2.0.2, <3.0.0"
+    "scikit-learn>=1.2.0, <2.0.0"
 ]
 [project.optional-dependencies]
 dev = [

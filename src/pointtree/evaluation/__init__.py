@@ -1,4 +1,4 @@
-""" Evaluation tools. """
+"""Evaluation tools."""
 
 from ._metrics import *
 from ._timer import *

@@ -1,4 +1,4 @@
-""" Tests for the metric calculation methods in pointtree.evaluation. """
+"""Tests for the metric calculation methods in pointtree.evaluation."""
 
 import numpy as np
 import pandas as pd

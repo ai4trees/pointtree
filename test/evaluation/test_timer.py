@@ -1,4 +1,4 @@
-""" Tests for pointtree.evaluation.Timer. """
+"""Tests for pointtree.evaluation.Timer."""
 
 import time
 

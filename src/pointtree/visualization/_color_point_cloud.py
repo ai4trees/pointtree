@@ -1,4 +1,4 @@
-""" Methods for coloring point clouds. """
+"""Methods for coloring point clouds."""
 
 __all__ = ["color_semantic_segmentation", "color_instance_segmentation"]
 

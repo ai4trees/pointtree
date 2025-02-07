@@ -1,4 +1,4 @@
-""" Construction of rasterized digital terrain models. """
+"""Construction of rasterized digital terrain models."""
 
 __all__ = ["create_digital_terrain_model"]
 

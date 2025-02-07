@@ -1,4 +1,4 @@
-""" Cloth simulation filtering. """
+"""Cloth simulation filtering."""
 
 __all__ = ["cloth_simulation_filtering"]
 

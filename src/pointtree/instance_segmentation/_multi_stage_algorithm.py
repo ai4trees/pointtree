@@ -1,4 +1,4 @@
-""" Multi-stage algorithm for tree instance segmentation. """  # pylint: disable=too-many-lines
+"""Multi-stage algorithm for tree instance segmentation."""  # pylint: disable=too-many-lines
 
 __all__ = ["MultiStageAlgorithm"]
 

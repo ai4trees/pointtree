@@ -1,4 +1,4 @@
-""" Evaluation metrics for assesing the accuracy of tree instance segmentation algorithms. """
+"""Evaluation metrics for assesing the accuracy of tree instance segmentation algorithms."""
 
 __all__ = ["match_instances", "instance_segmentation_metrics", "semantic_segmentation_metrics"]
 

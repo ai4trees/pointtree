@@ -1,4 +1,4 @@
-""" Base class for implementing tree instance segmentation algorithms. """
+"""Base class for implementing tree instance segmentation algorithms."""
 
 __all__ = ["InstanceSegmentationAlgorithm"]
 

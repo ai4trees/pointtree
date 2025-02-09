@@ -317,7 +317,7 @@ ArrayXl segment_tree_crowns(
     scalar_T region_growing_z_scale,
     scalar_T region_growing_seed_layer_height,
     scalar_T region_growing_seed_diameter_factor,
-    sclara_T region_growing_seed_min_diameter,
+    scalar_T region_growing_seed_min_diameter,
     scalar_T region_growing_min_total_assignment_ratio,
     scalar_T region_growing_min_tree_assignment_ratio,
     scalar_T region_growing_max_search_radius,

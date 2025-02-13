@@ -1,4 +1,4 @@
-""" Calculates the point's height above the terrain. """
+"""Calculates the point's height above the terrain."""
 
 __all__ = ["distance_to_dtm"]
 

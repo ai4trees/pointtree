@@ -1,4 +1,4 @@
-"""Construction of rasterized digital terrain models."""
+""" Construction of rasterized digital terrain models. """
 
 __all__ = ["create_digital_terrain_model"]
 
@@ -11,12 +11,13 @@ from scipy.spatial import KDTree
 
 
 def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too-many-locals
-    terrain_coords: npt.NDArray[np.float64],
+    terrain_coords: npt.NDArray,
     grid_resolution: float,
     k: int,
     p: float,
     voxel_size: Optional[float] = None,
-) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+    num_workers: int = 1,
+) -> Tuple[npt.NDArray, npt.NDArray]:
     r"""
     Constructs a rasterized digital terrain model (DTM) from a set of terrain points. The DTM is constructed by
     creating a grid of regularly arranged DTM points and interpolating the height of the :math:`k` closest terrain
@@ -34,6 +35,8 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
         p: Power :math:`p` for inverse-distance weighting in the interpolation of terrain points.
         voxel_size: Voxel size with which the terrain points are downsampled before the DTM is
             created. If set to :code:`None`, no downsampling is performed. Defaults to :code:`None`.
+        num_workers: Number of workers to use for parallel processing. If :code:`workers` is set to -1, all CPU threads
+            are used. Defaults to :code:`1`.
 
     Returns:
         Tuple of two arrays. The first is the DTM. The second contains the x- and y-coordinate of the top left
@@ -66,7 +69,8 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     dtm_points = (dtm_grid_offset + np.concatenate([dtm_points_x, dtm_points_y], axis=-1)) * grid_resolution
 
     kd_tree = KDTree(terrain_coords[:, :2])
-    neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=k)
+    neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=min(k, len(terrain_coords)), workers=num_workers)
+    neighbor_distances = neighbor_distances.astype(terrain_coords.dtype)
 
     # ignore divide by zero warnings for this operation since those values are replaced afterwards
     with np.errstate(divide="ignore"):

@@ -515,7 +515,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 smoothed_canopy_height_model = ndi.gaussian_filter(canopy_height_model, sigma=self._smooth_sigma)
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
-                smoothed_canopy_height_model /= weights
+                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(
+                    smoothed_canopy_height_model.dtype
+                )
                 smoothed_canopy_height_model[canopy_height_model == 0] = 0
                 canopy_height_model = smoothed_canopy_height_model
 

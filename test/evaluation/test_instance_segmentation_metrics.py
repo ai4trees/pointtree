@@ -1,4 +1,4 @@
-""" Tests for pointtree.evaluation.instance_segmentation_metrics. """
+"""Tests for pointtree.evaluation.instance_segmentation_metrics."""
 
 import numpy as np
 import pytest

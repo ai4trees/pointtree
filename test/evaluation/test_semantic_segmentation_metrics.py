@@ -1,4 +1,4 @@
-""" Tests for pointtree.evaluation.semantic_segmentation_metrics. """
+"""Tests for pointtree.evaluation.semantic_segmentation_metrics."""
 
 import numpy as np
 import pytest
@@ -8,7 +8,7 @@ from pointtree.evaluation import semantic_segmentation_metrics
 
 
 class TestSemanticSegmentationMetrics:
-    """ Tests for pointtree.evaluation.semantic_segmentation_metrics. """
+    """Tests for pointtree.evaluation.semantic_segmentation_metrics."""
 
     def test_semantic_segmentation_metrics(self):  # pylint: disable=too-many-locals
         target = np.array([1, 1, 1, 0, 0, 2, 1, 1, 3, 2], dtype=np.int64)

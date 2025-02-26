@@ -1,4 +1,4 @@
-""" Tests for pointtree.evaluation.match_instances. """
+"""Tests for pointtree.evaluation.match_instances."""
 
 import numpy as np
 import pytest

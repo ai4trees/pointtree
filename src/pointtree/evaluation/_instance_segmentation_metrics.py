@@ -1,4 +1,4 @@
-""" Evaluation metrics for assesing the accuracy of instance segmentation methods. """
+"""Evaluation metrics for assesing the accuracy of instance segmentation methods."""
 
 __all__ = [
     "instance_detection_metrics",
@@ -16,7 +16,7 @@ import pandas as pd
 from ._match_instances import match_instances
 
 
-def instance_detection_metrics(
+def instance_detection_metrics(  # pylint: disable=too-many-locals
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
     matched_predicted_ids: npt.NDArray[np.int64],
@@ -105,8 +105,8 @@ def instance_detection_metrics(
     if min_precision_fp > 0:
         fp = 0
 
-        for predicted_id in range(len(matched_target_ids)):
-            if matched_target_ids[predicted_id] == invalid_instance_id:
+        for predicted_id, matched_target_id in enumerate(matched_target_ids):
+            if matched_target_id == invalid_instance_id:
                 # count percentage of points belonging to labeled ground-truth instances
                 intersection = np.logical_and(target != invalid_instance_id, prediction == predicted_id).sum()
                 precision = intersection / (prediction == predicted_id).sum()
@@ -130,7 +130,7 @@ def instance_detection_metrics(
     return metrics
 
 
-def instance_segmentation_metrics(
+def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
     matched_predicted_ids: npt.NDArray[np.int64],
@@ -141,7 +141,8 @@ def instance_segmentation_metrics(
     the following metrics are calculated to measure the quality of the point-wise segmentation:
 
     .. math::
-        \text{IoU}(\mathcal{G}_i, \mathcal{P}_i) = \frac{|\mathcal{G}_i \cap \mathcal{P}_{i}|}{|\mathcal{G}_i \cup \mathcal{P}_{i}|}
+        \text{IoU}(\mathcal{G}_i, \mathcal{P}_i) = \frac{|\mathcal{G}_i \cap \mathcal{P}_{i}|}{|\mathcal{G}_i \cup
+        \mathcal{P}_{i}|}
 
     .. math::
         \text{Precision}(\mathcal{G}_i, \mathcal{P}_i) = \frac{|\mathcal{G}_i \cap \mathcal{P}_{i}|}{|\mathcal{P}_{i}|}
@@ -230,16 +231,16 @@ def instance_segmentation_metrics(
 
     matched_instances_mask = matched_predicted_ids != invalid_instance_id
 
-    instance_segmentation_metrics = {
+    average_metrics = {
         "MeanIoU": iou[matched_instances_mask].mean(),
         "MeanPrecision": precision[matched_instances_mask].mean(),
         "MeanRecall": recall[matched_instances_mask].mean(),
     }
 
-    return instance_segmentation_metrics, pd.DataFrame(per_instance_metrics)
+    return average_metrics, pd.DataFrame(per_instance_metrics)
 
 
-def instance_segmentation_metrics_per_partition(
+def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
@@ -273,7 +274,8 @@ def instance_segmentation_metrics_per_partition(
     the following metrics are calculated for each partition:
 
     .. math::
-        \text{IoU}(\mathcal{G}_i, \mathcal{P}_i) = \frac{|\mathcal{G}_i \cap \mathcal{P}_{i}|}{|\mathcal{G}_i \cup \mathcal{P}_{i}|}
+        \text{IoU}(\mathcal{G}_i, \mathcal{P}_i) = \frac{|\mathcal{G}_i \cap \mathcal{P}_{i}|}{|\mathcal{G}_i \cup
+        \mathcal{P}_{i}|}
 
     .. math::
         \text{Precision}(\mathcal{G}_i, \mathcal{P}_i) = \frac{|\mathcal{G}_i \cap \mathcal{P}_{i}|}{|\mathcal{P}_{i}|}
@@ -418,9 +420,9 @@ def instance_segmentation_metrics_per_partition(
 
             per_instance_metrics.append(current_instance_metrics)
 
-    instance_segmentation_metrics = []
+    average_metrics = []
     for i in range(num_partitions):
-        instance_segmentation_metrics.append(
+        average_metrics.append(
             {
                 "Partition": i,
                 "MeanIoU": np.nanmean(iou[:, i]) if (~np.isnan(iou[:, i])).sum() > 0 else np.nan,
@@ -429,10 +431,10 @@ def instance_segmentation_metrics_per_partition(
             }
         )
 
-    return pd.DataFrame(instance_segmentation_metrics), pd.DataFrame(per_instance_metrics)
+    return pd.DataFrame(average_metrics), pd.DataFrame(per_instance_metrics)
 
 
-def evaluate_instance_segmentation(
+def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-many-locals
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],

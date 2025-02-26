@@ -1,4 +1,4 @@
-""" Evaluation metrics for assesing the accuracy of semantic segmentation methods. """
+"""Evaluation metrics for assesing the accuracy of semantic segmentation methods."""
 
 __all__ = ["semantic_segmentation_metrics"]
 

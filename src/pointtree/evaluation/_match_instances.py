@@ -1,4 +1,4 @@
-""" Methods for matching ground-truth instances and predicted instances. """
+"""Methods for matching ground-truth instances and predicted instances."""
 
 __all__ = [
     "match_instances",
@@ -195,12 +195,13 @@ def match_instances(
     return matched_target_ids, matched_predicted_ids
 
 
-def match_instances_iou(
+def match_instances_iou(  # pylint: disable=too-many-locals
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     unique_target_ids: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
     unique_prediction_ids: npt.NDArray[np.int64],
+    *,
     invalid_instance_id: int = -1,
     min_iou_treshold: Optional[float] = 0.5,
     accept_equal_iou: bool = False,
@@ -209,8 +210,8 @@ def match_instances_iou(
     r"""
     This method implements the instance matching methods proposed in the following works:
 
-    - `Kirillov, Alexander, et al. "Panoptic segmentation." Proceedings of the IEEE/CVF Conference on Computer Vision and
-      Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
+    - `Kirillov, Alexander, et al. "Panoptic segmentation." Proceedings of the IEEE/CVF Conference on Computer Vision \
+       and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
       
       This method matches predicted and ground-truth instances if their IoU is striclty greater than 0.5, which results
       in an unambigous matching.
@@ -348,7 +349,7 @@ def match_instances_iou(
     return matched_target_ids, matched_predicted_ids
 
 
-def match_instances_tree_learn(
+def match_instances_tree_learn(  # pylint: disable=too-many-locals
     target: npt.NDArray[np.int64],
     unique_target_ids: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
@@ -431,7 +432,7 @@ def match_instances_tree_learn(
     return matched_target_ids, matched_predicted_ids
 
 
-def match_instances_for_ai_net_coverage(
+def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     target: npt.NDArray[np.int64],
     unique_target_ids: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],

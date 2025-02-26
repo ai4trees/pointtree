@@ -262,6 +262,8 @@ class TestMetrics:
             accept_equal_iou=accept_equal_iou,
         )
 
+        expected_matched_target_ids = np.array([], dtype=np.int64)
+        expected_matched_predicted_ids = np.array([], dtype=np.int64)
         if min_iou_treshold is None or min_iou_treshold == 0.2 or (min_iou_treshold == 0.4 and accept_equal_iou):
             expected_matched_target_ids = np.array([0, 2], dtype=np.int64)
             expected_matched_predicted_ids = np.array([0, 0, 1, -1], dtype=np.int64)

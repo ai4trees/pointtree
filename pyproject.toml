@@ -50,6 +50,7 @@ dev = [
     "pylint",
     "pytest",
     "pytest-cov",
+    "scipy-stubs",
     "types-Pillow",
 ]
 docs = [

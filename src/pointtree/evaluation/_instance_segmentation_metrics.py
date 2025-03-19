@@ -497,19 +497,21 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
             Defaults to 10.
 
     Returns:
-        :Tuple of four pandas.DataFrames: The first contains the instance detection metrics and the instance
+        :Tuple of six pandas.DataFrames: The first contains the instance detection metrics and the instance
         segmentation metrics averaged over all instance pairs. The dataframe has the following columns:
         :code:`"DetectionTP"`, :code:`"DetectionFP"`, :code:`"DetectionFN"`, :code:`"DetectionPrecision"`,
         :code:`"DetectionComissionError"`, :code:`"DetectionRecall"`, :code:`"DetectionOmissionError"`,
         :code:`"DetectionF1Score"`, :code:`"SegmentationMeanIoU"`, :code:`"SegmentationMeanPrecision"`, and
         :code:`"SegmentationMeanRecall"`. The second contains the instance segmentation metrics for each instance pair.
-        The third contains the instance segmentation metrics for different spatial partitions, averaged over all
-        instance pairs. The fourth contains the instance segmentation metrics for different spatial partitions for each
-        instance pair.
+        The third contains the instance segmentation metrics for different horizontal partitions, averaged over all
+        instance pairs. The fourth contains the instance segmentation metrics for different horizontal partitions for
+        each instance pair. The fifth contains the instance segmentation metrics for different vertical partitions,
+        averaged over all instance pairs. The sixth contains the instance segmentation metrics for different vertical
+        partitions for each instance pair.
     """
 
     matched_target_ids, matched_predicted_ids = match_instances(
-        xyz, target, prediction, method=detection_metrics_matching_method
+        xyz, target, prediction, method=detection_metrics_matching_method, invalid_instance_id=invalid_instance_id,
     )
 
     instance_detect_metrics = instance_detection_metrics(
@@ -522,20 +524,32 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     )
 
     matched_target_ids, matched_predicted_ids = match_instances(
-        xyz, target, prediction, method=segmentation_metrics_matching_method
+        xyz, target, prediction, method=segmentation_metrics_matching_method, invalid_instance_id=invalid_instance_id,
     )
 
     avg_segmentation_metrics, per_instance_segmentation_metrics = instance_segmentation_metrics(
         target, prediction, matched_predicted_ids, invalid_instance_id=invalid_instance_id
     )
 
-    avg_segmentation_metrics_per_partition, per_instance_segmentation_metrics_per_partition = (
+    avg_segmentation_metrics_per_xy_partition, per_instance_segmentation_metrics_per_xy_partition = (
         instance_segmentation_metrics_per_partition(
             xyz,
             target,
             prediction,
             matched_predicted_ids,
             partition="xy",
+            invalid_instance_id=invalid_instance_id,
+            num_partitions=num_partitions,
+        )
+    )
+
+    avg_segmentation_metrics_per_z_partition, per_instance_segmentation_metrics_per_z_partition = (
+        instance_segmentation_metrics_per_partition(
+            xyz,
+            target,
+            prediction,
+            matched_predicted_ids,
+            partition="z",
             invalid_instance_id=invalid_instance_id,
             num_partitions=num_partitions,
         )
@@ -551,6 +565,8 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     return (
         pd.DataFrame([metrics]),
         pd.DataFrame(per_instance_segmentation_metrics),
-        avg_segmentation_metrics_per_partition,
-        per_instance_segmentation_metrics_per_partition,
+        avg_segmentation_metrics_per_xy_partition,
+        per_instance_segmentation_metrics_per_xy_partition,
+        avg_segmentation_metrics_per_z_partition,
+        per_instance_segmentation_metrics_per_z_partition,
     )

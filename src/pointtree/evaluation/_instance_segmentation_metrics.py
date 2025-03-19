@@ -459,7 +459,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     invalid_instance_id: int = -1,
     min_precision_fp: float = 0.5,
     num_partitions: int = 10,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     r"""
     Evaluates the quality of an instance segmentation by computing the following types of metrics:
 
@@ -511,7 +511,11 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     """
 
     matched_target_ids, matched_predicted_ids = match_instances(
-        xyz, target, prediction, method=detection_metrics_matching_method, invalid_instance_id=invalid_instance_id,
+        xyz,
+        target,
+        prediction,
+        method=detection_metrics_matching_method,
+        invalid_instance_id=invalid_instance_id,
     )
 
     instance_detect_metrics = instance_detection_metrics(
@@ -524,7 +528,11 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     )
 
     matched_target_ids, matched_predicted_ids = match_instances(
-        xyz, target, prediction, method=segmentation_metrics_matching_method, invalid_instance_id=invalid_instance_id,
+        xyz,
+        target,
+        prediction,
+        method=segmentation_metrics_matching_method,
+        invalid_instance_id=invalid_instance_id,
     )
 
     avg_segmentation_metrics, per_instance_segmentation_metrics = instance_segmentation_metrics(

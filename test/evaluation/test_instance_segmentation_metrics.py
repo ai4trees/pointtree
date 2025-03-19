@@ -574,8 +574,10 @@ class TestInstanceSegmentationMetrics:
         (
             metrics,
             metrics_per_instance,
-            metrics_per_partition,
-            metrics_per_partition_per_instance,
+            metrics_per_xy_partition,
+            metrics_per_xy_partition_per_instance,
+            metrics_per_z_partition,
+            metrics_per_z_partition_per_instance,
         ) = evaluate_instance_segmentation(
             xyz,
             target,
@@ -605,12 +607,22 @@ class TestInstanceSegmentationMetrics:
         assert (metrics_per_instance["Precision"] == 1.0).all()
         assert (metrics_per_instance["Recall"] == 1.0).all()
 
-        assert len(metrics_per_partition) == num_partitions
-        assert (metrics_per_partition["MeanIoU"] == 1.0).all()
-        assert (metrics_per_partition["MeanPrecision"] == 1.0).all()
-        assert (metrics_per_partition["MeanRecall"] == 1.0).all()
+        assert len(metrics_per_xy_partition) == num_partitions
+        assert (metrics_per_xy_partition["MeanIoU"] == 1.0).all()
+        assert (metrics_per_xy_partition["MeanPrecision"] == 1.0).all()
+        assert (metrics_per_xy_partition["MeanRecall"] == 1.0).all()
 
-        assert len(metrics_per_partition_per_instance) == num_partitions * 2
-        assert (metrics_per_partition_per_instance["IoU"] == 1.0).all()
-        assert (metrics_per_partition_per_instance["Precision"] == 1.0).all()
-        assert (metrics_per_partition_per_instance["Recall"] == 1.0).all()
+        assert len(metrics_per_xy_partition_per_instance) == num_partitions * 2
+        assert (metrics_per_xy_partition_per_instance["IoU"] == 1.0).all()
+        assert (metrics_per_xy_partition_per_instance["Precision"] == 1.0).all()
+        assert (metrics_per_xy_partition_per_instance["Recall"] == 1.0).all()
+
+        assert len(metrics_per_z_partition) == num_partitions
+        assert (metrics_per_z_partition["MeanIoU"] == 1.0).all()
+        assert (metrics_per_z_partition["MeanPrecision"] == 1.0).all()
+        assert (metrics_per_z_partition["MeanRecall"] == 1.0).all()
+
+        assert len(metrics_per_z_partition_per_instance) == num_partitions * 2
+        assert (metrics_per_z_partition_per_instance["IoU"] == 1.0).all()
+        assert (metrics_per_z_partition_per_instance["Precision"] == 1.0).all()
+        assert (metrics_per_z_partition_per_instance["Recall"] == 1.0).all()

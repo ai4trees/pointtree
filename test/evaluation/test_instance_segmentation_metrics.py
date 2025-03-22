@@ -631,3 +631,32 @@ class TestInstanceSegmentationMetrics:
         assert (metrics_per_z_partition_per_instance["IoU"] == 1.0).all()
         assert (metrics_per_z_partition_per_instance["Precision"] == 1.0).all()
         assert (metrics_per_z_partition_per_instance["Recall"] == 1.0).all()
+
+    def test_evaluate_instance_segmentation_without_partitions(self):
+        xyz = np.array(
+            [
+                # tree 0
+                [0, 0, 0],
+                # tree 1
+                [1, 1, 0],
+                [1, 2, 0],
+            ],
+            dtype=np.float64,
+        )
+
+        target = np.array([0] * 1 + [1] * 2, dtype=np.int64)
+        prediction = np.array([1] * 2 + [0] * 1, dtype=np.int64)
+
+        (
+            _,
+            _,
+            metrics_per_xy_partition,
+            metrics_per_xy_partition_per_instance,
+            metrics_per_z_partition,
+            metrics_per_z_partition_per_instance,
+        ) = evaluate_instance_segmentation(xyz, target, prediction, compute_patition_metrics=False)
+
+        assert metrics_per_xy_partition is None
+        assert metrics_per_xy_partition_per_instance is None
+        assert metrics_per_z_partition is None
+        assert metrics_per_z_partition_per_instance is None

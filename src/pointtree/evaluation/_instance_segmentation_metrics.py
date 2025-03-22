@@ -7,7 +7,7 @@ __all__ = [
     "evaluate_instance_segmentation",
 ]
 
-from typing import Dict, Literal, Tuple
+from typing import Dict, Literal, Optional, Tuple
 
 from numba import njit, prange
 import numpy as np
@@ -560,8 +560,16 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     ] = "for_ai_net_coverage",
     invalid_instance_id: int = -1,
     min_precision_fp: float = 0.5,
+    compute_patition_metrics: bool = True,
     num_partitions: int = 10,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> Tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    Optional[pd.DataFrame],
+    Optional[pd.DataFrame],
+    Optional[pd.DataFrame],
+    Optional[pd.DataFrame],
+]:
     r"""
     Evaluates the quality of an instance segmentation by computing the following types of metrics:
 
@@ -595,6 +603,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must belong to labeled
             ground-truth instances in order to count the predicted instance as false positive in the computation of
             instance detection metrics. Defaults to 0.5.
+        compute_partition_metrics: Whether the metrics per partition should be computed. Defaults to :code:`True`.
         num_partitions: Number of partitions for the computation of instance segmentation metrics per partition.
             Defaults to 10.
 
@@ -609,7 +618,8 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         instance pairs. The fourth contains the instance segmentation metrics for different horizontal partitions for
         each instance pair. The fifth contains the instance segmentation metrics for different vertical partitions,
         averaged over all instance pairs. The sixth contains the instance segmentation metrics for different vertical
-        partitions for each instance pair.
+        partitions for each instance pair. The elements containing the metrics per partition are :code:`None` when
+        :code:`compute_patition_metrics` is set :code:`False`.
     """
 
     matched_target_ids, matched_predicted_ids = match_instances(
@@ -641,29 +651,35 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         target, prediction, matched_predicted_ids, invalid_instance_id=invalid_instance_id
     )
 
-    avg_segmentation_metrics_per_xy_partition, per_instance_segmentation_metrics_per_xy_partition = (
-        instance_segmentation_metrics_per_partition(
-            xyz,
-            target,
-            prediction,
-            matched_predicted_ids,
-            partition="xy",
-            invalid_instance_id=invalid_instance_id,
-            num_partitions=num_partitions,
-        )
-    )
+    avg_segmentation_metrics_per_xy_partition = None
+    per_instance_segmentation_metrics_per_xy_partition = None
+    avg_segmentation_metrics_per_z_partition = None
+    per_instance_segmentation_metrics_per_z_partition = None
 
-    avg_segmentation_metrics_per_z_partition, per_instance_segmentation_metrics_per_z_partition = (
-        instance_segmentation_metrics_per_partition(
-            xyz,
-            target,
-            prediction,
-            matched_predicted_ids,
-            partition="z",
-            invalid_instance_id=invalid_instance_id,
-            num_partitions=num_partitions,
+    if compute_patition_metrics:
+        avg_segmentation_metrics_per_xy_partition, per_instance_segmentation_metrics_per_xy_partition = (
+            instance_segmentation_metrics_per_partition(
+                xyz,
+                target,
+                prediction,
+                matched_predicted_ids,
+                partition="xy",
+                invalid_instance_id=invalid_instance_id,
+                num_partitions=num_partitions,
+            )
         )
-    )
+
+        avg_segmentation_metrics_per_z_partition, per_instance_segmentation_metrics_per_z_partition = (
+            instance_segmentation_metrics_per_partition(
+                xyz,
+                target,
+                prediction,
+                matched_predicted_ids,
+                partition="z",
+                invalid_instance_id=invalid_instance_id,
+                num_partitions=num_partitions,
+            )
+        )
 
     metrics = {}
 

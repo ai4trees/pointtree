@@ -96,10 +96,16 @@ jobs:
           python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install --upgrade -e .'[dev, docs]'
-      - name: Executing tests
+      - name: Execute tests
+        if: ${{ matrix.version.python }} != '3.13'
         shell: bash
         run: |
-          pytest --cov --cov-report=xml
+          pytest
+      - name: Execute tests and measure code coverage
+        if: ${{ matrix.version.python }} == '3.13'
+        shell: bash
+        run: |
+          NUMBA_DISABLE_JIT=1 pytest --cov --cov-report=xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:

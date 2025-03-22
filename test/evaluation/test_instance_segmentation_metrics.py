@@ -654,7 +654,7 @@ class TestInstanceSegmentationMetrics:
             metrics_per_xy_partition_per_instance,
             metrics_per_z_partition,
             metrics_per_z_partition_per_instance,
-        ) = evaluate_instance_segmentation(xyz, target, prediction, compute_patition_metrics=False)
+        ) = evaluate_instance_segmentation(xyz, target, prediction, compute_partition_metrics=False)
 
         assert metrics_per_xy_partition is None
         assert metrics_per_xy_partition_per_instance is None

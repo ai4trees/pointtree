@@ -540,6 +540,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
+    *,
     detection_metrics_matching_method: Literal[
         "panoptic_segmentation",
         "point2tree",
@@ -560,7 +561,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     ] = "for_ai_net_coverage",
     invalid_instance_id: int = -1,
     min_precision_fp: float = 0.5,
-    compute_patition_metrics: bool = True,
+    compute_partition_metrics: bool = True,
     num_partitions: int = 10,
 ) -> Tuple[
     pd.DataFrame,
@@ -619,7 +620,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         each instance pair. The fifth contains the instance segmentation metrics for different vertical partitions,
         averaged over all instance pairs. The sixth contains the instance segmentation metrics for different vertical
         partitions for each instance pair. The elements containing the metrics per partition are :code:`None` when
-        :code:`compute_patition_metrics` is set :code:`False`.
+        :code:`compute_partition_metrics` is set :code:`False`.
     """
 
     matched_target_ids, matched_predicted_ids = match_instances(
@@ -656,7 +657,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     avg_segmentation_metrics_per_z_partition = None
     per_instance_segmentation_metrics_per_z_partition = None
 
-    if compute_patition_metrics:
+    if compute_partition_metrics:
         avg_segmentation_metrics_per_xy_partition, per_instance_segmentation_metrics_per_xy_partition = (
             instance_segmentation_metrics_per_partition(
                 xyz,

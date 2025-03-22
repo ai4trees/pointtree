@@ -209,7 +209,8 @@ class TestInstanceSegmentationMetrics:
                 [11, 0, 1],
                 [12, 0, 1],
                 [13, 0, 1],
-            ]
+            ],
+            dtype=np.float64,
         )
 
         target = np.array([0] * 13 + [1] * 11, dtype=np.int64)
@@ -301,7 +302,8 @@ class TestInstanceSegmentationMetrics:
                 [11, 3, 1],
                 [12, 3, 1],
                 [13, 3, 1],
-            ]
+            ],
+            dtype=np.float64,
         )
 
         target = np.array([0] * 13 + [1] * 13, dtype=np.int64)
@@ -352,7 +354,8 @@ class TestInstanceSegmentationMetrics:
                 # tree 2
                 [5, 5, 0],
                 [5, 5, 1],
-            ]
+            ],
+            dtype=np.float64,
         )
 
         target = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] + [1] * 9 + [2] * 2, dtype=np.int64)
@@ -438,7 +441,8 @@ class TestInstanceSegmentationMetrics:
                 [3, 3, 8],
                 [3, 3, 9],
                 [3, 3, 10],
-            ]
+            ],
+            dtype=np.float64,
         )
 
         target = np.array([0] * 11 + [1] * 11, dtype=np.int64)
@@ -565,7 +569,8 @@ class TestInstanceSegmentationMetrics:
                 [11, 3, 8],
                 [12, 3, 9],
                 [13, 3, 10],
-            ]
+            ],
+            dtype=np.float64,
         )
 
         target = np.array([0] * 11 + [1] * 11, dtype=np.int64)
@@ -626,3 +631,32 @@ class TestInstanceSegmentationMetrics:
         assert (metrics_per_z_partition_per_instance["IoU"] == 1.0).all()
         assert (metrics_per_z_partition_per_instance["Precision"] == 1.0).all()
         assert (metrics_per_z_partition_per_instance["Recall"] == 1.0).all()
+
+    def test_evaluate_instance_segmentation_without_partitions(self):
+        xyz = np.array(
+            [
+                # tree 0
+                [0, 0, 0],
+                # tree 1
+                [1, 1, 0],
+                [1, 2, 0],
+            ],
+            dtype=np.float64,
+        )
+
+        target = np.array([0] * 1 + [1] * 2, dtype=np.int64)
+        prediction = np.array([1] * 2 + [0] * 1, dtype=np.int64)
+
+        (
+            _,
+            _,
+            metrics_per_xy_partition,
+            metrics_per_xy_partition_per_instance,
+            metrics_per_z_partition,
+            metrics_per_z_partition_per_instance,
+        ) = evaluate_instance_segmentation(xyz, target, prediction, compute_partition_metrics=False)
+
+        assert metrics_per_xy_partition is None
+        assert metrics_per_xy_partition_per_instance is None
+        assert metrics_per_z_partition is None
+        assert metrics_per_z_partition_per_instance is None

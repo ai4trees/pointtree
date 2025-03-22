@@ -170,7 +170,7 @@ def _compute_instance_segmentation_metrics(
     precision = np.zeros(num_target_ids, dtype=np.float64)
     recall = np.zeros(num_target_ids, dtype=np.float64)
 
-    for target_id in prange(num_target_ids):
+    for target_id in prange(num_target_ids):  # pylint: disable=not-an-iterable
         predicted_id = matched_predicted_ids[target_id]
 
         if predicted_id == invalid_instance_id:
@@ -281,7 +281,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
 
 @njit(parallel=True)
-def _compute_instance_segmentation_metrics_per_partition(
+def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
@@ -333,7 +333,7 @@ def _compute_instance_segmentation_metrics_per_partition(
     precision = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
     recall = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
 
-    for target_id in prange(num_target_ids):
+    for target_id in prange(num_target_ids):  # pylint: disable=not-an-iterable
         predicted_id = matched_predicted_ids[target_id]
 
         if predicted_id == invalid_instance_id:

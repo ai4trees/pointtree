@@ -210,7 +210,7 @@ class TestInstanceSegmentationMetrics:
                 [12, 0, 1],
                 [13, 0, 1],
             ],
-            dtype=np.float64
+            dtype=np.float64,
         )
 
         target = np.array([0] * 13 + [1] * 11, dtype=np.int64)
@@ -303,7 +303,7 @@ class TestInstanceSegmentationMetrics:
                 [12, 3, 1],
                 [13, 3, 1],
             ],
-            dtype=np.float64
+            dtype=np.float64,
         )
 
         target = np.array([0] * 13 + [1] * 13, dtype=np.int64)
@@ -355,7 +355,7 @@ class TestInstanceSegmentationMetrics:
                 [5, 5, 0],
                 [5, 5, 1],
             ],
-            dtype=np.float64
+            dtype=np.float64,
         )
 
         target = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] + [1] * 9 + [2] * 2, dtype=np.int64)
@@ -442,7 +442,7 @@ class TestInstanceSegmentationMetrics:
                 [3, 3, 9],
                 [3, 3, 10],
             ],
-            dtype=np.float64
+            dtype=np.float64,
         )
 
         target = np.array([0] * 11 + [1] * 11, dtype=np.int64)
@@ -570,7 +570,7 @@ class TestInstanceSegmentationMetrics:
                 [12, 3, 9],
                 [13, 3, 10],
             ],
-            dtype=np.float64
+            dtype=np.float64,
         )
 
         target = np.array([0] * 11 + [1] * 11, dtype=np.int64)

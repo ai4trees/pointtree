@@ -197,7 +197,7 @@ def match_instances(
 
 
 @njit(parallel=True)
-def match_instances_iou(  # pylint: disable=too-many-locals
+def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional-arguments
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     unique_target_ids: npt.NDArray[np.int64],
@@ -494,7 +494,7 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     matched_target_ids = np.full(len(unique_prediction_ids), fill_value=invalid_instance_id, dtype=np.int64)
     matched_predicted_ids = np.full(len(unique_target_ids), fill_value=invalid_instance_id, dtype=np.int64)
 
-    for i in prange(len(unique_target_ids)):
+    for i in prange(len(unique_target_ids)):  # pylint: disable=not-an-iterable
         target_id = unique_target_ids[i]
 
         predicted_instances_intersecting_with_target = np.unique(prediction[target == target_id])
@@ -521,7 +521,7 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
             matched_predicted_ids[target_id] = predicted_id
 
     if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5):
-        for i in prange(len(unique_prediction_ids)):
+        for i in prange(len(unique_prediction_ids)):  # pylint: disable=not-an-iterable
             predicted_id = unique_prediction_ids[i]
             target_instances_intersecting_with_prediction = np.unique(target[prediction == predicted_id])
             target_instances_intersecting_with_prediction = target_instances_intersecting_with_prediction[

@@ -9,6 +9,7 @@ __all__ = [
 
 from typing import Literal, Optional, Tuple
 
+from numba import njit, prange
 import numpy as np
 import numpy.typing as npt
 import scipy
@@ -195,13 +196,13 @@ def match_instances(
     return matched_target_ids, matched_predicted_ids
 
 
+@njit(parallel=True)
 def match_instances_iou(  # pylint: disable=too-many-locals
     xyz: npt.NDArray,
     target: npt.NDArray[np.int64],
     unique_target_ids: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
     unique_prediction_ids: npt.NDArray[np.int64],
-    *,
     invalid_instance_id: int = -1,
     min_iou_treshold: Optional[float] = 0.5,
     accept_equal_iou: bool = False,
@@ -318,7 +319,12 @@ def match_instances_iou(  # pylint: disable=too-many-locals
         sorting_indices = np.argsort(-1 * instance_heights)
         unique_target_ids = unique_target_ids[sorting_indices]
 
-    for target_id in unique_target_ids:
+    for i in (
+        range(len(unique_target_ids))
+        if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5)
+        else prange(len(unique_target_ids))
+    ):
+        target_id = unique_target_ids[i]
         predicted_instances_intersecting_with_target = prediction[target == target_id]
         predicted_instances_intersecting_with_target = predicted_instances_intersecting_with_target[
             predicted_instances_intersecting_with_target != invalid_instance_id
@@ -326,16 +332,16 @@ def match_instances_iou(  # pylint: disable=too-many-locals
 
         if len(predicted_instances_intersecting_with_target) == 0:
             continue
-        values, counts = np.unique(predicted_instances_intersecting_with_target, return_counts=True)
+        values = np.unique(predicted_instances_intersecting_with_target)
 
-        if (accept_equal_iou and min_iou_treshold <= 0.5) or (not accept_equal_iou and min_iou_treshold < 0.5):
+        if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5):
             available_for_matching = matched_target_ids[values] == invalid_instance_id
 
             values = values[available_for_matching]
-            counts = counts[available_for_matching]
 
             if len(values) == 0:
                 continue
+        counts = np.array([(predicted_instances_intersecting_with_target == x).sum() for x in values])
 
         predicted_id = values[np.argmax(counts)]
         intersection = np.logical_and(target == target_id, prediction == predicted_id).sum()
@@ -432,6 +438,7 @@ def match_instances_tree_learn(  # pylint: disable=too-many-locals
     return matched_target_ids, matched_predicted_ids
 
 
+@njit(parallel=True)
 def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     target: npt.NDArray[np.int64],
     unique_target_ids: npt.NDArray[np.int64],
@@ -487,7 +494,9 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     matched_target_ids = np.full(len(unique_prediction_ids), fill_value=invalid_instance_id, dtype=np.int64)
     matched_predicted_ids = np.full(len(unique_target_ids), fill_value=invalid_instance_id, dtype=np.int64)
 
-    for target_id in unique_target_ids:
+    for i in prange(len(unique_target_ids)):
+        target_id = unique_target_ids[i]
+
         predicted_instances_intersecting_with_target = np.unique(prediction[target == target_id])
         predicted_instances_intersecting_with_target = predicted_instances_intersecting_with_target[
             predicted_instances_intersecting_with_target != invalid_instance_id
@@ -495,7 +504,8 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
         if len(predicted_instances_intersecting_with_target) == 0:
             continue
 
-        values, counts = np.unique(predicted_instances_intersecting_with_target, return_counts=True)
+        values = np.unique(predicted_instances_intersecting_with_target)
+        counts = np.array([(predicted_instances_intersecting_with_target == x).sum() for x in values])
         predicted_id = values[np.argmax(counts)]
 
         intersection = np.logical_and(target == target_id, prediction == predicted_id).sum()
@@ -503,9 +513,26 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
         iou = intersection / union
 
         if (accept_equal_iou and iou >= min_iou_treshold) or iou > min_iou_treshold:
-            if iou > ious[predicted_id]:
+            if iou > ious[predicted_id] and (
+                min_iou_treshold > 0.5 or min_iou_treshold == 0.5 and not accept_equal_iou
+            ):
                 ious[predicted_id] = iou
                 matched_target_ids[predicted_id] = target_id
             matched_predicted_ids[target_id] = predicted_id
+
+    if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5):
+        for i in prange(len(unique_prediction_ids)):
+            predicted_id = unique_prediction_ids[i]
+            target_instances_intersecting_with_prediction = np.unique(target[prediction == predicted_id])
+            target_instances_intersecting_with_prediction = target_instances_intersecting_with_prediction[
+                target_instances_intersecting_with_prediction != invalid_instance_id
+            ]
+            if len(target_instances_intersecting_with_prediction) == 0:
+                continue
+
+            values = np.unique(target_instances_intersecting_with_prediction)
+            counts = np.array([(target_instances_intersecting_with_prediction == x).sum() for x in values])
+            target_id = values[np.argmax(counts)]
+            matched_target_ids[predicted_id] = target_id
 
     return matched_target_ids, matched_predicted_ids

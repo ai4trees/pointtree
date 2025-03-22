@@ -9,6 +9,7 @@ __all__ = [
 
 from typing import Dict, Literal, Tuple
 
+from numba import njit, prange
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -130,6 +131,61 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     return metrics
 
 
+@njit(parallel=True)
+def _compute_instance_segmentation_metrics(
+    target: npt.NDArray[np.int64],
+    prediction: npt.NDArray[np.int64],
+    matched_predicted_ids: npt.NDArray[np.int64],
+    invalid_instance_id: int,
+) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
+    r"""
+    Computes metrics to measure the quality of the point-wise segmentation.
+
+    Args:
+        target: Ground truth instance ID for each point.
+        prediction: Predicted instance ID for each point.
+        matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
+        invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
+            matched. Defaults to -1.
+
+    Returns:
+        :A tuple of three arrays: The first contains the IoU, the second the precision, and the third the recall for
+        each instance pair.
+
+    Shape:
+        - :code:`target`: :math:`(N)`
+        - :code:`prediction`: :math:`(N)`
+        - :code:`matched_predicted_ids`: :math:`(G)`
+        - Output: Three arrays of shape :math:`(N)`
+
+        | where
+        |
+        | :math:`N = \text{ number of points}`
+        | :math:`G = \text{ number of ground-truth instances}`
+    """
+
+    num_target_ids = len(matched_predicted_ids)
+
+    iou = np.zeros(num_target_ids, dtype=np.float64)
+    precision = np.zeros(num_target_ids, dtype=np.float64)
+    recall = np.zeros(num_target_ids, dtype=np.float64)
+
+    for target_id in prange(num_target_ids):
+        predicted_id = matched_predicted_ids[target_id]
+
+        if predicted_id == invalid_instance_id:
+            continue
+
+        intersection = np.logical_and(target == target_id, prediction == predicted_id).sum()
+        union = np.logical_or(target == target_id, prediction == predicted_id).sum()
+
+        iou[target_id] = intersection / union
+        precision[target_id] = intersection / (prediction == predicted_id).sum()
+        recall[target_id] = intersection / (target == target_id).sum()
+
+    return iou, precision, recall
+
+
 def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     target: npt.NDArray[np.int64],
     prediction: npt.NDArray[np.int64],
@@ -200,34 +256,9 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
     num_target_ids = len(matched_predicted_ids)
 
-    iou = np.zeros(num_target_ids, dtype=np.float64)
-    precision = np.zeros(num_target_ids, dtype=np.float64)
-    recall = np.zeros(num_target_ids, dtype=np.float64)
-
-    per_instance_metrics = []
-
-    for target_id in range(num_target_ids):
-        predicted_id = matched_predicted_ids[target_id]
-
-        if predicted_id == invalid_instance_id:
-            continue
-
-        intersection = np.logical_and(target == target_id, prediction == predicted_id).sum()
-        union = np.logical_or(target == target_id, prediction == predicted_id).sum()
-
-        iou[target_id] = intersection / union
-        precision[target_id] = intersection / (prediction == predicted_id).sum()
-        recall[target_id] = intersection / (target == target_id).sum()
-
-        per_instance_metrics.append(
-            {
-                "TargetID": target_id,
-                "PredictionID": predicted_id,
-                "IoU": iou[target_id],
-                "Precision": precision[target_id],
-                "Recall": recall[target_id],
-            }
-        )
+    iou, precision, recall = _compute_instance_segmentation_metrics(
+        target, prediction, matched_predicted_ids, invalid_instance_id
+    )
 
     matched_instances_mask = matched_predicted_ids != invalid_instance_id
 
@@ -237,7 +268,128 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
         "MeanRecall": recall[matched_instances_mask].mean(),
     }
 
+    target_ids = np.arange(num_target_ids, dtype=np.int64)
+    per_instance_metrics = pd.DataFrame(
+        np.column_stack((target_ids, matched_predicted_ids))[matched_instances_mask],
+        columns=["TargetID", "PredictionID"],
+    )
+    per_instance_metrics["IoU"] = iou[matched_instances_mask]
+    per_instance_metrics["Precision"] = precision[matched_instances_mask]
+    per_instance_metrics["Recall"] = recall[matched_instances_mask]
+
     return average_metrics, pd.DataFrame(per_instance_metrics)
+
+
+@njit(parallel=True)
+def _compute_instance_segmentation_metrics_per_partition(
+    xyz: npt.NDArray,
+    target: npt.NDArray[np.int64],
+    prediction: npt.NDArray[np.int64],
+    matched_predicted_ids: npt.NDArray[np.int64],
+    partition: Literal["xy", "z"],
+    invalid_instance_id: int = -1,
+    num_partitions: int = 10,
+):
+    r"""
+    Calculates instance segmentation metrics for different spatial partitions of a tree instance.
+
+    Args:
+        xyz: Coordinates of all points.
+        target: Ground truth instance ID for each point.
+        prediction: Predicted instance ID for each point.
+        matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
+        partition: Partioning schme to be used: `"xy"` | `"z"`.
+        invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
+            matched. Defaults to -1.
+        num_partitions: Number of partitions. Defaults to 10.
+
+    Raises:
+        ValueError: If :code:`partition` is set to an invalid value, if :code:`xyz` and :code:`target` have different
+            lengths, if :code:`target` and :code:`prediction` have different lengths, or if the length of
+            :code:`matched_predicted_ids` is not equal to the number of ground-truth instances.
+
+    Returns:
+        :A tuple of three arrays: The first contains the IoU, the second the precision, and the third the recall for
+        each partition for each instance pair.
+
+    Shape:
+        - :code:`xyz`: :math:`(N, 3)`
+        - :code:`target`: :math:`(N)`
+        - :code:`prediction`: :math:`(N)`
+        - :code:`matched_predicted_ids`: :math:`(G)`
+        - Output: Three arrays of shape :math:(N, P)
+
+        | where
+        |
+        | :math:`N = \text{ number of points}`
+        | :math:`G = \text{ number of ground-truth instances}`
+        | :math:`P = \text{ number of partitions}`
+    """
+    intervals = np.linspace(0, 1, num_partitions + 1)
+
+    num_target_ids = len(matched_predicted_ids)
+
+    iou = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
+    precision = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
+    recall = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
+
+    for target_id in prange(num_target_ids):
+        predicted_id = matched_predicted_ids[target_id]
+
+        if predicted_id == invalid_instance_id:
+            continue
+
+        target_mask = target == target_id
+
+        tree_xyz = xyz[target_mask]
+        min_z = np.min(tree_xyz[:, 2])
+
+        distance = np.zeros(len(tree_xyz), dtype=tree_xyz.dtype)
+
+        if partition == "xy":
+            # calculate tree position and center xy-coordinates according to it
+            z_threshold = min_z + 0.30
+            lowest_points = tree_xyz[tree_xyz[:, 2] <= z_threshold]
+
+            position = np.zeros(2, dtype=lowest_points.dtype)
+            position[0] = np.mean(lowest_points[:, 0])
+            position[1] = np.mean(lowest_points[:, 1])
+            xy_centered = xyz[:, :2] - position
+
+            # relative distance to tree center (0=seedpoint, 1=most distant point)
+            distance = xy_centered**2
+            distance = np.sqrt(distance[:, 0] + distance[:, 1])
+            distance_target = distance[target_mask]
+            regularized_max = np.quantile(distance_target, 0.95)  # distance_target[sorted_indices[-5]]
+            distance = distance / regularized_max
+
+        elif partition == "z":
+            # get relative distance to lowest point (0=lowest point, 1=highest point)
+            distance = xyz[:, 2] - min_z
+
+            regularized_max = np.quantile(tree_xyz[:, 2], 0.95)  # [sorted_indices[-5]]
+            distance = distance / (regularized_max - min_z)
+
+        for i in range(num_partitions):
+            partition_mask = np.logical_and(distance >= intervals[i], distance < intervals[i + 1])
+
+            if partition_mask.sum() == 0:
+                continue
+
+            partition_target = target[partition_mask]
+            partition_prediction = prediction[partition_mask]
+
+            intersection = np.logical_and(partition_target == target_id, partition_prediction == predicted_id).sum()
+            union = np.logical_or(partition_target == target_id, partition_prediction == predicted_id).sum()
+
+            if union > 0:
+                iou[target_id, i] = intersection / union
+            if (partition_prediction == predicted_id).sum() > 0:
+                precision[target_id, i] = intersection / (partition_prediction == predicted_id).sum()
+            if (partition_target == target_id).sum() > 0:
+                recall[target_id, i] = intersection / (partition_target == target_id).sum()
+
+    return iou, precision, recall
 
 
 def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
@@ -342,83 +494,15 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
     if len(matched_predicted_ids) != len(target_ids):
         raise ValueError("The length of matched_predicted_ids must be equal to the number of target instances.")
 
-    num_target_ids = len(matched_predicted_ids)
-
-    iou = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
-    precision = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
-    recall = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
-
-    intervals = np.linspace(0, 1, num_partitions + 1)
-
-    per_instance_metrics = []
-
-    for target_id in range(num_target_ids):
-        predicted_id = matched_predicted_ids[target_id]
-
-        if predicted_id == invalid_instance_id:
-            continue
-
-        target_mask = target == target_id
-
-        tree_xyz = xyz[target_mask]
-        min_z = np.min(tree_xyz[:, 2])
-
-        if partition == "xy":
-            # calculate tree position and center xy-coordinates according to it
-            z_threshold = min_z + 0.30
-            lowest_points = tree_xyz[tree_xyz[:, 2] <= z_threshold]
-
-            position = np.mean(lowest_points, axis=0)
-            position = position[:2]
-            xyz_centered = xyz[:, :2] - position
-
-            # relative distance to tree center (0=seedpoint, 1=most distant point)
-            distance = np.linalg.norm(xyz_centered, ord=None, axis=1)
-            distance_target = distance[target_mask]
-            regularized_max = np.quantile(distance_target, 0.95)  # distance_target[sorted_indices[-5]]
-            distance = distance / regularized_max
-
-        elif partition == "z":
-            # get relative distance to lowest point (0=lowest point, 1=highest point)
-            distance = xyz[:, 2] - min_z
-
-            regularized_max = np.quantile(tree_xyz[:, 2], 0.95)  # [sorted_indices[-5]]
-            distance = distance / (regularized_max - min_z)
-
-        for i in range(num_partitions):
-            current_instance_metrics = {
-                "Partition": i,
-                "TargetID": target_id,
-                "PredictionID": predicted_id,
-                "IoU": np.nan,
-                "Precision": np.nan,
-                "Recall": np.nan,
-            }
-
-            partition_mask = np.logical_and(distance >= intervals[i], distance < intervals[i + 1])
-
-            if partition_mask.sum() == 0:
-                per_instance_metrics.append(current_instance_metrics)
-                continue
-
-            partition_target = target[partition_mask]
-            partition_prediction = prediction[partition_mask]
-
-            intersection = np.logical_and(partition_target == target_id, partition_prediction == predicted_id).sum()
-            union = np.logical_or(partition_target == target_id, partition_prediction == predicted_id).sum()
-
-            if union > 0:
-                iou[target_id, i] = intersection / union
-            if (partition_prediction == predicted_id).sum() > 0:
-                precision[target_id, i] = intersection / (partition_prediction == predicted_id).sum()
-            if (partition_target == target_id).sum() > 0:
-                recall[target_id, i] = intersection / (partition_target == target_id).sum()
-
-            current_instance_metrics["IoU"] = iou[target_id, i]
-            current_instance_metrics["Precision"] = precision[target_id, i]
-            current_instance_metrics["Recall"] = recall[target_id, i]
-
-            per_instance_metrics.append(current_instance_metrics)
+    iou, precision, recall = _compute_instance_segmentation_metrics_per_partition(
+        xyz,
+        target,
+        prediction,
+        matched_predicted_ids,
+        partition,
+        invalid_instance_id,
+        num_partitions,
+    )
 
     average_metrics = []
     for i in range(num_partitions):
@@ -430,6 +514,24 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
                 "MeanRecall": np.nanmean(recall[:, i]) if (~np.isnan(recall[:, i])).sum() > 0 else np.nan,
             }
         )
+
+    matched_instances_mask = matched_predicted_ids != invalid_instance_id
+
+    target_ids = np.arange(len(target_ids), dtype=np.int64)
+    per_instance_metrics = pd.DataFrame(
+        np.repeat(
+            np.column_stack((target_ids[matched_instances_mask], matched_predicted_ids[matched_instances_mask])),
+            num_partitions,
+            axis=0,
+        ),
+        columns=["TargetID", "PredictionID"],
+    )
+    per_instance_metrics["Partition"] = np.repeat(
+        np.arange(num_partitions).reshape(-1, num_partitions), matched_instances_mask.sum(), axis=0
+    ).flatten()
+    per_instance_metrics["IoU"] = iou[matched_instances_mask].reshape(-1)
+    per_instance_metrics["Precision"] = precision[matched_instances_mask].reshape(-1)
+    per_instance_metrics["Recall"] = recall[matched_instances_mask].reshape(-1)
 
     return pd.DataFrame(average_metrics), pd.DataFrame(per_instance_metrics)
 

@@ -1,4 +1,4 @@
-""" Tests for the cloth_simulation_filtering method in pointtree.operations. """
+"""Tests for the cloth_simulation_filtering method in pointtree.operations."""
 
 import numpy as np
 import pytest

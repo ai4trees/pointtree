@@ -1,4 +1,4 @@
-""" Tests for pointtree.operations.polygon_area. """
+"""Tests for pointtree.operations.polygon_area."""
 
 import numpy as np
 

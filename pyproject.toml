@@ -26,14 +26,14 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 keywords = ["tree", "point cloud", "segmentation"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "circle_detection>=0.1.0, <2.0.0",
     "cloth-simulation-filter>=1.1.5, <2.0.0",
@@ -49,10 +49,7 @@ dependencies = [
     "rasterio>=1.3.9, <1.4.3",
     "scipy>=1.8.0, <2.0.0",
     "scikit-image>=0.25.0, <1.0.0",
-    "scikit-learn>=1.2.0, <2.0.0",
-    "torch>=2.0.0, <2.5.0",
-    "torch-cluster>=1.6.0, <2.0.0",
-    "torch-scatter>=2.0.2, <3.0.0"
+    "scikit-learn>=1.2.0, <2.0.0"
 ]
 [project.optional-dependencies]
 dev = [
@@ -63,6 +60,7 @@ dev = [
     "pylint",
     "pytest",
     "pytest-cov",
+    "scipy-stubs",
     "types-Pillow",
     "types-psutil",
 ]

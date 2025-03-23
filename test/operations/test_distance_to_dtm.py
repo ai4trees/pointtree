@@ -1,4 +1,4 @@
-""" Tests for the distance_to_dtm method in pointtree.operations. """
+"""Tests for the distance_to_dtm method in pointtree.operations."""
 
 import numpy as np
 import pytest

@@ -1,4 +1,4 @@
-""" Algorithms for tree instance segmentation. """
+"""Algorithms for tree instance segmentation."""
 
 from ._instance_segmentation_algorithm import *
 from ._coarse_to_fine_algorithm import *

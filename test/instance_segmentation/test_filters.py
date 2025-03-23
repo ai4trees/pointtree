@@ -1,4 +1,4 @@
-""" Tests for :code:`pointtree.instance_segmentation.filters`. """
+"""Tests for :code:`pointtree.instance_segmentation.filters`."""
 
 import numpy as np
 

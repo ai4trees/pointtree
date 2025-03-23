@@ -1,4 +1,4 @@
-""" Priority queue. """
+"""Priority queue."""
 
 __all__ = ["PriorityQueue"]
 

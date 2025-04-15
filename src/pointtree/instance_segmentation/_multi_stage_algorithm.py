@@ -1152,6 +1152,12 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
             kd_tree = KDTree(growing_points)
             neighbor_dists, neighbor_indices = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
+            if isinstance(neighbor_dists, float):
+                neighbor_dists = np.array([neighbor_dists], dtype=growing_points.dtype)
+            neighbor_dists = neighbor_dists.reshape(-1, self._num_neighbors_region_growing)
+            if isinstance(neighbor_indices, int):
+                neighbor_indices = np.array([neighbor_indices], dtype=np.int64)
+            neighbor_indices = neighbor_indices.reshape(-1, self._num_neighbors_region_growing)
 
             pq = PriorityQueue()
             for idx, instance_id in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):

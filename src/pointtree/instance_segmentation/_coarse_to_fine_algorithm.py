@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Literal, Optional, Tuple, Union, cast
 
-from numba_kdtree import KDTree
+from scipy.spatial import KDTree
 import numpy as np
 from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
@@ -578,11 +578,11 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             if len(crown_top_positions) == 0:
                 return trunk_positions
 
-            crown_distances, crown_indices, _ = KDTree(crown_top_positions).query(trunk_positions, k=1)
+            crown_distances, crown_indices = KDTree(crown_top_positions).query(trunk_positions, k=1)
             crown_distances = crown_distances.flatten()
             crown_indices = crown_indices.flatten()
 
-            trunk_distances, trunk_indices, _ = KDTree(trunk_positions).query(crown_top_positions, k=1)
+            trunk_distances, trunk_indices = KDTree(trunk_positions).query(crown_top_positions, k=1)
             trunk_distances = trunk_distances.flatten()
             trunk_indices = trunk_indices.flatten()
 

@@ -219,7 +219,7 @@ class InstanceSegmentationAlgorithm(abc.ABC):
 
         upsampled_instance_ids = np.full(len(original_coords), fill_value=-1, dtype=np.int64)
         upsampled_instance_ids[predicted_point_indices] = instance_ids
-        upsampled_instance_ids[non_predicted_point_indices] = instance_ids[nearest_neighbor_indices[:, 0]]
+        upsampled_instance_ids[non_predicted_point_indices] = instance_ids[nearest_neighbor_indices]
 
         return upsampled_instance_ids
 

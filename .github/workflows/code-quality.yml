@@ -97,6 +97,12 @@ jobs:
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install --upgrade -e .'[dev, docs]'
       - name: Execute tests
+        if: matrix.version.python != '3.13'
+        shell: bash
+        run: |
+          pytest
+      - name: Execute tests and measure code coverage
+        if: matrix.version.python == '3.13'
         shell: bash
         run: |
           pytest

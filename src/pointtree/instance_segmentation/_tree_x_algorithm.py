@@ -574,12 +574,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             min_completeness_idx = self._trunk_search_circle_fitting_min_completeness_idx
             bandwidth = 0.01
 
-            circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+            circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-10)
             circle_detector.detect(
                 trunk_layer_xy,
                 batch_lengths=batch_lengths,
-                n_start_x=10,
-                n_start_y=10,
+                n_start_x=5,
+                n_start_y=5,
                 min_start_radius=min_radius,
                 max_start_radius=max_radius,
                 n_start_radius=5,
@@ -797,12 +797,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             with Timer("Circle fitting to full-resolution trunk candidates", self._time_tracker):
                 self._logger.info("Fit circles...")
 
-                circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-20)
+                circle_detector = CircleDetection(bandwidth=bandwidth, break_min_change=1e-5, min_step_size=1e-10)
                 circle_detector.detect(
                     trunk_layer_xy,
                     batch_lengths=batch_lengths_xy,
-                    n_start_x=10,
-                    n_start_y=10,
+                    n_start_x=5,
+                    n_start_y=5,
                     min_start_radius=min_radius,
                     max_start_radius=max_radius,
                     n_start_radius=5,

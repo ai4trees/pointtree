@@ -7,7 +7,7 @@ import logging
 from typing import Optional, Tuple
 import sys
 
-from numba_kdtree import KDTree
+from scipy.spatial import KDTree
 import numpy as np
 import pandas as pd
 from pointtorch.operations.numpy import voxel_downsampling

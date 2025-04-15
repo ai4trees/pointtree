@@ -5,7 +5,7 @@ __all__ = ["MultiStageAlgorithm"]
 import os
 from typing import Literal, Optional, Tuple, cast
 
-from numba_kdtree import KDTree
+from scipy.spatial import KDTree
 import numpy as np
 from pointtorch.operations.numpy import make_labels_consecutive
 import scipy.ndimage as ndi
@@ -567,13 +567,21 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             if len(crown_top_positions) == 0:
                 return trunk_positions
 
-            crown_distances, crown_indices, _ = KDTree(crown_top_positions).query(trunk_positions, k=1)
-            crown_distances = crown_distances.flatten()
-            crown_indices = crown_indices.flatten()
+            crown_distances, crown_indices = KDTree(crown_top_positions).query(trunk_positions, k=1)
+            if isinstance(crown_distances, float):
+                crown_distances = np.array([crown_distances], dtype=crown_top_positions.dtype)
+            else:
+                crown_distances = crown_distances.flatten()
+            if isinstance(crown_indices, int):
+                crown_indices = np.array([crown_indices], dtype=np.int64)
+            else:
+                crown_indices = crown_indices.flatten()
 
-            trunk_distances, trunk_indices, _ = KDTree(trunk_positions).query(crown_top_positions, k=1)
-            trunk_distances = trunk_distances.flatten()
-            trunk_indices = trunk_indices.flatten()
+            _, trunk_indices = KDTree(trunk_positions).query(crown_top_positions, k=1)
+            if isinstance(trunk_indices, int):
+                trunk_indices = np.array([trunk_indices], dtype=np.int64)
+            else:
+                trunk_indices = trunk_indices.flatten()
 
             tree_positions = []
             matched_crown_positions = []
@@ -969,8 +977,11 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
             kd_tree = KDTree(tree_coords)
 
-            neighbor_distances = kd_tree.query(tree_coords, k=2)[0]
-            neighbor_distances = neighbor_distances[:, 1].flatten()
+            neighbor_distances = cast(np.ndarray, kd_tree.query(tree_coords, k=2)[0])
+            if neighbor_distances.ndim > 1:
+                neighbor_distances = neighbor_distances[:, 1].flatten()
+            else:
+                neighbor_distances = neighbor_distances[1:]
 
             instances_to_refine = []
             average_point_spacings = []
@@ -1140,7 +1151,13 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             point_indices = np.arange(len(growing_points), dtype=np.int64)
 
             kd_tree = KDTree(growing_points)
-            neighbor_dists, neighbor_indices, _ = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
+            neighbor_dists, neighbor_indices = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
+            if isinstance(neighbor_dists, float):
+                neighbor_dists = np.array([neighbor_dists], dtype=growing_points.dtype)
+            neighbor_dists = neighbor_dists.reshape(-1, self._num_neighbors_region_growing)
+            if isinstance(neighbor_indices, int):
+                neighbor_indices = np.array([neighbor_indices], dtype=np.int64)
+            neighbor_indices = neighbor_indices.reshape(-1, self._num_neighbors_region_growing)
 
             pq = PriorityQueue()
             for idx, instance_id in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):

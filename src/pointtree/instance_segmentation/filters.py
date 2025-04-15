@@ -1,6 +1,6 @@
-""" Methods to filter instances. """
+"""Methods to filter instances."""
 
-__all__ = ["filter_instances_min_points", "filter_instances_vertical_extent"]
+__all__ = ["filter_instances_min_points", "filter_instances_vertical_extent", "filter_instances_intensity"]
 
 from typing import Optional, Tuple
 
@@ -49,11 +49,13 @@ def filter_instances_min_points(
     discarded_instance_ids = unique_instance_ids[point_counts < min_points]
     instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
 
-    return make_labels_consecutive(instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True)
+    return make_labels_consecutive(  # type: ignore[return-value]
+        instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
+    )
 
 
 def filter_instances_vertical_extent(
-    coords: npt.NDArray[np.float64],
+    coords: npt.NDArray,
     instance_ids: npt.NDArray[np.int64],
     unique_instance_ids: npt.NDArray[np.int64],
     min_vertical_extent: Optional[float],
@@ -103,4 +105,64 @@ def filter_instances_vertical_extent(
     discarded_instance_ids = unique_instance_ids[max_z_per_cluster - min_z_per_cluster < min_vertical_extent]
     instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
 
-    return make_labels_consecutive(instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True)
+    return make_labels_consecutive(  # type: ignore[return-value]
+        instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
+    )
+
+
+def filter_instances_intensity(
+    intensities: npt.NDArray,
+    instance_ids: npt.NDArray[np.int64],
+    unique_instance_ids: npt.NDArray[np.int64],
+    min_intensity: Optional[float],
+    threshold_percentile: float = 0.8,
+    inplace: bool = False,
+) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    r"""
+    Removes instances, for which the specified percentile of the reflection intensities of the instance points is below
+    than or equal to :code:`min_intensity`.
+
+    Args:
+        instance_ids: Instance IDs of the points.
+        unique_instance_ids: Unique instance IDs.
+        min_intensity: Maximum intensity at which instances are discarded. If set to :code:`None`, the instances are
+            not filtered.
+        threshold_percentile: Percentile of the reflection intensity values to be used for the filtering. The percentile
+            must be specified as a value in :math:`[0, 1]`. Defaults to 0.8.
+        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array. Defaults to
+            :code:`False`.
+
+    Returns:
+        Tuple of two arrays. The first contains the updated instance ID of each point. Points that do not
+        belong to any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
+
+    Shape:
+        - :code:`instance_ids`: :math:`(N)`
+        - :code:`unique_instance_ids`: :math:`(I)`
+        - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I')`
+
+        | where
+        |
+        | :math:`N = \text{ number of points}`
+        | :math:`I = \text{ number of instances before filtering}`
+        | :math:`I' = \text{ number of instances after filtering}`
+    """
+
+    if len(instance_ids) != len(intensities):
+        raise ValueError("intensities and instance_ids must have the same length.")
+
+    if min_intensity is None:
+        return instance_ids, unique_instance_ids
+
+    discarded_instance_ids = []
+    for label in unique_instance_ids:
+        if label == -1:
+            continue
+        if np.quantile(intensities[instance_ids == label], q=threshold_percentile) <= min_intensity:
+            discarded_instance_ids.append(label)
+
+    instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
+
+    return make_labels_consecutive(  # type: ignore[return-value]
+        instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
+    )

@@ -1,4 +1,4 @@
-""" Utilities for configuring the package setup. """
+"""Utilities for configuring the package setup."""
 
 from ._config import *
 

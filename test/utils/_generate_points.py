@@ -61,8 +61,8 @@ def generate_circle_points(  # pylint: disable=too-many-locals
 
     if add_noise_points:
         num_points = int(random_generator.uniform(min_points * 0.1, max_points * 0.1))
-        min_xy = (circles[:, :2] - circles[:, 2]).min(axis=0).min()
-        max_xy = (circles[:, :2] + circles[:, 2]).max(axis=0).max()
+        min_xy = (circles[:, :2] - circles[:, 2]).min(axis=0)
+        max_xy = (circles[:, :2] + circles[:, 2]).max(axis=0)
         noise_points = random_generator.uniform(min_xy, max_xy, (num_points, 2))
         xy.append(noise_points)
 
@@ -153,8 +153,8 @@ def generate_ellipse_points(  # pylint: disable=too-many-locals
 
     if add_noise_points:
         num_points = int(random_generator.uniform(min_points * 0.1, max_points * 0.1))
-        min_xy = (ellipses[:, :2] - ellipses[:, 2]).min(axis=0).min()
-        max_xy = (ellipses[:, :2] + ellipses[:, 2]).max(axis=0).max()
+        min_xy = (ellipses[:, :2] - ellipses[:, 2]).min(axis=0)
+        max_xy = (ellipses[:, :2] + ellipses[:, 2]).max(axis=0)
         noise_points = random_generator.uniform(min_xy, max_xy, (num_points, 2))
         xy.append(noise_points)
 

@@ -73,7 +73,7 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
 
         center = circle[:2]
         radius = circle[2]
-        circle_patch = plt.Circle(center, radius, color="red", linewidth=3, fill=False, zorder=2)
+        circle_patch = plt.Circle((center[0], center[1]), radius, color="red", linewidth=3, fill=False, zorder=2)
         axis.add_patch(circle_patch)
 
     if ellipse is not None:

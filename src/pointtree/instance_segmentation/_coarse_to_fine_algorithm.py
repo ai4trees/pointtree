@@ -1,4 +1,4 @@
-""" Coarse-to-fine algorithm algorithm for tree instance segmentation. """  # pylint: disable=too-many-lines
+"""Coarse-to-fine algorithm algorithm for tree instance segmentation."""  # pylint: disable=too-many-lines
 
 __all__ = ["CoarseToFineAlgorithm"]
 
@@ -10,17 +10,19 @@ from numba_kdtree import KDTree
 import numpy as np
 from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
-from skimage.morphology import diamond, disk, rectangle, dilation, erosion
+from skimage.morphology import diamond, disk, footprint_rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
 from skimage.segmentation import watershed, find_boundaries
 from sklearn.cluster import DBSCAN
 import torch
 from torch_scatter import scatter_max
 
-from pointtree.evaluation import Timer
+from pointtree._coarse_to_fine_algorithm_cpp import (  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
+    grow_trees as grow_trees_cpp,
+)
+from pointtree.evaluation import Profiler
 from pointtree.visualization import save_tree_map
 from .filters import filter_instances_min_points
-from ._priority_queue import PriorityQueue
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 
 
@@ -227,7 +229,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             return instance_ids, unique_instance_ids
 
         instance_ids, unique_instance_ids = self.cluster_trunks(tree_coords, classification)
-        with Timer("Filtering of trunk clusters", self._time_tracker):
+        with Profiler("Filtering of trunk clusters", self._performance_tracker):
             self._logger.info("Filter trunk clusters...")
             instance_ids, unique_instance_ids = filter_instances_min_points(
                 instance_ids, unique_instance_ids, self._min_trunk_points
@@ -322,7 +324,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`T = \text{ number of trunk instances}`
         """
 
-        with Timer("Clustering of trunk points", self._time_tracker):
+        with Profiler("Clustering of trunk points", self._performance_tracker):
             self._logger.info("Cluster trunk points...")
             trunk_mask = classification == self._trunk_class_id
             if self._branch_class_id is not None:
@@ -369,7 +371,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`N = \text{ number of tree points}`
             | :math:`T = \text{ number of trunk instances}`
         """
-        with Timer("Computation of trunk positions", self._time_tracker):
+        with Profiler("Computation of trunk positions", self._performance_tracker):
             self._logger.info("Detect trunk positions...")
             trunk_positions = np.empty((len(unique_instance_ids), 2))
 
@@ -495,7 +497,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer("Detection of crown top positions", self._time_tracker):
+        with Profiler("Detection of crown top positions", self._performance_tracker):
             if len(tree_coords) == 0:
                 self._logger.info("Detect crown positions...")
                 return (
@@ -505,7 +507,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                     np.empty((0, 0), dtype=np.float64),
                 )
 
-        with Timer("Height map computation", self._time_tracker):
+        with Profiler("Height map computation", self._performance_tracker):
             bounding_box = None
             if self._algorithm != "watershed_crown_top_positions":
                 bounding_box = np.row_stack([tree_coords[:, :2].min(axis=0), tree_coords[:, :2].max(axis=0)])
@@ -514,7 +516,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 tree_coords, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box
             )
 
-        with Timer("Detection of crown top positions", self._time_tracker):
+        with Profiler("Detection of crown top positions", self._performance_tracker):
             self._logger.info("Detect crown positions...")
             min_distance = int(self._min_distance_crown_tops / self._grid_size_canopy_height_model)
             footprint_size = int(self._min_distance_crown_tops / self._grid_size_canopy_height_model * 0.5)
@@ -524,7 +526,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 smoothed_canopy_height_model = ndi.gaussian_filter(canopy_height_model, sigma=self._smooth_sigma)
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
-                smoothed_canopy_height_model /= weights
+                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(
+                    smoothed_canopy_height_model.dtype
+                )
                 smoothed_canopy_height_model[canopy_height_model == 0] = 0
                 canopy_height_model = smoothed_canopy_height_model
 
@@ -567,7 +571,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`C = \text{ number of crown instances}`
             | :math:`I = \text{ number of merged tree instances}`
         """
-        with Timer("Position matching", self._time_tracker):
+        with Profiler("Position matching", self._performance_tracker):
             self._logger.info("Match trunk and crown top positions...")
             if len(trunk_positions) == 0:
                 return crown_top_positions
@@ -648,7 +652,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
 
-        with Timer("Coarse segmentation", self._time_tracker):
+        with Profiler("Coarse segmentation", self._performance_tracker):
             self._logger.info("Coarse segmentation...")
 
             foreground_mask = canopy_height_model > 0
@@ -762,7 +766,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
 
-        with Timer("Watershed segmentation", self._time_tracker):
+        with Profiler("Watershed segmentation", self._performance_tracker):
             watershed_markers = np.zeros_like(canopy_height_model, dtype=np.int64)
             watershed_markers[tree_positions_grid[:, 0], tree_positions_grid[:, 1]] = np.arange(
                 1, len(tree_positions_grid) + 1, dtype=np.int64
@@ -776,9 +780,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             )
             border_mask = np.logical_and(watershed_labels_with_border == 0, foreground_mask)
             watershed_labels_without_border = watershed_labels_with_border.copy()
-            watershed_labels_without_border[border_mask] = dilation(watershed_labels_with_border, rectangle(3, 3))[
-                border_mask
-            ]
+            watershed_labels_without_border[border_mask] = dilation(
+                watershed_labels_with_border, footprint_rectangle((3, 3))
+            )[border_mask]
 
         return watershed_labels_with_border, watershed_labels_without_border
 
@@ -818,7 +822,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer('"Watershed correction', self._time_tracker):
+        with Profiler('"Watershed correction', self._performance_tracker):
             self._logger.info("Correct Watershed segmentation...")
             for instance_id in np.unique(watershed_labels_without_border):
                 if instance_id == 0:  # background
@@ -826,7 +830,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
                 instance_mask = watershed_labels_without_border == instance_id
 
-                dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
+                dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
                 neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask])
 
                 if instance_mask.sum() == 1 or (len(neighbor_instance_ids) == 2) and (0 not in neighbor_instance_ids):
@@ -859,9 +863,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                     )
                     border_mask = np.logical_and(voronoi_labels_with_border == 0, neighborhood_mask_without_border)
                     voronoi_labels_without_border = voronoi_labels_with_border.copy()
-                    voronoi_labels_without_border[border_mask] = dilation(voronoi_labels_with_border, rectangle(3, 3))[
-                        border_mask
-                    ]
+                    voronoi_labels_without_border[border_mask] = dilation(
+                        voronoi_labels_with_border, footprint_rectangle((3, 3))
+                    )[border_mask]
 
                     if self._visualization_folder is not None and point_cloud_id is not None:
 
@@ -963,7 +967,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`W = \text{ extent of the canopy height model in x-direction}`
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
-        with Timer("Seed Mask computation", self._time_tracker):
+        with Profiler("Seed Mask computation", self._performance_tracker):
             self._logger.info("Compute region growing masks...")
             foreground_mask = canopy_height_model > 0
 
@@ -1011,7 +1015,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 instances_to_refine, average_point_spacings, instance_seed_masks
             ):
                 instance_mask = watershed_labels_without_border == instance_id + 1
-                dilated_instance_mask = dilation(instance_mask, rectangle(3, 3))
+                dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
                 neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask]) - 1
 
                 has_neighbor_to_refine = False
@@ -1064,7 +1068,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`W = \text{ extent of the distance fields in x-direction}`
             | :math:`H = \text{ extent of the distance fields in y-direction}`
         """
-        with Timer("Computation of crown distance fields", self._time_tracker):
+        with Profiler("Computation of crown distance fields", self._performance_tracker):
             self._logger.info("Compute crown distance fields...")
             crown_distance_fields = np.empty((len(tree_positions_grid), *watershed_labels_without_border.shape))
             for idx, tree_position in enumerate(tree_positions_grid):
@@ -1081,7 +1085,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def grow_trees(  # pylint: disable=too-many-locals
         self,
-        tree_coords: np.ndarray,
+        tree_xyz: np.ndarray,
         instance_ids: np.ndarray,
         unique_instances_ids: np.ndarray,
         grid_origin: np.ndarray,
@@ -1092,7 +1096,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         Region growing segmentation.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             instance_ids: Instance IDs of each tree point.
             grid_origin: 2D coordinates of the origin of the crown distance fields.
             crown_distance_fields: 2D signed distance fields idicating the distance to the crown boundary of each tree
@@ -1103,7 +1107,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             Updated instance IDs.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`instance_ids`: :math:`(N)`
             - :code:`grid_origin`: :math:`(2)`
             - :code:`crown_distance_fields`: :math:`(I', W, H)`
@@ -1118,77 +1122,26 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`H = \text{ extent of the distance fields in y-direction}`
 
         """
-        with Timer("Region growing", self._time_tracker):
+        with Profiler("Region growing", self._performance_tracker):
             self._logger.info("Region growing...")
-            if seed_mask.sum() == 0:
-                return instance_ids
 
-            growing_mask = np.logical_or(instance_ids == -1, seed_mask)
-            growing_points = tree_coords[growing_mask]
-            growing_points[:, 2] *= self._z_scale
-            growing_instance_ids = instance_ids[growing_mask]
-            growing_seed_mask = growing_instance_ids != -1
+            if not tree_xyz.flags.f_contiguous:
+                tree_xyz = tree_xyz.copy(order="F")
+            grid_origin = grid_origin.astype(tree_xyz.dtype)
 
-            # the region growing is only executed for certain trees
-            # the following code maps the instance IDs of the trees for which region growing is executed to a
-            # continuous range
-            instance_id_mapping = np.full(len(unique_instances_ids), fill_value=-1, dtype=np.int64)
-            inverse_instance_id_mapping = np.full(len(crown_distance_fields), fill_value=-1, dtype=np.int64)
-
-            region_growing_instance_ids = np.unique(instance_ids[seed_mask])
-
-            remapped_id = 0
-            for instance_id in unique_instances_ids:
-                if instance_id in region_growing_instance_ids:
-                    instance_id_mapping[instance_id] = remapped_id
-                    inverse_instance_id_mapping[remapped_id] = instance_id
-                    remapped_id += 1
-
-            point_indices = np.arange(len(growing_points), dtype=np.int64)
-
-            kd_tree = KDTree(growing_points)
-            neighbor_dists, neighbor_indices, _ = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
-
-            pq = PriorityQueue()
-            for idx, instance_id in zip(point_indices[growing_seed_mask], growing_instance_ids[growing_seed_mask]):
-                pq.add(idx, instance_id, priority=-1 * np.inf)
-
-            i = 0
-            while len(pq) > 0:
-                seed_index: int
-                _, seed_index, instance_id = pq.pop()  # type: ignore[assignment]
-                if i % 10000 == 0:
-                    self._logger.info("Iteration %d, seeds to process: %d.", i, len(pq))
-                growing_instance_ids[seed_index] = instance_id
-
-                current_neighbor_indices = neighbor_indices[seed_index]
-                current_neighbor_dists = neighbor_dists[seed_index]
-                current_neighbor_instance_ids = growing_instance_ids[current_neighbor_indices]
-
-                neighbor_mask = np.logical_and(
-                    current_neighbor_instance_ids == -1, current_neighbor_dists <= self._max_radius_region_growing
-                )
-                neighbor_indices_to_add = current_neighbor_indices[neighbor_mask]
-                neighbor_dists_to_add = current_neighbor_dists[neighbor_mask]
-
-                for idx, dist in zip(neighbor_indices_to_add, neighbor_dists_to_add):
-                    grid_index = np.floor((growing_points[idx, :2] - grid_origin) / self._grid_size_canopy_height_model)
-                    grid_index = grid_index.astype(int)
-                    distance_to_crown_border = crown_distance_fields[
-                        instance_id_mapping[instance_id], grid_index[0], grid_index[1]
-                    ]
-                    if distance_to_crown_border > 0:
-                        dist *= self._multiplier_outside_coarse_border
-
-                    entry = pq.get(idx)
-                    if entry is None or entry[0] > dist:
-                        pq.add(idx, instance_id, priority=dist)
-
-                i += 1
-
-            instance_ids[growing_mask] = growing_instance_ids
-
-            return instance_ids
+            return grow_trees_cpp(
+                tree_xyz,
+                instance_ids,
+                unique_instances_ids,
+                grid_origin,
+                crown_distance_fields,
+                seed_mask,
+                float(self._z_scale),
+                int(self._num_neighbors_region_growing),
+                float(self._max_radius_region_growing),
+                float(self._grid_size_canopy_height_model),
+                float(self._multiplier_outside_coarse_border),
+            )
 
     def __call__(  # pylint: disable=too-many-locals
         self,
@@ -1218,8 +1171,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`N = \text{ number of points}`
         """
 
-        self._time_tracker.reset()
-        with Timer("Total", self._time_tracker):
+        self._performance_tracker.reset()
+        with Profiler("Total", self._performance_tracker):
             # check that point cloud contains all required variables
             if xyz.ndim != 2 or xyz.shape[1] != 3:
                 raise ValueError("xyz must have shape (N, 3).")
@@ -1242,7 +1195,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             tree_classification = classification[tree_mask]
 
             if self._downsampling_voxel_size is not None:
-                with Timer("Voxel-based downsampling", self._time_tracker):
+                with Profiler("Voxel-based downsampling", self._performance_tracker):
                     self._logger.info("Downsample point cloud...")
                     downsampled_tree_xyz, predicted_point_indices, inverse_indices = voxel_downsampling(
                         tree_xyz, self._downsampling_voxel_size, point_aggregation="nearest_neighbor"
@@ -1258,7 +1211,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             )
 
             if self._downsampling_voxel_size is not None:
-                with Timer("Upsampling of labels", self._time_tracker):
+                with Profiler("Upsampling of labels", self._performance_tracker):
                     instance_ids = instance_ids[inverse_indices]
 
             full_instance_ids = np.full(point_cloud_size, fill_value=-1, dtype=np.int64)

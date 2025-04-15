@@ -60,6 +60,7 @@ jobs:
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           python -m pip install -v --upgrade .'[dev, docs]'
+          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git  
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
@@ -80,6 +81,7 @@ jobs:
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           python -m pip install -v --upgrade .'[dev, docs]'
+          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git  
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
@@ -88,11 +90,11 @@ jobs:
     strategy:
       matrix:
         version: [
-          {python: "3.9", torch: "2.0.0"},
           {python: "3.10", torch: "2.1.0"},
           {python: "3.11", torch: "2.2.0"},
           {python: "3.12", torch: "2.3.0"},
-          {python: "3.12", torch: "2.4.0"}
+          {python: "3.12", torch: "2.4.0"},
+          {python: "3.13", torch: "2.5.0"}
         ]
     steps:
       - name: Clean up potential remnants of past jobs
@@ -106,15 +108,27 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.version.python }}
-      - name: Executing tests
+      - name: Install package and dependencies
         shell: bash
         run: |
-          pip install torch==${{ matrix.version.torch }}
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
-          pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install torch==${{ matrix.version.torch }}
+          python -m pip install --upgrade wheel "setuptools>=62.3.0,<75.9" numpy
+          python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install --upgrade -e .'[dev, docs]'
+          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
+      - name: Execute tests
+        if: matrix.version.python != '3.13'
+        shell: bash
+        run: |
+          pytest
+      - name: Execute tests and measure code coverage
+        if: matrix.version.python == '3.13'
+        shell: bash
+        run: |
           pytest --cov --cov-report=xml
       - name: Upload results to Codecov
+        if: matrix.version.python == '3.13'
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true

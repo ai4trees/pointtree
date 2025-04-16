@@ -41,7 +41,7 @@ ArrayX2<scalar_T> compute_layer_bounds(
 }
 
 template <typename scalar_T>
-std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_preliminary_fitting(
+std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_layers_preliminary_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayXl cluster_labels,
     RefArrayXl unique_cluster_labels,
@@ -93,11 +93,13 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_preliminary_f
     start_idx += batch_lengths(i);
   }
 
-  return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths);
+  ArrayX<scalar_T> layer_heights = layer_bounds.rowwise().mean();
+
+  return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths, layer_heights);
 }
 
 template <typename scalar_T>
-std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_layers_exact_fitting(
+std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayX5<scalar_T> preliminary_layer_circles_or_ellipses,
     scalar_T trunk_search_min_z,
@@ -173,7 +175,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
       } else {
         auto ellipse = preliminary_layer_circles_or_ellipses(flat_idx, Eigen::all);
         ArrayX2<scalar_T> ellipse_center = ellipse.leftCols(2);
-        scalar_T ellipse_diameter = std::sqrt(ellipse(2) * *2 + ellipse(3) * *2);
+        scalar_T ellipse_diameter = std::sqrt(ellipse(2) * ellipse(2) + ellipse(3) * ellipse(3));
         scalar_T buffer_width;
 
         if (ellipse_diameter <= trunk_search_circle_fitting_switch_buffer_threshold) {
@@ -223,9 +225,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
     start_idx += batch_lengths(i);
   }
 
-  ArrayX<scalar_T> layer_heights = layer_bounds.rowwise().mean();
-
-  return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths, layer_heights);
+  return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths);
 }
 
 template <typename scalar_T>
@@ -317,7 +317,7 @@ ArrayXl segment_tree_crowns(
     scalar_T region_growing_z_scale,
     scalar_T region_growing_seed_layer_height,
     scalar_T region_growing_seed_diameter_factor,
-    sclara_T region_growing_seed_min_diameter,
+    scalar_T region_growing_seed_min_diameter,
     scalar_T region_growing_min_total_assignment_ratio,
     scalar_T region_growing_min_tree_assignment_ratio,
     scalar_T region_growing_max_search_radius,

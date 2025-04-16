@@ -543,42 +543,42 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 len(unique_cluster_labels),
             )
 
-        with Profiler("3D clustering of trunk points", self._performance_tracker):
-            self._logger.info("Cluster trunk points in 3D...")
+        # with Profiler("3D clustering of trunk points", self._performance_tracker):
+        #     self._logger.info("Cluster trunk points in 3D...")
 
-            next_label = unique_cluster_labels.max() + 1 if len(unique_cluster_labels) > 0 else 0
-            for label in unique_cluster_labels:
-                label_mask = cluster_labels == label
+        #     next_label = unique_cluster_labels.max() + 1 if len(unique_cluster_labels) > 0 else 0
+        #     for label in unique_cluster_labels:
+        #         label_mask = cluster_labels == label
 
-                cluster_xyz = trunk_layer_xyz_downsampled[label_mask]
-                horizontal_extent = np.prod(cluster_xyz[:, :2].max(axis=0) - cluster_xyz[:, :2].min(axis=0))
+        #         cluster_xyz = trunk_layer_xyz_downsampled[label_mask]
+        #         horizontal_extent = np.prod(cluster_xyz[:, :2].max(axis=0) - cluster_xyz[:, :2].min(axis=0))
 
-                if horizontal_extent >= self._trunk_search_switch_clustering_3d_params_treshold:
-                    eps = self._trunk_search_dbscan_3d_eps_large
-                    min_points = self._trunk_search_dbscan_3d_min_points_large
-                else:
-                    eps = self._trunk_search_dbscan_3d_eps_small
-                    min_points = self._trunk_search_dbscan_3d_min_points_small
+        #         if horizontal_extent >= self._trunk_search_switch_clustering_3d_params_treshold:
+        #             eps = self._trunk_search_dbscan_3d_eps_large
+        #             min_points = self._trunk_search_dbscan_3d_min_points_large
+        #         else:
+        #             eps = self._trunk_search_dbscan_3d_eps_small
+        #             min_points = self._trunk_search_dbscan_3d_min_points_small
 
-                dbscan = DBSCAN(
-                    eps=eps,
-                    min_samples=min_points,
-                    n_jobs=self._num_workers,
-                )
+        #         dbscan = DBSCAN(
+        #             eps=eps,
+        #             min_samples=min_points,
+        #             n_jobs=self._num_workers,
+        #         )
 
-                dbscan.fit(cluster_xyz)
-                new_labels = dbscan.labels_.astype(np.int64)
-                new_labels[new_labels != -1] += next_label
-                next_label = new_labels.max() + 1
-                cluster_labels[label_mask] = new_labels
-            cluster_labels, unique_cluster_labels = make_labels_consecutive(
-                cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
-            )
+        #         dbscan.fit(cluster_xyz)
+        #         new_labels = dbscan.labels_.astype(np.int64)
+        #         new_labels[new_labels != -1] += next_label
+        #         next_label = new_labels.max() + 1
+        #         cluster_labels[label_mask] = new_labels
+        #     cluster_labels, unique_cluster_labels = make_labels_consecutive(
+        #         cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
+        #     )
 
-            self._logger.info(
-                "%d trunk candidates after clustering in 3D.",
-                len(unique_cluster_labels),
-            )
+        #     self._logger.info(
+        #         "%d trunk candidates after clustering in 3D.",
+        #         len(unique_cluster_labels),
+        #     )
 
         with Profiler("Filtering of trunk clusters based on point count", self._performance_tracker):
             cluster_labels, unique_cluster_labels = filter_instances_min_points(

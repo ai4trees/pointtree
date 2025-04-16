@@ -1,4 +1,4 @@
-""" Tests for pointtree.operations.estimate_with_linear_model. """
+"""Tests for pointtree.operations.estimate_with_linear_model."""
 
 import numpy as np
 import pytest

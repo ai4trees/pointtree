@@ -1,4 +1,4 @@
-""" Tests for pointtree.instance_segmentation.CoarseToFineAlgorithm. """
+"""Tests for pointtree.instance_segmentation.CoarseToFineAlgorithm."""
 
 import os
 from pathlib import Path

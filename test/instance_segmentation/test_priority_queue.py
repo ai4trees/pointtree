@@ -1,4 +1,4 @@
-""" Tests for pointtree.instance_segmentation.PriorityQueue """
+"""Tests for pointtree.instance_segmentation.PriorityQueue"""
 
 import pytest
 

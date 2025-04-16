@@ -1,4 +1,4 @@
-""" Methods to filter instances. """
+"""Methods to filter instances."""
 
 __all__ = ["filter_instances_min_points", "filter_instances_vertical_extent", "filter_instances_intensity"]
 

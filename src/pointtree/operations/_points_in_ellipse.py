@@ -1,4 +1,4 @@
-""" Testing whether 2D points are within an ellipse. """
+"""Testing whether 2D points are within an ellipse."""
 
 __all__ = ["points_in_ellipse"]
 

@@ -1,4 +1,4 @@
-""" Construction of rasterized digital terrain models. """
+"""Construction of rasterized digital terrain models."""
 
 __all__ = ["create_digital_terrain_model"]
 
@@ -69,8 +69,13 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     dtm_points = (dtm_grid_offset + np.concatenate([dtm_points_x, dtm_points_y], axis=-1)) * grid_resolution
 
     kd_tree = KDTree(terrain_coords[:, :2])
-    neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=k, workers=num_workers)
-    neighbor_distances = neighbor_distances.astype(terrain_coords.dtype)
+    neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=min(k, len(terrain_coords)), workers=num_workers)
+    if isinstance(neighbor_distances, float):
+        neighbor_distances = np.array(neighbor_distances, dtype=terrain_coords.dtype)
+    else:
+        neighbor_distances = neighbor_distances.astype(terrain_coords.dtype)
+    if isinstance(neighbor_indices, int):
+        neighbor_indices = np.array(neighbor_indices, dtype=np.int64)
 
     # ignore divide by zero warnings for this operation since those values are replaced afterwards
     with np.errstate(divide="ignore"):

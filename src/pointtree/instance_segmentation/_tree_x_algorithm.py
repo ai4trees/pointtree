@@ -51,12 +51,15 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     Simulation." Remote Sensing 8.6 (2016): 501 <https://doi.org/10.3390/rs8060501>`__.
 
     Parameters:
-        csf_classification_threshold (float, optional): Maximum height above the cloth a point can have in order to be
-            classified as terrain point (in meters). All points whose distance to the cloth is equal or below this
-            threshold are classified as terrain points. Defaults to 0.5 m.
+        csf_terrain_classification_threshold (float, optional): Maximum height above the cloth a point can have in order
+            to be classified as terrain point (in meters). All points whose distance to the cloth is equal or below this
+            threshold are classified as terrain points. Defaults to 0.1 m.
+        csf_tree_classification_threshold (float, optional): Minimum height above the cloth a point must have in order
+            to be classified as tree point (in meters). All points whose distance to the cloth is equal or larger than
+            this threshold are classified as tree points. Defaults to 0.5 m.
         csf_correct_steep_slope (bool, optional): Whether the cloth should be corrected for steep slopes in a
             post-pressing step. Defaults to `False`.
-        csf_iterations (int, optional): Maximum number of iterations. Defaults to 100.
+        csf_iterations (int, optional): Maximum number of iterations. Defaults to 500.
         csf_resolution (float, optional): Resolution of the cloth grid (in meters). Defaults to 0.25 m.
         csf_rigidness (int, optional): Rigidness of the cloth (the three levels 1, 2, and 3 are available, where 1 is
             the lowest and 3 the highest rigidness). Defaults to 3.
@@ -74,7 +77,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             height of a DTM point. Defaults to 500.
         dtm_p (float, optional): Power :math:`p` for inverse-distance weighting in the interpolation of terrain points.
             Defaults to 2.
-        dtm_resolution (float, optional): Resolution of the DTM grid (in meters). Defaults to 0.2 m.
+        dtm_resolution (float, optional): Resolution of the DTM grid (in meters). Defaults to 0.25 m.
         dtm_voxel_size (float, optional): Voxel size with which the terrain points are downsampled before the DTM is
             created (in meters). Defaults to 0.05 m.
 
@@ -116,7 +119,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
        converge) is fitted to the points from each layer. Then, for all possible combinations of
        :code:`trunk_search_circle_fitting_std_num_layers` layers, the standard deviation of the fitted
        circle or ellipse diameters is computed. If for any of the combinations the standard deviation is smaller than or
-       equal to :code:`trunk_search_circle_fitting_max_std`, the cluster is kept, otherwise it is discarded. A
+       equal to :code:`trunk_search_circle_fitting_max_std_diameter`, the cluster is kept, otherwise it is discarded. A
        multi-stage process is used for the circle or ellipse fitting: First, preliminary circles or ellipses are fitted
        to the layers extracted from point clusters, which do not have the full point density due to the initial
        downsampling. Second, more exact circles or ellipses are fitted. To select the points used for the circle or
@@ -160,7 +163,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             is used for the clustering in 3D if the horizontal extent of a cluster obtained from the initial clustering
             in 2D is smaller than :code:`trunk_search_switch_clustering_3d_params_treshold`. Defaults to 18.
         trunk_search_min_cluster_points (int, optional): Minimum number of points a cluster must contain in order not to
-            be discarded. Defaults to 500.
+            be discarded. Defaults to 300.
         trunk_search_min_cluster_height (float, optional): Minimum extent in the z-direction (i.e., the height
             difference between the highest and the lowest point in the cluster) a cluster must have in order not to be
             discarded (in meters). Defaults to 1.3 m.
@@ -202,8 +205,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_ellipse_filter_threshold (float, optional): In the final ellipse fitting, ellipses are only kept if
             the ratio of the radius along the semi-minor axis to the radius along the semi-major axis is greater than or
             equal to this threshold. Defaults to 0.6.
-        trunk_search_circle_fitting_max_std (float, optional): Threshold for filtering the trunk clusters based on the
-            standard deviation of the diameters of the fitted circles / ellipses. If there is at
+        trunk_search_circle_fitting_max_std_diameter (float, optional): Threshold for filtering the trunk clusters based
+            on the standard deviation of the diameters of the fitted circles / ellipses. If there is at
             least one combination of :code:`trunk_search_circle_fitting_std_num_layers` layers for which the standard
             deviation of the diameters of the fitted circles / ellipses is below or equal to this threshold, the cluster
             is kept, otherwise it is discarded.
@@ -308,15 +311,16 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self,
         *,
         # CSF parameters
-        csf_classification_threshold: float = 0.5,
+        csf_terrain_classification_threshold: float = 0.1,
+        csf_tree_classification_threshold: float = 0.5,
         csf_correct_steep_slope: bool = False,
         csf_iterations: int = 500,
         csf_resolution: float = 0.1,
         csf_rigidness: int = 3,
         # DTM construction parameters
         dtm_k: int = 500,
-        dtm_p: float = 0.5,
-        dtm_resolution: float = 0.2,
+        dtm_p: float = 2,
+        dtm_resolution: float = 0.25,
         dtm_voxel_size: float = 0.05,
         # parameters for the identification of trunk clusters
         trunk_search_min_z: float = 1.0,
@@ -329,7 +333,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_dbscan_3d_min_points_large: Optional[int] = 20,
         trunk_search_dbscan_3d_eps_small: Optional[float] = 0.023,
         trunk_search_dbscan_3d_min_points_small: Optional[int] = 18,
-        trunk_search_min_cluster_points: Optional[int] = 500,
+        trunk_search_min_cluster_points: Optional[int] = 300,
         trunk_search_min_cluster_height: Optional[float] = 1.3,
         trunk_search_min_cluster_intensity: Optional[float] = 6000,
         trunk_search_circle_fitting_method: Literal["m-estimator", "ransac"] = "ransac",
@@ -340,11 +344,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_circle_fitting_min_trunk_diameter: float = 0.02,
         trunk_search_circle_fitting_max_trunk_diameter: float = 1.0,
         trunk_search_circle_fitting_min_completeness_idx: Optional[float] = None,
+        trunk_search_circle_fitting_exact_circle_fitting: bool = False,
         trunk_search_circle_fitting_small_buffer_width: float = 0.06,
         trunk_search_circle_fitting_large_buffer_width: float = 0.09,
         trunk_search_circle_fitting_switch_buffer_threshold: float = 0.3,
         trunk_search_ellipse_filter_threshold: float = 0.6,
-        trunk_search_circle_fitting_max_std: float = 0.0185,
+        trunk_search_circle_fitting_max_std_diameter: float = 0.0185,
+        trunk_search_circle_fitting_max_std_position: float = 0.01,
         trunk_search_circle_fitting_std_num_layers: int = 6,
         # region growing parameters
         region_growing_voxel_size: float = 0.05,
@@ -364,7 +370,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     ):
         super().__init__()
 
-        self._csf_classification_threshold = csf_classification_threshold
+        self._csf_terrain_classification_threshold = csf_terrain_classification_threshold
+        self._csf_tree_classification_threshold = csf_tree_classification_threshold
         self._csf_correct_steep_slope = csf_correct_steep_slope
         self._csf_iterations = csf_iterations
         self._csf_resolution = csf_resolution
@@ -397,11 +404,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._trunk_search_circle_fitting_min_trunk_diameter = trunk_search_circle_fitting_min_trunk_diameter
         self._trunk_search_circle_fitting_max_trunk_diameter = trunk_search_circle_fitting_max_trunk_diameter
         self._trunk_search_circle_fitting_min_completeness_idx = trunk_search_circle_fitting_min_completeness_idx
+        self._trunk_search_circle_fitting_exact_circle_fitting = trunk_search_circle_fitting_exact_circle_fitting
         self._trunk_search_circle_fitting_small_buffer_width = trunk_search_circle_fitting_small_buffer_width
         self._trunk_search_circle_fitting_large_buffer_width = trunk_search_circle_fitting_large_buffer_width
         self._trunk_search_circle_fitting_switch_buffer_threshold = trunk_search_circle_fitting_switch_buffer_threshold
         self._trunk_search_ellipse_filter_threshold = trunk_search_ellipse_filter_threshold
-        self._trunk_search_circle_fitting_max_std = trunk_search_circle_fitting_max_std
+        self._trunk_search_circle_fitting_max_std_diameter = trunk_search_circle_fitting_max_std_diameter
+        self._trunk_search_circle_fitting_max_std_position = trunk_search_circle_fitting_max_std_position
         self._trunk_search_circle_fitting_std_num_layers = trunk_search_circle_fitting_std_num_layers
 
         self._region_growing_voxel_size = region_growing_voxel_size
@@ -543,42 +552,42 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 len(unique_cluster_labels),
             )
 
-        # with Profiler("3D clustering of trunk points", self._performance_tracker):
-        #     self._logger.info("Cluster trunk points in 3D...")
+        with Profiler("3D clustering of trunk points", self._performance_tracker):
+            self._logger.info("Cluster trunk points in 3D...")
 
-        #     next_label = unique_cluster_labels.max() + 1 if len(unique_cluster_labels) > 0 else 0
-        #     for label in unique_cluster_labels:
-        #         label_mask = cluster_labels == label
+            next_label = unique_cluster_labels.max() + 1 if len(unique_cluster_labels) > 0 else 0
+            for label in unique_cluster_labels:
+                label_mask = cluster_labels == label
 
-        #         cluster_xyz = trunk_layer_xyz_downsampled[label_mask]
-        #         horizontal_extent = np.prod(cluster_xyz[:, :2].max(axis=0) - cluster_xyz[:, :2].min(axis=0))
+                cluster_xyz = trunk_layer_xyz_downsampled[label_mask]
+                horizontal_extent = np.prod(cluster_xyz[:, :2].max(axis=0) - cluster_xyz[:, :2].min(axis=0))
 
-        #         if horizontal_extent >= self._trunk_search_switch_clustering_3d_params_treshold:
-        #             eps = self._trunk_search_dbscan_3d_eps_large
-        #             min_points = self._trunk_search_dbscan_3d_min_points_large
-        #         else:
-        #             eps = self._trunk_search_dbscan_3d_eps_small
-        #             min_points = self._trunk_search_dbscan_3d_min_points_small
+                if horizontal_extent >= self._trunk_search_switch_clustering_3d_params_treshold:
+                    eps = self._trunk_search_dbscan_3d_eps_large
+                    min_points = self._trunk_search_dbscan_3d_min_points_large
+                else:
+                    eps = self._trunk_search_dbscan_3d_eps_small
+                    min_points = self._trunk_search_dbscan_3d_min_points_small
 
-        #         dbscan = DBSCAN(
-        #             eps=eps,
-        #             min_samples=min_points,
-        #             n_jobs=self._num_workers,
-        #         )
+                dbscan = DBSCAN(
+                    eps=eps,
+                    min_samples=min_points,
+                    n_jobs=self._num_workers,
+                )
 
-        #         dbscan.fit(cluster_xyz)
-        #         new_labels = dbscan.labels_.astype(np.int64)
-        #         new_labels[new_labels != -1] += next_label
-        #         next_label = new_labels.max() + 1
-        #         cluster_labels[label_mask] = new_labels
-        #     cluster_labels, unique_cluster_labels = make_labels_consecutive(
-        #         cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
-        #     )
+                dbscan.fit(cluster_xyz)
+                new_labels = dbscan.labels_.astype(np.int64)
+                new_labels[new_labels != -1] += next_label
+                next_label = new_labels.max() + 1
+                cluster_labels[label_mask] = new_labels
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(
+                cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
+            )
 
-        #     self._logger.info(
-        #         "%d trunk candidates after clustering in 3D.",
-        #         len(unique_cluster_labels),
-        #     )
+            self._logger.info(
+                "%d trunk candidates after clustering in 3D.",
+                len(unique_cluster_labels),
+            )
 
         with Profiler("Filtering of trunk clusters based on point count", self._performance_tracker):
             cluster_labels, unique_cluster_labels = filter_instances_min_points(
@@ -620,7 +629,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     len(unique_cluster_labels),
                 )
 
-        preliminary_layer_circles_or_ellipses = self.fit_preliminary_circles_or_ellipses_to_trunks(
+        (
+            layer_circles,
+            layer_ellipses,
+            layer_heights,
+            trunk_layer_xy,
+            batch_lengths_xy,
+        ) = self.fit_preliminary_circles_or_ellipses_to_trunks(
             trunk_layer_xyz_downsampled, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
         )
 
@@ -628,17 +643,17 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         del unique_cluster_labels
         del trunk_layer_xyz_downsampled
 
-        (
-            layer_circles,
-            layer_ellipses,
-            layer_heights,
-            trunk_layer_xy,
-            batch_lengths_xy,
-        ) = self.fit_exact_circles_and_ellipses_to_trunks(
-            trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
-        )
-        del trunk_layer_xyz
-        del preliminary_layer_circles_or_ellipses
+        if self._trunk_search_circle_fitting_exact_circle_fitting:
+            (
+                layer_circles,
+                layer_ellipses,
+                layer_heights,
+                trunk_layer_xy,
+                batch_lengths_xy,
+            ) = self.fit_exact_circles_and_ellipses_to_trunks(
+                trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
+            )
+            del preliminary_layer_circles_or_ellipses
 
         with Profiler(
             "Filtering of trunk clusters based on standard deviation of circle / ellipse diameters",
@@ -740,7 +755,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             if len(unique_cluster_labels) == 0:
                 return np.empty((0, num_layers, 5), dtype=trunk_layer_xyz.dtype)
 
-            layer_circles_or_ellipses = np.full(
+            layer_circles = np.full(
+                (len(unique_cluster_labels), num_layers, 3),
+                fill_value=-1,
+                dtype=trunk_layer_xyz.dtype,
+            )
+
+            layer_ellipses = np.full(
                 (len(unique_cluster_labels), num_layers, 5),
                 fill_value=-1,
                 dtype=trunk_layer_xyz.dtype,
@@ -749,7 +770,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             if not trunk_layer_xyz.flags.f_contiguous:
                 trunk_layer_xyz = trunk_layer_xyz.copy(order="F")
 
-            trunk_layer_xy, batch_lengths = collect_inputs_trunk_layers_preliminary_fitting_cpp(
+            trunk_layer_xy, batch_lengths_xy, layer_heights = collect_inputs_trunk_layers_preliminary_fitting_cpp(
                 trunk_layer_xyz,
                 cluster_labels,
                 unique_cluster_labels,
@@ -778,7 +799,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 )
                 circle_detector.detect(
                     trunk_layer_xy,
-                    batch_lengths=batch_lengths,
+                    batch_lengths=batch_lengths_xy,
                     n_start_x=3,
                     n_start_y=3,
                     min_start_radius=min_radius,
@@ -790,7 +811,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 circle_detector = Ransac(bandwidth=bandwidth)
                 circle_detector.detect(
                     trunk_layer_xy,
-                    batch_lengths=batch_lengths,
+                    batch_lengths=batch_lengths_xy,
                     num_workers=self._num_workers,
                 )
             circle_detector.filter(
@@ -803,22 +824,19 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 num_workers=self._num_workers,
             )
 
-            layers_with_ellipses = np.logical_and(circle_detector.batch_lengths_circles == 0, batch_lengths > 0)
+            # layers_with_ellipses = np.logical_and(circle_detector.batch_lengths_circles == 0, batch_lengths_xy > 0)
 
-            ellipses = fit_ellipse(
-                trunk_layer_xy[np.repeat(layers_with_ellipses, batch_lengths)], batch_lengths[layers_with_ellipses]
-            )
+            ellipses = fit_ellipse(trunk_layer_xy, batch_lengths_xy)
 
             visualization_tasks: List[Tuple[Any, ...]] = []
 
             circle_idx = 0
-            ellipse_idx = 0
             batch_start_idx = 0
             for label_idx, label in enumerate(unique_cluster_labels):
                 for layer in range(self._trunk_search_circle_fitting_num_layers):
                     flat_idx = label_idx * num_layers + layer
-                    batch_end_idx = batch_start_idx + batch_lengths[flat_idx]
-                    if batch_lengths[flat_idx] < self._trunk_search_circle_fitting_min_points:
+                    batch_end_idx = batch_start_idx + batch_lengths_xy[flat_idx]
+                    if batch_lengths_xy[flat_idx] < self._trunk_search_circle_fitting_min_points:
                         self._logger.info(
                             "Layer %d of trunk cluster %d contains too few points to fit a circle or an ellipse.",
                             layer,
@@ -826,19 +844,24 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         )
                         continue
 
-                    if layers_with_ellipses[flat_idx]:
-                        ellipse = ellipses[ellipse_idx]
-                        ellipse_idx += 1
-                        if ellipse[2] == -1:
-                            self._logger.info(
-                                "Neither a circle nor an ellipse was found for layer %d of trunk cluster %d.",
-                                layer,
-                                label,
-                            )
-                            continue
+                    has_circle = (
+                        circle_detector.batch_lengths_circles[flat_idx] > 0
+                        and circle_detector.circles[circle_idx, 2] != -1
+                    )
+                    has_ellipse = ellipses[flat_idx, 2] == -1
+                    if not has_circle and not has_ellipse:
+                        self._logger.info(
+                            "Neither a circle nor an ellipse was found for layer %d of trunk cluster %d.",
+                            layer,
+                            label,
+                        )
+                        continue
+
+                    if has_ellipse:
+                        ellipse = ellipses[flat_idx]
 
                         center_x, center_y, radius_major, radius_minor, theta = ellipse
-                        layer_circles_or_ellipses[label_idx, layer] = [
+                        layer_ellipses[label_idx, layer] = [
                             center_x,
                             center_y,
                             radius_major,
@@ -855,8 +878,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                             visualization_tasks.append(
                                 (trunk_layer_xy[batch_start_idx:batch_end_idx], visualization_path, None, ellipse)
                             )
-                    else:
-                        layer_circles_or_ellipses[label_idx, layer, :3] = circle_detector.circles[circle_idx]
+                    if has_circle:
+                        layer_circles[label_idx, layer, :3] = circle_detector.circles[circle_idx]
                         if self._visualization_folder is not None and point_cloud_id is not None:
                             visualization_path = (
                                 self._visualization_folder
@@ -871,7 +894,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                                 )
                             )
 
-                    circle_idx += circle_detector.batch_lengths_circles[flat_idx]
+                        circle_idx += 1
                     batch_start_idx = batch_end_idx
 
         if len(visualization_tasks) > 0:
@@ -884,7 +907,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 with multiprocessing.Pool(processes=num_workers) as pool:
                     pool.starmap(plot_fitted_shape, visualization_tasks)
 
-        return layer_circles_or_ellipses
+        return layer_circles, layer_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy
 
     def fit_exact_circles_and_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
         self,
@@ -892,7 +915,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         preliminary_layer_circles_or_ellipses: npt.NDArray,
         point_cloud_id: Optional[str] = None,
     ) -> Tuple[
-        npt.NDArray,
         npt.NDArray,
         npt.NDArray,
         npt.NDArray,
@@ -985,7 +1007,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 trunk_layer_xyz.dtype, order="F"
             )
 
-            trunk_layer_xy, batch_lengths_xy, layer_heights = collect_inputs_trunk_layers_exact_fitting_cpp(
+            trunk_layer_xy, batch_lengths_xy = collect_inputs_trunk_layers_exact_fitting_cpp(
                 trunk_layer_xyz,
                 preliminary_layer_circles_or_ellipses,
                 float(self._trunk_search_min_z),
@@ -1003,7 +1025,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 return (
                     layer_circles,
                     layer_ellipses,
-                    layer_heights,
                     np.empty((0, 2), dtype=trunk_layer_xyz.dtype),
                     np.empty(0, dtype=np.int64),
                 )
@@ -1119,7 +1140,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 with multiprocessing.Pool(processes=num_workers) as pool:
                     pool.starmap(plot_fitted_shape, visualization_tasks)
 
-        return layer_circles, layer_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy
+        return layer_circles, layer_ellipses, trunk_layer_xy, batch_lengths_xy
 
     def filter_instances_trunk_layer_std(  # pylint: disable=too-many-locals
         self, layer_circles: npt.NDArray, layer_ellipses: npt.NDArray
@@ -1129,10 +1150,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         different horizontal layers of the clusters. For each cluster, the standard deviation of the fitted circle or
         ellipse diameters is computed for all possible combinations of
         :code:`self._trunk_search_circle_fitting_std_num_layers` layers. If for any of the combinations the standard
-        deviation is smaller than or equal to :code:`self._trunk_search_circle_fitting_max_std`, the cluster is kept,
-        otherwise it is discarded. If at least :code:`self._trunk_search_circle_fitting_std_num_layers` circles are have
-        been found for a trunk cluster, only the fitted circles are considered for this filtering step. Otherwise, the
-        filtering is done based on the fitted ellipses.
+        deviation is smaller than or equal to :code:`self._trunk_search_circle_fitting_max_std_diameter`, the cluster is
+        kept, otherwise it is discarded. If at least :code:`self._trunk_search_circle_fitting_std_num_layers` circles
+        are have been found for a trunk cluster, only the fitted circles are considered for this filtering step.
+        Otherwise, the filtering is done based on the fitted ellipses.
 
         Args:
             layer_circles: Parameters of the circles that were fitted to the horizontal layers of each cluster. Each
@@ -1189,6 +1210,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 and len(existing_ellipse_layers) < self._trunk_search_circle_fitting_std_num_layers
             ):
                 continue
+
             if len(existing_circle_layers) >= self._trunk_search_circle_fitting_std_num_layers:
                 circle_diameters = layer_circles[label, :, 2] * 2
                 combinations = list(
@@ -1197,12 +1219,16 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 minimum_std = np.inf
                 for combination in combinations:
                     diameter_std = np.std(circle_diameters[np.array(combination)])
-                    if diameter_std <= self._trunk_search_circle_fitting_max_std:
+                    position_std = np.std(layer_circles[np.array(combination), :2], axis=0)
+                    if diameter_std <= self._trunk_search_circle_fitting_max_std_diameter and (
+                        self._trunk_search_circle_fitting_max_std_position is None
+                        or (position_std <= self._trunk_search_circle_fitting_max_std_position).all()
+                    ):
                         filter_mask[label] = True
                     if diameter_std < minimum_std:
                         minimum_std = diameter_std
                         best_circle_combination[label] = combination
-            else:
+            if not filter_mask[label]:
                 ellipse_diameters = np.sqrt((layer_ellipses[label, :, 2:3] ** 2).sum(axis=-1))
                 combinations = list(
                     itertools.combinations(existing_ellipse_layers, self._trunk_search_circle_fitting_std_num_layers)
@@ -1210,7 +1236,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 minimum_std = np.inf
                 for combination in combinations:
                     diameter_std = np.std(ellipse_diameters[np.array(combination)])
-                    if diameter_std <= self._trunk_search_circle_fitting_max_std:
+                    position_std = np.std(layer_ellipses[np.array(combination), :2], axis=0)
+
+                    if diameter_std <= self._trunk_search_circle_fitting_max_std_diameter and (
+                        self._trunk_search_circle_fitting_max_std_position is None
+                        or (position_std <= self._trunk_search_circle_fitting_max_std_position).all()
+                    ):
                         filter_mask[label] = True
                     if diameter_std < minimum_std:
                         minimum_std = diameter_std
@@ -1732,25 +1763,24 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._logger.info("Filter terrain points...")
             terrain_classification = cloth_simulation_filtering(
                 xyz,
-                classification_threshold=self._csf_classification_threshold,
+                classification_threshold=self._csf_terrain_classification_threshold,
                 resolution=self._csf_resolution,
                 rigidness=self._csf_rigidness,
                 correct_steep_slope=self._csf_correct_steep_slope,
                 iterations=self._csf_iterations,
             )
-            is_tree = terrain_classification != 0
-            del terrain_classification
 
         with Profiler("Construction of digital terrain model", self._performance_tracker):
             self._logger.info("Construct digital terrain model...")
             dtm, dtm_offset = create_digital_terrain_model(
-                xyz[np.logical_not(is_tree)],
+                xyz[terrain_classification == 0],
                 grid_resolution=self._dtm_resolution,
                 k=self._dtm_k,
                 p=self._dtm_p,
                 voxel_size=self._dtm_voxel_size,
                 num_workers=self._num_workers,
             )
+            del terrain_classification
 
             if self._visualization_folder is not None and point_cloud_id is not None:
                 self.export_dtm(dtm, dtm_offset, point_cloud_id, crs=crs)
@@ -1758,6 +1788,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         with Profiler("Height normalization", self._performance_tracker):
             self._logger.info("Normalize point heights...")
             dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, self._dtm_resolution)
+            is_tree = dists_to_dtm >= self._csf_tree_classification_threshold
             del dtm
             del dtm_offset
 

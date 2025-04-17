@@ -19,8 +19,8 @@ set(OpenMP_RUNTIME_MSVC llvm)
 find_package(OpenMP REQUIRED)
 
 set(EIGEN_URL "https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.zip")
-set(EIGEN_SOURCE_DIR "${CMAKE_SOURCE_DIR}/eigen3")
-set(EIGEN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/eigen3/eigen-3.4.0")
+set(EIGEN_SOURCE_DIR "${CMAKE_BINARY_DIR}/eigen3")
+set(EIGEN_INCLUDE_DIR "${CMAKE_BINARY_DIR}/eigen3/eigen-3.4.0")
 set(EIGEN_ZIP_PATH "${EIGEN_SOURCE_DIR}/eigen-3.4.0.zip")
 set(EIGEN_CORE_HEADER_PATH "${EIGEN_INCLUDE_DIR}/Eigen/Core")
 
@@ -37,8 +37,8 @@ include_directories( ${EIGEN_INCLUDE_DIR} )
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
 
 set(NANOFLANN_URL "https://codeload.github.com/jlblancoc/nanoflann/zip/refs/tags/v1.6.2")
-set(NANOFLANN_SOURCE_DIR "${CMAKE_SOURCE_DIR}/nanoflann")
-set(NANOFLANN_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/nanoflann/nanoflann-1.6.2/include")
+set(NANOFLANN_SOURCE_DIR "${CMAKE_BINARY_DIR}/nanoflann")
+set(NANOFLANN_INCLUDE_DIR "${CMAKE_BINARY_DIR}/nanoflann/nanoflann-1.6.2/include")
 set(NANOFLANN_ZIP_PATH "${NANOFLANN_SOURCE_DIR}/nanoflann-v1.6.2.zip")
 set(NANONFLANN_HEADER_PATH "${NANOFLANN_INCLUDE_DIR}/nanoflann.hpp")
 

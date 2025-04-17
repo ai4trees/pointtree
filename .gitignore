@@ -161,8 +161,6 @@ cython_debug/
 #.idea/
 
 # Folders needed for building the C++ extension
-eigen3
-nanoflann
 build
 
 # Data files

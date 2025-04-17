@@ -702,7 +702,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         cluster_labels: npt.NDArray[np.int64],
         unique_cluster_labels: npt.NDArray[np.int64],
         point_cloud_id: Optional[str] = None,
-    ) -> npt.NDArray:
+    ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
         r"""
         Given a set of point clusters that may represent individual tree trunks, circles are fitted to multiple
         horinzontal layers of each cluster. If the circle fitting does not converge, an ellipse is fitted instead. If a
@@ -725,35 +725,39 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 :code:`None`, which means that no visualizations are created.
 
         Returns:
-            Parameters of the circles or ellipses that were fitted to the layers of each cluster. Each circle is
-            represented by three values, namely the x- and y-coordinates of its center and its
-            radius. Each ellipse is represented by five values, namely the x- and y-coordinates of its center, its
-            radius along the semi-major and along the semi-minor axis, and the counterclockwise angle of rotation from
-            the x-axis to the semi-major axis of the ellipse. The parameters of the circles
-            and ellipses are stored in a single array. Circles and ellipses can be distinguished by checking the fourth
-            or fifth value, which are set to -1 for circles. If neither a circle nor an ellipse
-            was fitted, all values are set to -1.
+            Tuple of five arrays. The first array contains the parameters of the circles that were fitted to the layers
+            of each cluster. Each circle is represented by three values, namely the x- and y-coordinates of its center
+            and its radius. If the circle fitting did not converge for a layer, all parameters are set to -1. The second
+            array contains the parameters of the ellipses that were fitted to the layers of each cluster. Each ellipse
+            is represented by five values, namely the x- and y-coordinates of its center, its radius along the
+            semi-major and along the semi-minor axis, and the counterclockwise angle of rotation from the x-axis to
+            the semi-major axis of the ellipse. If the ellipse fitting results in an ellipse whose axis ratio is smaller
+            than :code:`self._trunk_search_ellipse_filter_threshold`, all parameters are set to -1. The third array
+            contains the z-coordinate of the midpoint of each horizontal layer. The fourth array contains the
+            x- and y-coordinates of the points in each horizontal layer of each cluster that were retrieved based on the
+            cluster labels. Points belonging to the same layer of the same cluster are stored consecutively. The fifth
+            array contains the number of points belonging to each horizontal layer of each cluster.
 
         Shape:
             - :code:`trunk_layer_xyz`: :math:`(N, 3)`
             - :code:`cluster_labels`: :math:`(N)`
             - :code:`unique_cluster_labels`: :math:`(T)`
-            - Output: :math:`(T, L, 5)`
+            - Output: Tuple of five elements. The first has shape :math:`(T, L, 3)`, the second has shape
+              :math:`(T, L, 5)`, the third has shape :math:`(L)`, the fourth has shape
+              :math:`(N_{0,0} + ... + N_{T,L}, 2)`, and the fifth has shape :math:`(T \cdot L)`
 
             | where
             |
             | :math:`N = \text{ number of points in the trunk layer}`
             | :math:`T = \text{ number of trunk clusters}`
             | :math:`L = \text{ number of horinzontal layers to which circles / ellipses are fitted}`
+            | :math:`N_{t,l} = \text{ number of points selected from the l-th layer of cluster } t`
         """
 
         with Profiler("Fitting of circles or ellipses to downsampled trunk candidates", self._performance_tracker):
             self._logger.info("Fitting circles / ellipses to downsampled trunk candidates...")
 
             num_layers = self._trunk_search_circle_fitting_num_layers
-
-            if len(unique_cluster_labels) == 0:
-                return np.empty((0, num_layers, 5), dtype=trunk_layer_xyz.dtype)
 
             layer_circles = np.full(
                 (len(unique_cluster_labels), num_layers, 3),
@@ -781,6 +785,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 int(self._trunk_search_circle_fitting_min_points),
                 int(self._num_workers),
             )
+
+            if len(unique_cluster_labels) == 0:
+                return layer_circles, layer_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy
 
             min_radius = self._trunk_search_circle_fitting_min_trunk_diameter / 2
             max_radius = self._trunk_search_circle_fitting_max_trunk_diameter / 2
@@ -824,8 +831,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 num_workers=self._num_workers,
             )
 
-            # layers_with_ellipses = np.logical_and(circle_detector.batch_lengths_circles == 0, batch_lengths_xy > 0)
-
             ellipses = fit_ellipse(trunk_layer_xy, batch_lengths_xy)
 
             visualization_tasks: List[Tuple[Any, ...]] = []
@@ -848,7 +853,15 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         circle_detector.batch_lengths_circles[flat_idx] > 0
                         and circle_detector.circles[circle_idx, 2] != -1
                     )
-                    has_ellipse = ellipses[flat_idx, 2] == -1
+
+                    has_ellipse = ellipses[flat_idx, 2] != -1
+
+                    if has_ellipse:
+                        radius_major, radius_minor = ellipses[flat_idx, 2:4]
+
+                        if radius_minor / radius_major < self._trunk_search_ellipse_filter_threshold:
+                            has_ellipse = False
+
                     if not has_circle and not has_ellipse:
                         self._logger.info(
                             "Neither a circle nor an ellipse was found for layer %d of trunk cluster %d.",
@@ -912,7 +925,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     def fit_exact_circles_and_ellipses_to_trunks(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
         self,
         trunk_layer_xyz: npt.NDArray,
-        preliminary_layer_circles_or_ellipses: npt.NDArray,
+        preliminary_layer_circles: npt.NDArray,
+        preliminary_layer_ellipses: npt.NDArray,
         point_cloud_id: Optional[str] = None,
     ) -> Tuple[
         npt.NDArray,
@@ -944,19 +958,19 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         Args:
             trunk_layer_xyz: Coordinates of the points from the trunk layer.
-            preliminary_layer_circles_or_ellipses: Parameters of the preliminary circles or ellipses. Each circle must
-                be represented by three values, namely the x- and y-coordinates of its center and its radius. Each
-                ellipse must represented by five values, namely the x- and y-coordinates of its center, its
-                radius along the semi-major and along the semi-minor axis, and the counterclockwise angle of rotation
-                from the x-axis to the semi-major axis of the ellipse. The parameters of the circles
-                and ellipses must stored in a single array, where the fourth and fifth value must be set to -1 for
-                circles. If the preliminary fitting was unsucessfull for the respective layer, all values must be set to
-                -1.
+            preliminary_layer_circles: Parameters of the preliminary circles. Each circle must be represented by three
+                values, namely the x- and y-coordinates of its center and its radius. If the preliminary circle fitting
+                was unsucessfull for the respective layer, all values must be set to -1.
+            preliminary_layer_ellipses: Parameters of the preliminary ellipses.  Each ellipse must represented by five
+                values, namely the x- and y-coordinates of its center, its radius along the semi-major and along the
+                semi-minor axis, and the counterclockwise angle of rotation from the x-axis to the semi-major axis of
+                the ellipse. If the preliminary circle fitting was unsucessfull for the respective layer, all values
+                must be set to -1.
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 :code:`None`, which means that no visualizations are created.
 
         Returns:
-            Tuple of five array. The first array contains the parameters of the circles that were fitted to the layers
+            Tuple of four arrays. The first array contains the parameters of the circles that were fitted to the layers
             of each cluster. Each circle is represented by three values, namely the x- and y-coordinates of its center
             and its radius. If the circle fitting did not converge for a layer, all parameters are set to -1. The second
             array contains the parameters of the ellipses that were fitted to the layers of each cluster. Each ellipse
@@ -973,8 +987,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         Shape:
             - :code:`trunk_layer_xyz`: :math:`(N, 3)`
             - :code:`preliminary_layer_circles_or_ellipses`: :math:`(T, L, 5)`
-            - Output: Tuple of four elements. The first has shape :math:`(T, L, 3)`, the second has shape
-              :math:`(T, L, 5)`, the third has shape :math:`(L)`, and the fourth has shape :math:`(T, L, N_{t,l}, 2)`,
+            - Output: Tuple of four arrays. The first has shape :math:`(T, L, 3)`, the second has shape
+              :math:`(T, L, 5)`, the third has shape :math:`(L)`, and the fourth has shape
+              :math:`(N_{0,0} + ... + N_{T,L}, 2)`.
 
             | where
             |
@@ -987,7 +1002,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         with Profiler("Fitting of circles and ellipses to full-resolution trunk candidates", self._performance_tracker):
             self._logger.info("Fitting circles / ellipses to full-resolution trunk candidates...")
 
-            num_instances = len(preliminary_layer_circles_or_ellipses)
+            num_instances = len(preliminary_layer_circles)
             num_layers = self._trunk_search_circle_fitting_num_layers
 
             layer_circles = np.full(
@@ -1003,13 +1018,17 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             if not trunk_layer_xyz.flags.f_contiguous:
                 trunk_layer_xyz = trunk_layer_xyz.copy(order="F")
-            preliminary_layer_circles_or_ellipses = preliminary_layer_circles_or_ellipses.reshape((-1, 5)).astype(
+            preliminary_layer_circles = preliminary_layer_circles.reshape((-1, 3)).astype(
+                trunk_layer_xyz.dtype, order="F"
+            )
+            preliminary_layer_ellipses = preliminary_layer_ellipses.reshape((-1, 5)).astype(
                 trunk_layer_xyz.dtype, order="F"
             )
 
             trunk_layer_xy, batch_lengths_xy = collect_inputs_trunk_layers_exact_fitting_cpp(
                 trunk_layer_xyz,
-                preliminary_layer_circles_or_ellipses,
+                preliminary_layer_circles,
+                preliminary_layer_ellipses,
                 float(self._trunk_search_min_z),
                 num_layers,
                 float(self._trunk_search_circle_fitting_layer_height),
@@ -1219,15 +1238,15 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 minimum_std = np.inf
                 for combination in combinations:
                     diameter_std = np.std(circle_diameters[np.array(combination)])
-                    position_std = np.std(layer_circles[np.array(combination), :2], axis=0)
+                    position_std = np.std(layer_circles[label, np.array(combination), :2], axis=0)
                     if diameter_std <= self._trunk_search_circle_fitting_max_std_diameter and (
                         self._trunk_search_circle_fitting_max_std_position is None
                         or (position_std <= self._trunk_search_circle_fitting_max_std_position).all()
                     ):
                         filter_mask[label] = True
-                    if diameter_std < minimum_std:
-                        minimum_std = diameter_std
-                        best_circle_combination[label] = combination
+                        if diameter_std < minimum_std:
+                            minimum_std = diameter_std
+                            best_circle_combination[label] = combination
             if not filter_mask[label]:
                 ellipse_diameters = np.sqrt((layer_ellipses[label, :, 2:3] ** 2).sum(axis=-1))
                 combinations = list(
@@ -1236,16 +1255,16 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 minimum_std = np.inf
                 for combination in combinations:
                     diameter_std = np.std(ellipse_diameters[np.array(combination)])
-                    position_std = np.std(layer_ellipses[np.array(combination), :2], axis=0)
+                    position_std = np.std(layer_ellipses[label, np.array(combination), :2], axis=0)
 
                     if diameter_std <= self._trunk_search_circle_fitting_max_std_diameter and (
                         self._trunk_search_circle_fitting_max_std_position is None
                         or (position_std <= self._trunk_search_circle_fitting_max_std_position).all()
                     ):
                         filter_mask[label] = True
-                    if diameter_std < minimum_std:
-                        minimum_std = diameter_std
-                        best_ellipse_combination[label] = combination
+                        if diameter_std < minimum_std:
+                            minimum_std = diameter_std
+                            best_ellipse_combination[label] = combination
 
         return filter_mask, best_circle_combination[filter_mask], best_ellipse_combination[filter_mask]
 

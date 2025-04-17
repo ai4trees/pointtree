@@ -101,7 +101,8 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
 template <typename scalar_T>
 std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
-    RefArrayX5<scalar_T> preliminary_layer_circles_or_ellipses,
+    RefArrayX3<scalar_T> preliminary_layer_circles,
+    RefArrayX5<scalar_T> preliminary_layer_ellipses,
     scalar_T trunk_search_min_z,
     int64_t trunk_search_circle_fitting_num_layers,
     scalar_T trunk_search_circle_fitting_layer_height,
@@ -116,9 +117,9 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
   }
 
   auto num_layers = trunk_search_circle_fitting_num_layers;
-  auto num_labels = preliminary_layer_circles_or_ellipses.rows() / num_layers;
+  auto num_labels = preliminary_layer_circles.rows() / num_layers;
   std::vector<std::vector<int64_t>> batch_indices(num_labels * num_layers);
-  ArrayXl batch_lengths = ArrayXl::Constant(preliminary_layer_circles_or_ellipses.rows(), 0);
+  ArrayXl batch_lengths = ArrayXl::Constant(preliminary_layer_circles.rows(), 0);
 
   ArrayX2<scalar_T> layer_bounds = compute_layer_bounds<scalar_T>(
       trunk_search_min_z, trunk_search_circle_fitting_num_layers, trunk_search_circle_fitting_layer_height,
@@ -141,14 +142,15 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
 
       int64_t flat_idx = label * num_layers + layer;
 
-      bool is_circle_or_ellipse = preliminary_layer_circles_or_ellipses(flat_idx, 2) != -1;
-      if (!is_circle_or_ellipse) {
+      bool is_circle = preliminary_layer_circles(flat_idx, 2) != -1;
+      bool is_ellipse = preliminary_layer_ellipses(flat_idx, 3) != -1;
+
+      if (!is_circle && !is_ellipse) {
         continue;
       }
-      bool is_circle = preliminary_layer_circles_or_ellipses(flat_idx, 3) == -1;
       if (is_circle) {
-        ArrayX<scalar_T> circle_center = preliminary_layer_circles_or_ellipses(flat_idx, {0, 1});
-        scalar_T circle_radius = preliminary_layer_circles_or_ellipses(flat_idx, 2);
+        ArrayX<scalar_T> circle_center = preliminary_layer_circles(flat_idx, {0, 1});
+        scalar_T circle_radius = preliminary_layer_circles(flat_idx, 2);
         scalar_T buffer_width;
         if (circle_radius * 2 <= trunk_search_circle_fitting_switch_buffer_threshold) {
           buffer_width = trunk_search_circle_fitting_small_buffer_width;
@@ -173,7 +175,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
           }
         }
       } else {
-        auto ellipse = preliminary_layer_circles_or_ellipses(flat_idx, Eigen::all);
+        auto ellipse = preliminary_layer_ellipses(flat_idx, Eigen::all);
         ArrayX2<scalar_T> ellipse_center = ellipse.leftCols(2);
         scalar_T ellipse_diameter = std::sqrt(ellipse(2) * ellipse(2) + ellipse(3) * ellipse(3));
         scalar_T buffer_width;

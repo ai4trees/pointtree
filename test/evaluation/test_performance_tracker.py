@@ -1,4 +1,4 @@
-""" Tests for pointtree.evaluation.PerformanceTracker. """
+"""Tests for pointtree.evaluation.PerformanceTracker."""
 
 import pandas as pd
 

@@ -1,4 +1,4 @@
-""" Tests for pointtree.instance_segmentation.TreeXAlgorithm. """
+"""Tests for pointtree.instance_segmentation.TreeXAlgorithm."""
 
 import os
 from pathlib import Path
@@ -176,8 +176,9 @@ class TestTreeXAlgorithm:
         trunk_search_circle_fitting_min_points = 2
 
         expected_indices = [[0, 1, 9], [2, 9], [], [4, 5], [], [6, 7, 8]]
+        expected_layer_heights = np.array([1.3, 1.8, 2.3], dtype=scalar_type)
 
-        trunk_layer_xy, batch_lengths = collect_inputs_trunk_layers_preliminary_fitting_cpp(
+        trunk_layer_xy, batch_lengths, layer_heights = collect_inputs_trunk_layers_preliminary_fitting_cpp(
             trunk_layer_xyz,
             cluster_labels,
             unique_cluster_labels,
@@ -191,6 +192,7 @@ class TestTreeXAlgorithm:
 
         assert len(batch_lengths) == len(unique_cluster_labels) * num_layers
         assert trunk_layer_xy.dtype == scalar_type
+        assert layer_heights.dtype == scalar_type
 
         start_idx = 0
         for i, expected_idx in enumerate(expected_indices):
@@ -206,6 +208,8 @@ class TestTreeXAlgorithm:
 
             np.testing.assert_array_equal(expected_xy_batch_item, xy_batch_item)
             start_idx = end_idx
+
+        np.testing.assert_array_equal(expected_layer_heights, layer_heights)
 
     def test_collect_inputs_preliminary_fitting_cpp_invalid_inputs(self):
         trunk_layer_xyz = np.zeros((10, 3), dtype=np.float64, order="F")
@@ -255,15 +259,23 @@ class TestTreeXAlgorithm:
             order="F",
         )
 
-        preliminary_layer_circles_or_ellipses = (
+        preliminary_layer_circles = (
             np.array(
                 [
-                    [[0, 0, 0.6, -1, -1], [-1, -1, -1, -1, -1], [4, 4, 0.4, 0.2, np.pi / 4]],
-                    [
-                        [-1, -1, -1, -1, -1],
-                        [-1, -1, -1, -1, -1],
-                        [0, 0.3, 0.22, -1, -1],
-                    ],
+                    [[0, 0, 0.6], [-1, -1, -1], [-1, -1, -1]],
+                    [[-1, -1, -1], [-1, -1, -1], [0, 0.3, 0.22]],
+                ],
+                dtype=scalar_type,
+            )
+            .reshape((-1, 3))
+            .copy(order="F")
+        )
+
+        preliminary_layer_ellipses = (
+            np.array(
+                [
+                    [[-1, -1, -1, -1, -1], [-1, -1, -1, -1, -1], [4, 4, 0.4, 0.2, np.pi / 4]],
+                    [[-1, -1, -1, -1, -1], [-1, -1, -1, -1, -1], [-1, -1, -1, -1, -1]],
                 ],
                 dtype=scalar_type,
             )
@@ -281,11 +293,11 @@ class TestTreeXAlgorithm:
         trunk_search_circle_fitting_large_buffer_width = 0.05
 
         expected_indices = [[0, 1, 2, 4], [], [7, 8], [], [], [9, 10]]
-        expected_layer_heights = np.array([1.3, 1.8, 2.3], dtype=scalar_type)
 
-        trunk_layer_xy, batch_lengths, layer_heights = collect_inputs_exact_fitting_cpp(
+        trunk_layer_xy, batch_lengths = collect_inputs_exact_fitting_cpp(
             trunk_layer_xyz,
-            preliminary_layer_circles_or_ellipses,
+            preliminary_layer_circles,
+            preliminary_layer_ellipses,
             trunk_search_min_z,
             num_layers,
             trunk_search_circle_fitting_layer_height,
@@ -299,7 +311,6 @@ class TestTreeXAlgorithm:
 
         assert len(batch_lengths) == len(expected_indices)
         assert trunk_layer_xy.dtype == scalar_type
-        assert layer_heights.dtype == scalar_type
 
         start_idx = 0
         for i, expected_idx in enumerate(expected_indices):
@@ -315,8 +326,6 @@ class TestTreeXAlgorithm:
 
             np.testing.assert_array_equal(expected_xy_batch_item, xy_batch_item)
             start_idx = end_idx
-
-        np.testing.assert_array_equal(expected_layer_heights, layer_heights)
 
     @pytest.mark.parametrize("circle_fitting_method", ["ransac", "m-estimator"])
     @pytest.mark.parametrize("variance, add_noise_points", [(0.0, False), (0.01, True)])
@@ -334,6 +343,8 @@ class TestTreeXAlgorithm:
         scalar_type: np.dtype,
         cache_dir,
     ):
+        trunk_search_ellipse_filter_threshold = 0.6
+
         (
             settings,
             trunk_layer_xyz,
@@ -343,6 +354,20 @@ class TestTreeXAlgorithm:
             expected_layer_heigths,
         ) = self.generate_layer_circles_and_ellipses(add_noise_points, variance)
         expected_circles_or_ellipses = expected_circles_or_ellipses.astype(scalar_type)
+        expected_circles = expected_circles_or_ellipses[:, :, :3].copy()
+        has_ellipse = expected_circles_or_ellipses[:, :, 3] != -1
+        expected_circles[has_ellipse] = -1
+        expected_ellipses = expected_circles_or_ellipses.copy()
+        has_circle = expected_circles[:, :, 2] != -1
+        has_ellipse[has_circle] = True
+        expected_ellipses[has_circle, 3] = expected_circles_or_ellipses[has_circle, 2]
+        expected_ellipses[has_circle, 4] = 0
+        is_valid_ellipse = np.logical_and(
+            has_ellipse,
+            expected_ellipses[:, :, 3] / expected_ellipses[:, :, 2] >= trunk_search_ellipse_filter_threshold,
+        )
+        expected_ellipses[~is_valid_ellipse] = -1
+
         expected_layer_heigths = expected_layer_heigths.astype(scalar_type)
         trunk_layer_xyz = trunk_layer_xyz.astype(scalar_type).copy(order=storage_layout)
 
@@ -357,8 +382,6 @@ class TestTreeXAlgorithm:
             if use_pathlib:
                 visualization_folder = Path(visualization_folder)
 
-        trunk_search_ellipse_filter_threshold = 0.6
-
         algorithm = TreeXAlgorithm(
             visualization_folder=visualization_folder,
             trunk_search_circle_fitting_method=circle_fitting_method,
@@ -366,14 +389,23 @@ class TestTreeXAlgorithm:
             **settings,
         )
 
-        preliminary_circles_or_ellipses = algorithm.fit_preliminary_circles_or_ellipses_to_trunks(
-            trunk_layer_xyz, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
+        preliminary_circles, preliminary_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy = (
+            algorithm.fit_preliminary_circles_or_ellipses_to_trunks(
+                trunk_layer_xyz, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
+            )
         )
-        assert preliminary_circles_or_ellipses.dtype == scalar_type
+        assert preliminary_circles.dtype == scalar_type
+        assert preliminary_ellipses.dtype == scalar_type
 
         decimal = 1 if variance > 0 else 4
 
-        np.testing.assert_almost_equal(expected_circles_or_ellipses, preliminary_circles_or_ellipses, decimal=decimal)
+        np.testing.assert_almost_equal(expected_circles, preliminary_circles, decimal=decimal)
+        np.testing.assert_almost_equal(
+            expected_ellipses[~has_circle], preliminary_ellipses[~has_circle], decimal=decimal
+        )
+        np.testing.assert_almost_equal(
+            expected_ellipses[has_circle, :4], preliminary_ellipses[has_circle, :4], decimal=decimal
+        )
 
         if create_visualization:
             if not use_pathlib:
@@ -381,27 +413,24 @@ class TestTreeXAlgorithm:
             visualization_folder = cast(Path, visualization_folder)
             for tree in range(num_trees):
                 for layer in range(num_layers):
-                    if expected_circles_or_ellipses[tree, layer, 4] == -1:
-                        continue
-                    if expected_circles_or_ellipses[tree, layer, 3] == -1:
+                    if has_circle[tree, layer]:
                         expected_visualization_path = (
                             visualization_folder / "test" / f"preliminary_circle_trunk_{tree}_layer_{layer}.png"
                         )
-                    else:
+                        assert expected_visualization_path.exists()
+                    if is_valid_ellipse[tree, layer]:
                         expected_visualization_path = (
                             visualization_folder / "test" / f"preliminary_ellipse_trunk_{tree}_layer_{layer}.png"
                         )
-
-                    assert expected_visualization_path.exists()
+                        assert expected_visualization_path.exists()
 
         (
             layer_circles,
             layer_ellipses,
-            layer_heights,
             trunk_layer_xy,
             batch_lengths_xy,
         ) = algorithm.fit_exact_circles_and_ellipses_to_trunks(
-            trunk_layer_xyz, preliminary_circles_or_ellipses, point_cloud_id=point_cloud_id
+            trunk_layer_xyz, preliminary_circles, preliminary_ellipses, point_cloud_id=point_cloud_id
         )
         assert layer_circles.dtype == scalar_type
         assert layer_ellipses.dtype == scalar_type
@@ -414,18 +443,16 @@ class TestTreeXAlgorithm:
             visualization_folder = cast(Path, visualization_folder)
             for tree in range(num_trees):
                 for layer in range(num_layers):
-                    if expected_circles_or_ellipses[tree, layer, 4] == -1:
-                        continue
-                    if expected_circles_or_ellipses[tree, layer, 3] == -1:
+                    if has_circle[tree, layer]:
                         expected_visualization_path = (
                             visualization_folder / "test" / f"exact_circle_trunk_{tree}_layer_{layer}.png"
                         )
-                    else:
+                        assert expected_visualization_path.exists()
+                    if is_valid_ellipse[tree, layer]:
                         expected_visualization_path = (
                             visualization_folder / "test" / f"exact_ellipse_trunk_{tree}_layer_{layer}.png"
                         )
-
-                    assert expected_visualization_path.exists()
+                        assert expected_visualization_path.exists()
 
         np.testing.assert_almost_equal(expected_layer_heigths, layer_heights)
 
@@ -438,15 +465,7 @@ class TestTreeXAlgorithm:
 
         for tree in range(num_trees):
             for layer in range(num_layers):
-                ellipse_radius_ratio = (
-                    expected_circles_or_ellipses[tree, layer, 3] / expected_circles_or_ellipses[tree, layer, 2]
-                )
-                is_skip_layer = expected_circles_or_ellipses[tree, layer, 2] == -1
-                is_invalid_ellipse_layer = (
-                    expected_circles_or_ellipses[tree, layer, 3] != -1
-                    and ellipse_radius_ratio < trunk_search_ellipse_filter_threshold
-                )
-                if is_skip_layer:
+                if not has_circle[tree, layer] and not is_valid_ellipse[tree, layer]:
                     assert batch_lengths_xy[tree * num_layers + layer] == 0
                 else:
                     assert (
@@ -454,25 +473,24 @@ class TestTreeXAlgorithm:
                         >= settings["trunk_search_circle_fitting_min_points"]
                     )
 
-                if is_skip_layer or is_invalid_ellipse_layer:
+                if not has_circle[tree, layer]:
                     assert (layer_circles[tree, layer] == -1).all()
+                if not is_valid_ellipse[tree, layer]:
                     assert (layer_ellipses[tree, layer] == -1).all()
-                    continue
-                if expected_circles_or_ellipses[tree, layer, 3] != -1:
-                    np.testing.assert_almost_equal(
-                        expected_circles_or_ellipses[tree, layer], layer_ellipses[tree, layer], decimal=decimal
-                    )
-                    assert (layer_circles[tree, layer] == -1).all()
-                    continue
 
-                np.testing.assert_almost_equal(
-                    expected_circles_or_ellipses[tree, layer, :3], layer_circles[tree, layer], decimal=decimal
-                )
-                assert (layer_ellipses[tree, layer, 2:4] > 0).all()
+        np.testing.assert_almost_equal(expected_circles[tree, layer], layer_circles[tree, layer], decimal=decimal)
+        np.testing.assert_almost_equal(expected_ellipses[~has_circle], layer_ellipses[~has_circle], decimal=decimal)
+        np.testing.assert_almost_equal(
+            expected_ellipses[has_circle, :4], layer_ellipses[has_circle, :4], decimal=decimal
+        )
+        assert (layer_ellipses[is_valid_ellipse, 2:4] > 0).all()
 
-    def test_filter_instances_trunk_layer_variance(self):
+    @pytest.mark.parametrize("trunk_search_circle_fitting_max_std_position", [None, 0.1])
+    def test_filter_instances_trunk_layer_variance(self, trunk_search_circle_fitting_max_std_position: Optional[float]):
         algorithm = TreeXAlgorithm(
-            trunk_search_circle_fitting_std_num_layers=3, trunk_search_circle_fitting_max_std=0.1
+            trunk_search_circle_fitting_std_num_layers=3,
+            trunk_search_circle_fitting_max_std_diameter=0.1,
+            trunk_search_circle_fitting_max_std_position=trunk_search_circle_fitting_max_std_position,
         )
 
         layer_circles = np.array(
@@ -481,6 +499,7 @@ class TestTreeXAlgorithm:
                 [[0, 0, 2], [0, 0, 0.95], [0, 0, 1.4], [0, 0.1, 0.1]],
                 [[-1, -1, -1], [0, 0, 1], [-1, -1, -1], [-1, -1, -1]],
                 [[0, 0, 1], [0, 0, 0.95], [0, 0, 1.2], [0, 0.1, 0.9]],
+                [[0, 0.1, 1], [0, 0.3, 1], [0, 0.5, 1], [0, 0.7, 1.1]],
             ],
             dtype=np.float64,
         )
@@ -490,13 +509,19 @@ class TestTreeXAlgorithm:
                 [[-1, -1, -1, -1, -1], [-1, -1, -1, -1, -1], [-1, -1, -1, -1, -1], [-1, -1, -1, -1, -1]],
                 [[0, 0, 1, 0.9, 0], [0, 0, 0.95, 0.9, 0], [0, 0, 0.9, 0.85, 0], [0, 0, 1.2, 0.85, 0]],
                 [[0, 0, 1, 0.9, 0], [0, 0, 1, 0.9, 0], [0, 0, 1.2, 1.1, 0], [0, 0.1, 0.9, 0.8, 0]],
+                [[0, 0.1, 1, 1, 0], [0, 0.3, 1, 1, 0], [0, 0.5, 1, 1, 0], [0, 0.7, 1.1, 1.1, 0]],
             ],
             dtype=np.float64,
         )
 
-        expected_filter_mask = np.array([False, False, True, True])
-        expected_best_circle_combinations = np.array([[-1, -1, -1], [0, 1, 3]], dtype=np.int64)
-        expected_best_ellipse_combinations = np.array([[0, 1, 2], [-1, -1, -1]], dtype=np.int64)
+        if trunk_search_circle_fitting_max_std_position is None:
+            expected_filter_mask = np.array([False, False, True, True, True])
+            expected_best_circle_combinations = np.array([[-1, -1, -1], [0, 1, 3], [0, 1, 2]], dtype=np.int64)
+            expected_best_ellipse_combinations = np.array([[0, 1, 2], [-1, -1, -1], [-1, -1, -1]], dtype=np.int64)
+        else:
+            expected_filter_mask = np.array([False, False, True, True, False])
+            expected_best_circle_combinations = np.array([[-1, -1, -1], [0, 1, 3]], dtype=np.int64)
+            expected_best_ellipse_combinations = np.array([[0, 1, 2], [-1, -1, -1]], dtype=np.int64)
 
         filter_mask, best_circle_combination, best_ellipse_combination = algorithm.filter_instances_trunk_layer_std(
             layer_circles, layer_ellipses

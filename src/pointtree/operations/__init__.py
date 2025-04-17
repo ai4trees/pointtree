@@ -1,4 +1,4 @@
-""" Operations for point cloud processing. """
+"""Operations for point cloud processing."""
 
 from ._cloth_simulation_filtering import *
 from ._create_digital_terrain_model import *

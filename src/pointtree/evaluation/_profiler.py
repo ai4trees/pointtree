@@ -1,4 +1,4 @@
-""" A context manager that tracks the execution time and memory usage of the contained code. """
+"""A context manager that tracks the execution time and memory usage of the contained code."""
 
 __all__ = ["Profiler"]
 

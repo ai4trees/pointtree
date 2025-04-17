@@ -1,4 +1,4 @@
-""" Ellipse fitting. """
+"""Ellipse fitting."""
 
 __all__ = ["fit_ellipse"]
 

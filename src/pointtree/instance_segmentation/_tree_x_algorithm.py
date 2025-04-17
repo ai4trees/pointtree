@@ -1,4 +1,4 @@
-""" Region-growing-based tree instance segmentation algorithm. """  # pylint: disable=too-many-lines
+"""Region-growing-based tree instance segmentation algorithm."""  # pylint: disable=too-many-lines
 
 __all__ = ["TreeXAlgorithm"]
 

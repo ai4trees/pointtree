@@ -1,4 +1,4 @@
-""" Plots a shape fitted to a set of 2D points. """
+"""Plots a shape fitted to a set of 2D points."""
 
 __all__ = ["plot_fitted_shape"]
 

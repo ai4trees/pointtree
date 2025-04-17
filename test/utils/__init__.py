@@ -1,4 +1,4 @@
-""" Test utilities. """
+"""Test utilities."""
 
 from ._generate_points import *
 

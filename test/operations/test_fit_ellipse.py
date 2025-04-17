@@ -1,4 +1,4 @@
-""" Tests for pointtree.operations.fit_ellipse. """
+"""Tests for pointtree.operations.fit_ellipse."""
 
 from typing import List
 

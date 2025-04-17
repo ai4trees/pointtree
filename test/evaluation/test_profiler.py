@@ -1,4 +1,4 @@
-""" Tests for pointtree.evaluation.Profiler. """
+"""Tests for pointtree.evaluation.Profiler."""
 
 import time
 

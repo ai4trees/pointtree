@@ -1,4 +1,4 @@
-""" Tests for pointtree.visualization.plot_fitted_shape."""
+"""Tests for pointtree.visualization.plot_fitted_shape."""
 
 import os
 from pathlib import Path

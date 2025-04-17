@@ -578,10 +578,7 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
                 crown_indices = crown_indices.flatten()
 
             _, trunk_indices = KDTree(trunk_positions).query(crown_top_positions, k=1)
-            if isinstance(trunk_indices, int):
-                trunk_indices = np.array([trunk_indices], dtype=np.int64)
-            else:
-                trunk_indices = trunk_indices.flatten()
+            trunk_indices = cast(np.ndarray, trunk_indices)
 
             tree_positions = []
             matched_crown_positions = []
@@ -978,10 +975,8 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
             kd_tree = KDTree(tree_coords)
 
             neighbor_distances = cast(np.ndarray, kd_tree.query(tree_coords, k=2)[0])
-            if neighbor_distances.ndim > 1:
-                neighbor_distances = neighbor_distances[:, 1].flatten()
-            else:
-                neighbor_distances = neighbor_distances[1:]
+            neighbor_distances = cast(np.ndarray, neighbor_distances)
+            neighbor_distances = neighbor_distances[:, 1].flatten()
 
             instances_to_refine = []
             average_point_spacings = []
@@ -1152,11 +1147,9 @@ class MultiStageAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too
 
             kd_tree = KDTree(growing_points)
             neighbor_dists, neighbor_indices = kd_tree.query(growing_points, k=self._num_neighbors_region_growing)
-            if isinstance(neighbor_dists, float):
-                neighbor_dists = np.array([neighbor_dists], dtype=growing_points.dtype)
+            neighbor_dists = cast(np.ndarray, neighbor_dists)
+            neighbor_indices = cast(np.ndarray, neighbor_indices)
             neighbor_dists = neighbor_dists.reshape(-1, self._num_neighbors_region_growing)
-            if isinstance(neighbor_indices, int):
-                neighbor_indices = np.array([neighbor_indices], dtype=np.int64)
             neighbor_indices = neighbor_indices.reshape(-1, self._num_neighbors_region_growing)
 
             pq = PriorityQueue()

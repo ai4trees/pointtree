@@ -117,6 +117,11 @@ def match_instances(
     unique_prediction_ids = np.unique(prediction)
     unique_prediction_ids = unique_prediction_ids[unique_prediction_ids != invalid_instance_id]
 
+    if len(unique_target_ids) == 0 or len(unique_prediction_ids) == 0:
+        matched_target_ids = np.full(len(unique_prediction_ids), fill_value=invalid_instance_id, dtype=np.int64)
+        matched_predicted_ids = np.full(len(unique_target_ids), fill_value=invalid_instance_id, dtype=np.int64)
+        return matched_target_ids, matched_predicted_ids
+
     if unique_target_ids.min() != 0 or unique_target_ids.max() != len(unique_target_ids) - 1:
         raise ValueError("The target instance IDs must be continuous, starting with zero.")
 

@@ -2,11 +2,6 @@ name: Code Quality Checks
 
 on:
   workflow_call:
-    inputs:
-      update-coverage-badge:
-        required: false
-        default: false
-        type: boolean
     secrets:
       codecov_token:
         required: true

@@ -9,5 +9,3 @@ jobs:
     uses: ./.github/workflows/code-quality.yml
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
-    with:
-      update-coverage-badge: false

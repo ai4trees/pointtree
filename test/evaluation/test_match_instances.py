@@ -81,6 +81,50 @@ class TestMetrics:
             "tree_learn",
         ],
     )
+    def test_match_instances_all_false_negatives(self, method: str):
+        xyz = np.random.randn(6, 3)
+        target = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64)
+        prediction = np.full(len(target), fill_value=-1, dtype=np.int64)
+
+        matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method=method)
+
+        np.testing.assert_array_equal(np.array([], dtype=np.int64), matched_target_ids)
+        np.testing.assert_array_equal(np.array([-1, -1, -1], dtype=np.int64), matched_predicted_ids)
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "panoptic_segmentation",
+            "point2tree",
+            "for_instance",
+            "for_ai_net",
+            "for_ai_net_coverage",
+            "segment_any_tree",
+            "tree_learn",
+        ],
+    )
+    def test_match_instances_all_false_positives(self, method: str):
+        xyz = np.random.randn(6, 3)
+        prediction = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64)
+        target = np.full(len(prediction), fill_value=-1, dtype=np.int64)
+
+        matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method=method)
+
+        np.testing.assert_array_equal(np.array([-1, -1, -1], dtype=np.int64), matched_target_ids)
+        np.testing.assert_array_equal(np.array([], dtype=np.int64), matched_predicted_ids)
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "panoptic_segmentation",
+            "point2tree",
+            "for_instance",
+            "for_ai_net",
+            "for_ai_net_coverage",
+            "segment_any_tree",
+            "tree_learn",
+        ],
+    )
     def test_match_instances_non_continuous_target_ids(self, method: str):
         target = np.array([0, 2], dtype=np.int64)
         prediction = np.zeros_like(target)

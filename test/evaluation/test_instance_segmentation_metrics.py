@@ -114,6 +114,50 @@ class TestInstanceSegmentationMetrics:
                 invalid_instance_id=-1,
             )
 
+    def test_instance_detection_metrics_all_false_negatives(self):
+        target = np.array([1, 1, 1, 0, 0], dtype=np.int64)
+        prediction = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
+
+        matched_predicted_ids = np.array([-1, -1], dtype=np.int64)
+        matched_target_ids = np.array([], dtype=np.int64)
+
+        metrics = instance_detection_metrics(
+            target,
+            prediction,
+            matched_predicted_ids,
+            matched_target_ids,
+            invalid_instance_id=-1,
+        )
+
+        assert metrics["TP"] == 0
+        assert metrics["FP"] == 0
+        assert metrics["FN"] == 2
+        assert np.isnan(metrics["Precision"])
+        assert np.isnan(metrics["CommissionError"])
+        assert metrics["Recall"] == 0
+        assert metrics["OmissionError"] == 1
+        assert metrics["F1Score"] == 0
+
+    def test_instance_detection_metrics_all_false_positives(self):
+        target = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
+        prediction = np.array([1, 1, 1, 0, 0], dtype=np.int64)
+
+        matched_predicted_ids = np.array([], dtype=np.int64)
+        matched_target_ids = np.array([-1, -1], dtype=np.int64)
+
+        metrics = instance_detection_metrics(
+            target, prediction, matched_predicted_ids, matched_target_ids, invalid_instance_id=-1, min_precision_fp=0
+        )
+
+        assert metrics["TP"] == 0
+        assert metrics["FP"] == 2
+        assert metrics["FN"] == 0
+        assert metrics["Precision"] == 0
+        assert metrics["CommissionError"] == 1
+        assert np.isnan(metrics["Recall"])
+        assert np.isnan(metrics["OmissionError"])
+        assert metrics["F1Score"] == 0
+
     def test_instance_segmentation_metrics(self):
         target = np.array([1, 1, 1, 1, 0, 0, 0, 0, -1, 2], dtype=np.int64)
         prediction = np.array([0, 1, 0, 0, 0, 2, 2, 2, -1, -1], dtype=np.int64)

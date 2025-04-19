@@ -121,10 +121,10 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         "TP": tp,
         "FP": fp,
         "FN": fn,
-        "Precision": tp / (tp + fp),
-        "CommissionError": fp / (tp + fp),
-        "Recall": tp / (tp + fn),
-        "OmissionError": fn / (tp + fn),
+        "Precision": tp / (tp + fp) if (tp + fp) > 0 else np.nan,
+        "CommissionError": fp / (tp + fp) if (tp + fp) > 0 else np.nan,
+        "Recall": tp / (tp + fn) if (tp + fn) > 0 else np.nan,
+        "OmissionError": fn / (tp + fn) if (tp + fn) > 0 else np.nan,
         "F1Score": 2 * tp / (2 * tp + fp + fn),
     }
 
@@ -180,12 +180,9 @@ def _compute_instance_segmentation_metrics(
         intersection = np.logical_and(target == target_id, prediction == predicted_id).sum()
         union = np.logical_or(target == target_id, prediction == predicted_id).sum()
 
-        if union > 0:
-            iou[target_id] = intersection / union
-        if (prediction == predicted_id).sum() > 0:
-            precision[target_id] = intersection / (prediction == predicted_id).sum()
-        if (target == target_id).sum() > 0:
-            recall[target_id] = intersection / (target == target_id).sum()
+        iou[target_id] = intersection / union
+        precision[target_id] = intersection / (prediction == predicted_id).sum()
+        recall[target_id] = intersection / (target == target_id).sum()
 
     return iou, precision, recall
 

@@ -11,7 +11,7 @@ from pointtree.evaluation import (
 )
 
 
-class TestInstanceSegmentationMetrics:
+class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-methods
     """Tests for pointtree.evaluation.instance_segmentation_metrics."""
 
     @pytest.mark.parametrize("min_precision_fp", [0.5, 0.6])

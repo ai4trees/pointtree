@@ -121,10 +121,10 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         "TP": tp,
         "FP": fp,
         "FN": fn,
-        "Precision": tp / (tp + fp),
-        "CommissionError": fp / (tp + fp),
-        "Recall": tp / (tp + fn),
-        "OmissionError": fn / (tp + fn),
+        "Precision": tp / (tp + fp) if (tp + fp) > 0 else np.nan,
+        "CommissionError": fp / (tp + fp) if (tp + fp) > 0 else np.nan,
+        "Recall": tp / (tp + fn) if (tp + fn) > 0 else np.nan,
+        "OmissionError": fn / (tp + fn) if (tp + fn) > 0 else np.nan,
         "F1Score": 2 * tp / (2 * tp + fp + fn),
     }
 
@@ -150,7 +150,8 @@ def _compute_instance_segmentation_metrics(
 
     Returns:
         :A tuple of three arrays: The first contains the IoU, the second the precision, and the third the recall for
-        each instance pair.
+        each instance pair. For ground-truth instances that have not been matched to any predicted instance, the metrics
+        are set to zero.
 
     Shape:
         - :code:`target`: :math:`(N)`
@@ -310,14 +311,15 @@ def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too
 
     Returns:
         :A tuple of three arrays: The first contains the IoU, the second the precision, and the third the recall for
-        each partition for each instance pair.
+        each partition for each instance pair. For ground-truth instances that have not been matched to any predicted
+        instance, the metrics are set to zero.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
         - :code:`target`: :math:`(N)`
         - :code:`prediction`: :math:`(N)`
         - :code:`matched_predicted_ids`: :math:`(G)`
-        - Output: Three arrays of shape :math:(N, P)
+        - Output: Three arrays of shape :math:(G, P)
 
         | where
         |
@@ -360,14 +362,14 @@ def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too
             distance = xy_centered**2
             distance = np.sqrt(distance[:, 0] + distance[:, 1])
             distance_target = distance[target_mask]
-            regularized_max = np.quantile(distance_target, 0.95)  # distance_target[sorted_indices[-5]]
+            regularized_max = np.quantile(distance_target, 0.95)
             distance = distance / regularized_max
 
         elif partition == "z":
             # get relative distance to lowest point (0=lowest point, 1=highest point)
             distance = xyz[:, 2] - min_z
 
-            regularized_max = np.quantile(tree_xyz[:, 2], 0.95)  # [sorted_indices[-5]]
+            regularized_max = np.quantile(tree_xyz[:, 2], 0.95)
             distance = distance / (regularized_max - min_z)
 
         for i in range(num_partitions):

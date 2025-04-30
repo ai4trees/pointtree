@@ -8,6 +8,7 @@ from typing import Literal, Optional, Tuple, Union, cast
 
 from scipy.spatial import KDTree
 import numpy as np
+import numpy.typing as npt
 from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, footprint_rectangle, dilation, erosion
@@ -583,8 +584,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             crown_indices = crown_indices.flatten()
 
             trunk_distances, trunk_indices = KDTree(trunk_positions).query(crown_top_positions, k=1)
-            trunk_distances = trunk_distances.flatten()
-            trunk_indices = trunk_indices.flatten()
+            trunk_distances = cast(npt.NDArray, trunk_distances)
+            trunk_indices = cast(npt.NDArray, trunk_indices.flatten())
 
             tree_positions = []
             matched_crown_positions = []
@@ -980,7 +981,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
             kd_tree = KDTree(tree_coords)
 
-            neighbor_distances = kd_tree.query(tree_coords, k=2)[0]
+            neighbor_distances = cast(np.ndarray, kd_tree.query(tree_coords, k=2)[0])
+            neighbor_distances = cast(np.ndarray, neighbor_distances)
             neighbor_distances = neighbor_distances[:, 1].flatten()
 
             instances_to_refine = []

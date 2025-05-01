@@ -584,12 +584,12 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 return trunk_positions
 
             crown_distances, crown_indices = KDTree(crown_top_positions).query(trunk_positions, k=1)
-            crown_distances = crown_distances.flatten()
-            crown_indices = crown_indices.flatten()
+            crown_distances = cast(np.ndarray, crown_distances).flatten()
+            crown_indices = cast(np.ndarray, crown_indices).flatten()
 
             trunk_distances, trunk_indices = KDTree(trunk_positions).query(crown_top_positions, k=1)
-            trunk_distances = cast(npt.NDArray, trunk_distances)
-            trunk_indices = cast(npt.NDArray, trunk_indices.flatten())
+            trunk_distances = cast(npt.NDArray, trunk_distances).flatten()
+            trunk_indices = cast(npt.NDArray, trunk_indices).flatten()
 
             tree_positions = []
             matched_crown_positions = []
@@ -1147,7 +1147,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 float(self._max_radius_region_growing),
                 float(self._grid_size_canopy_height_model),
                 float(self._multiplier_outside_coarse_border),
-                int(self._num_workers)
+                int(self._num_workers),
             )
 
     def __call__(  # pylint: disable=too-many-locals

@@ -43,6 +43,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     Using Dense Forest Point Clouds from Personal Laser Scanning (PLS)." International Journal of Applied Earth \
     Observation and Geoinformation 114 (2022): 103025. <https://doi.org/10.1016/j.jag.2022.103025>`__.
 
+    Args:
+        invalid_tree_id: ID that is assigned to points that do not belong to any tree instance. Defaults to -1.
+        num_workers (int, optional): Number of workers to use for parallel processing. If :code:`workers` is set to -1,
+            all CPU threads are used. Defaults to :code:`-1`.
+        visualization_folder (str | pathlib.Path, optional): Path of a directory in which to store visualizations of
+            intermediate results of the algorithm. Defaults to :code:`None`, which means that no visualizations are
+            created.
+
     The  individual steps of the algorithm and their parameters are described in the following:
 
     .. rubric:: 1. Terrain Filtering Using the CSF Algorithm
@@ -299,17 +307,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         region_growing_cum_search_dist_include_terrain (float, optional): Maximum cumulative search distance between the
             initial seed point and a terrain point to include that terrain point in a tree instance (in meters).
             Defaults to 2 m.
-        invalid_tree_id: ID that is assigned to points that do not belong to any tree instance. Defaults to -1.
-        num_workers (int, optional): Number of workers to use for parallel processing. If :code:`workers` is set to -1,
-            all CPU threads are used. Defaults to :code:`-1`.
-        visualization_folder (str | pathlib.Path, optional): Path of a directory in which to store visualizations of
-            intermediate results of the algorithm. Defaults to :code:`None`, which means that no visualizations are
-            created.
     """
 
-    def __init__(  # pylint: disable=too-many-arguments, too-many-locals
+    def __init__(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
         self,
         *,
+        invalid_tree_id: int = -1,
+        num_workers: Optional[int] = -1,
+        visualization_folder: Optional[Union[str, Path]] = None,
         # CSF parameters
         csf_terrain_classification_threshold: float = 0.1,
         csf_tree_classification_threshold: float = 0.5,
@@ -329,10 +334,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_dbscan_2d_eps: float = 0.025,
         trunk_search_dbscan_2d_min_points: int = 90,
         trunk_search_switch_clustering_3d_params_treshold: Optional[float] = 0.22,
-        trunk_search_dbscan_3d_eps_large: Optional[float] = 0.02,
-        trunk_search_dbscan_3d_min_points_large: Optional[int] = 20,
-        trunk_search_dbscan_3d_eps_small: Optional[float] = 0.023,
-        trunk_search_dbscan_3d_min_points_small: Optional[int] = 18,
+        trunk_search_dbscan_3d_eps_large: float = 0.02,
+        trunk_search_dbscan_3d_min_points_large: int = 20,
+        trunk_search_dbscan_3d_eps_small: float = 0.023,
+        trunk_search_dbscan_3d_min_points_small: int = 18,
         trunk_search_min_cluster_points: Optional[int] = 300,
         trunk_search_min_cluster_height: Optional[float] = 1.3,
         trunk_search_min_cluster_intensity: Optional[float] = 6000,
@@ -364,9 +369,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         region_growing_decrease_search_radius_after_num_iter: int = 10,
         region_growing_max_iterations: int = 1000,
         region_growing_cum_search_dist_include_terrain: float = 2,
-        invalid_tree_id: int = -1,
-        num_workers: Optional[int] = -1,
-        visualization_folder: Optional[Union[str, Path]] = None,
     ):
         super().__init__()
 
@@ -481,7 +483,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         ) as tif_file:
             tif_file.write(dtm, 1)
 
-    def find_trunks(  # pylint: disable=too-many-locals
+    def find_trunks(  # pylint: disable=too-many-locals, too-many-statements
         self, trunk_layer_xyz: npt.NDArray, intensities: Optional[npt.NDArray], point_cloud_id: Optional[str] = None
     ) -> Tuple[npt.NDArray, npt.NDArray]:
         r"""
@@ -647,13 +649,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             (
                 layer_circles,
                 layer_ellipses,
-                layer_heights,
                 trunk_layer_xy,
                 batch_lengths_xy,
             ) = self.fit_exact_circles_and_ellipses_to_trunks(
-                trunk_layer_xyz, preliminary_layer_circles_or_ellipses, point_cloud_id=point_cloud_id
+                trunk_layer_xyz, layer_circles, layer_ellipses, point_cloud_id=point_cloud_id
             )
-            del preliminary_layer_circles_or_ellipses
 
         with Profiler(
             "Filtering of trunk clusters based on standard deviation of circle / ellipse diameters",

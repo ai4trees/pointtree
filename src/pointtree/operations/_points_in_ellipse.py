@@ -31,7 +31,6 @@ def points_in_ellipse(xy: npt.NDArray, ellipse: npt.NDArray) -> npt.NDArray[np.b
     Shape:
         - :code:`xy`: :math:`(N, 2)`
         - :code:`ellipse`: :math:`(5)`
-        - :code:`batch_indices_query_points`: :math:`(N')`
         - Output: :math:`(N)`
 
           | where
@@ -42,7 +41,7 @@ def points_in_ellipse(xy: npt.NDArray, ellipse: npt.NDArray) -> npt.NDArray[np.b
     if xy.ndim != 2 or xy.shape[1] != 2:
         raise ValueError("xy must be an array of 2D coordinates.")
 
-    if ellipse.shape != (5,):
+    if ellipse.ndim != 1 or ellipse.shape[0] != 5:
         raise ValueError("ellipse must contain five parameters.")
 
     if not xy.flags.f_contiguous:

@@ -31,7 +31,7 @@ def fit_ellipse(xy: npt.NDArray, batch_lengths: npt.NDArray, num_workers: int = 
             Defaults to 1.
 
     Returns:
-        Parameters of the fitted ellipses in the following order: X- and y-coordinates of the center, radius along the
+        :Parameters of the fitted ellipses in the following order: X- and y-coordinates of the center, radius along the
         semi-major and along the semi-minor axis, and the counterclockwise angle of rotation from the x-axis to the
         semi-major axis of the ellipse. If no ellipse is detected for a batch item, all ellipse parameters for this
         batch item are set to -1.
@@ -52,6 +52,6 @@ def fit_ellipse(xy: npt.NDArray, batch_lengths: npt.NDArray, num_workers: int = 
     """
 
     if not xy.flags.f_contiguous:
-        xy = xy.copy(order="F")  # ensure that the input array is in column-major
+        xy = xy.copy(order="F")  # ensure that the input array is in column-major format
 
     return fit_ellipse_cpp(xy, batch_lengths, num_workers)

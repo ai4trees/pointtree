@@ -22,7 +22,7 @@ class TestPlotFittedShape:
         shutil.rmtree(cache_dir)
 
     @pytest.mark.parametrize("use_pathlib", [True, False])
-    def test_plot_circle_fit(self, use_pathlib: bool, cache_dir):
+    def test_plot_circle(self, use_pathlib: bool, cache_dir):
         xy = np.array([[-1, 0], [0, -1], [1, 0], [0, 1]], dtype=np.float64)
         circle = np.array([0, 0, 1], dtype=np.float64)
 
@@ -45,7 +45,7 @@ class TestPlotFittedShape:
             plot_fitted_shape(xy, file_path, circle=circle)
 
     @pytest.mark.parametrize("use_pathlib", [True, False])
-    def test_plot_ellipse_fit(self, use_pathlib: bool, cache_dir):
+    def test_plot_ellipse(self, use_pathlib: bool, cache_dir):
         xy = np.array([[-2, 2], [2, -2], [3, 3], [-3, -3]], dtype=np.float64)
         ellipse = np.array([0, 0, np.sqrt(2 * 9), np.sqrt(2 * 4), np.pi / 4], dtype=np.float64)
 

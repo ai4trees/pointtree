@@ -51,7 +51,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             performed with the full resolution of the point cloud.
         visualization_folder: Path of a directory in which to store visualizations of intermediate results of the
             algorithm. Defaults to `None`, which means that no visualizations are stored.
-
+        num_workers (int, optional): Number of workers to use for parallel processing. If :code:`workers` is set to -1,
+            all CPU threads are used. Defaults to :code:`-1`.
+            
     Parameters for the DBSCAN clustering of trunk points:
         eps_trunk_clustering: Parameter :math:`\epsilon` for clustering the trunk points using the DBSCAN
             algorithm. Further details on the meaning of the parameter can be found in the documentation of
@@ -114,6 +116,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         algorithm: Literal["full", "watershed_crown_top_positions", "watershed_matched_tree_positions"] = "full",
         downsampling_voxel_size: Optional[float] = None,
         visualization_folder: Optional[Union[str, Path]] = None,
+        num_workers: int = -1,
         eps_trunk_clustering: float = 2.5,
         min_samples_trunk_clustering: int = 1,
         min_trunk_points: int = 100,
@@ -144,6 +147,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         self._crown_class_id = crown_class_id
         self._branch_class_id = branch_class_id
         self._downsampling_voxel_size = downsampling_voxel_size
+        self._num_workers = num_workers
 
         # Parameters for the DBSCAN clustering of trunk points
         self._eps_trunk_clustering = eps_trunk_clustering
@@ -1143,6 +1147,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 float(self._max_radius_region_growing),
                 float(self._grid_size_canopy_height_model),
                 float(self._multiplier_outside_coarse_border),
+                int(self._num_workers)
             )
 
     def __call__(  # pylint: disable=too-many-locals
@@ -1155,7 +1160,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         Segments tree instances in a point cloud.
 
         Args:
-            xyz: 3D coordinates the point cloud to be segmented.
+            xyz: 3D coordinates of the point cloud to be segmented.
             classification: Semantic segmentation class IDs
             point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
                 `None`, which means that no visualizations are created.

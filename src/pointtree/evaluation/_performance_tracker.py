@@ -14,7 +14,7 @@ class PerformanceTracker:
 
     def reset(self):
         """
-        Deletes all tracked execution times.
+        Deletes all tracked data.
         """
 
         self._performance_metrics = {
@@ -26,12 +26,17 @@ class PerformanceTracker:
 
     def save(self, desc: str, wall_clock_time: float, cpu_time: float, memory_usage: float, memory_increment: float):
         """
-        Save the execution time of a certain code section.
+        Save the execution time and memory usage of a certain code section.
 
         Args:
             desc: Description of the tracked code. If a value has already been saved for the description, the values are
                 summed.
-            value: Execution time of the tracked code.
+            wall_clock_time: `Wallclock time <https://en.wikipedia.org/wiki/Elapsed_real_time>`__ needed for the
+                execution of the tracked code.
+            cpu_time: `CPU time <https://en.wikipedia.org/wiki/CPU_time>`__ needed for the execution of the tracked
+                code.
+            memory_usage: Peak memory usage by the tracked code.
+            memory_increment: Increase in allocated memory before entering and after exiting the tracked code section.
         """
 
         for metric_name, metric_value in (

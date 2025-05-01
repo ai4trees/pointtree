@@ -18,44 +18,62 @@ The documentation of our package is available [here](https://ai4trees.github.io/
 
 The setup of our package is described in the [documentation](https://ai4trees.github.io/pointtree/stable#get-started).
 
-### Using the Package on Your Data
+### How To Use the Package
 
-The `TreeXAlgorithm` can be used to segment tree instances in point clouds of forest areas. The algorithm assumes that
-the input point clouds includes terrain and vegetation points, but no other types of objects (e.g., no man-made
-structures). The following code can be used to apply the `TreeXAlgorithm` to a point cloud file:
+The `TreeXAlgorithm` segments individual tree instances from point clouds of forest areas. It assumes that the input point cloud contains only terrain and vegetation points. If your data includes other objects (e.g., man-made structures), the algorithm can still be applied, but its accuracy may be reduced.
+
+#### 1. Creating an Algorithm Instance
+
+To get started, create an instance of the `TreeXAlgorithm` class. All parameters have default values, but you can override them by passing keyword arguments to the constructor. For a complete list of parameters and their descriptions, see the [documentation](https://ai4trees.github.io/pointtree/v0.1.0/pointtree.instance_segmentation.html#pointtree.instance_segmentation.TreeXAlgorithm).
+
+```python
+from pointtree.instance_segmentation import TreeXAlgorithm
+
+# Optional: specify a folder for saving visualizations of intermediate results
+# Note: generating visualizations slows down processing and is recommended only for small datasets
+visualization_folder = "./visualizations"  # or set to None to disable
+
+algorithm = TreeXAlgorithm(visualization_folder=visualization_folder)
+```
+
+#### 2. Using Presets
+
+We provide presets tailored to typical point cloud characteristics from different laser scanning modalities: terrestrial (TLS), personal (PLS), and UAV-borne (ULS). These presets simplify setup for common use cases.
+
+```python
+from pointtree.instance_segmentation import TreeXPresetTLS, TreeXPresetPLS, TreeXPresetULS
+
+preset = TreeXPresetTLS()  # or use TreeXPresetPLS(), TreeXPresetULS()
+algorithm = TreeXAlgorithm(**preset)
+```
+
+#### 3. Running the Algorithm
+
+The algorithm requires a numpy array of shape (n_points, 3) as input, containing the xyz-coordinates of the point cloud. If available, you can also pass reflection intensity values which may improve segmentation accuracy.
+
+The algorithm returns a tuple of three numpy arrays:
+
+- instance IDs: an array of instance labels (points that belong to the same tree have the same ID, points not belonging to any tree have the ID -1),
+- trunk positions: 2D coordinates of the detected tree trunks at breast height
+- trunk diameters: diameters of the detected trunks at breast height.
 
 ```python
 from pointtorch import read
-import pandas as pd
-import numpy as np
 
-from pointtree.instance_segmentation import TreeXAlgorithm
-
-# path of the input point cloud file
-# pointtorch.read currently supports .csv, .las, and .laz files
+# Load your point cloud (supports .txt, .csv, .las, .laz, .ply)
 file_path = "./demo.laz"
 point_cloud = read(file_path)
 
-# if you want to visualize intermediate results of the algorithm, you can to specify a directory in which to save the images
-visualization_folder = "./visualizations"
+# Run the algorithm
+instance_ids, trunk_positions, trunk_diameters = algorithm(
+    point_cloud[["x", "y", "z"]].to_numpy(),
+    intensities=point_cloud["intensity"].to_numpy(),
+    point_cloud_id="Sauen",  # Optional: Used for naming visualization / intermediate outputs
+    crs="EPSG:4326"  # Optional: Used for georeferencing intermediate outputs
+)
 
-# creating visualizations slows down the algorithm and is therefore only recommended for small datasets
-# if you don't need the visualizations, you can just set the visualization_folder to None:
-visualization_folder = None
-
-# all parameters of the algorithm have default values
-# to overwrite the default settings, you can pass additional keyword arguments to the constructor of the TreeXAlgorithm class
-algorithm = TreeXAlgorithm(visualization_folder=visualization_folder)
-
-# the only required input of the algorithm is a numpy array that contains the xyz-coordinates of all points
-# to create visualizations of the intermediate results, you additionally need to specify a point_cloud_id, which is used in the file names of the created images
-# the algorithm returns three values: an array with instance IDs for all input points (points that belong to the same tree have the same ID, points not belonging to any tree have the ID -1), the 2D trunk positions at breast height and the trunk diameters at breast height
-instance_ids, trunk_positions, trunk_diameters = algorithm(point_cloud[["x", "y", "z"]].to_numpy(), point_cloud_id="Sauen")
-
-# add the instance IDs as a new column to the point cloud 
+# Add results to the point cloud and save to a new file
 point_cloud["instance_id"] = instance_ids
-
-# save the segmented point cloud in a new file
 point_cloud.to("./demo_segmented.laz", columns=["x", "y", "z", "instance_id"])
 ```
 

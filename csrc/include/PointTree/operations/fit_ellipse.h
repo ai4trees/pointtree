@@ -17,7 +17,7 @@
 namespace PointTree {
 
 template <typename scalar_T>
-ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths, int num_workers = 1) {
+ArrayX5<scalar_T> fit_ellipse(RefArrayX2<scalar_T> xy, RefArrayXl batch_lengths, int num_workers = -1) {
   /*
   This C++ implementation is based on the Python implementation from the scikit-image package:
 

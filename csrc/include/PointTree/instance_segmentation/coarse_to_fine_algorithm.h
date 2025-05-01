@@ -1,6 +1,7 @@
 #include <omp.h>
 
 #include <Eigen/Dense>
+#include <algorithm>
 #include <iostream>
 #include <nanoflann.hpp>
 #include <queue>
@@ -23,10 +24,15 @@ ArrayXl grow_trees(
     std::vector<ArrayXX<scalar_T>> crown_distance_fields,
     RefArrayXb seed_mask,
     scalar_T z_scale,
-    int num_neighbors_region_growing,
+    int64_t num_neighbors_region_growing,
     scalar_T max_radius_region_growing,
     scalar_T grid_size_canopy_height_model,
-    scalar_T multiplier_outside_coarse_border) {
+    scalar_T multiplier_outside_coarse_border,
+    int num_workers = -1) {
+  if (num_workers <= 0) {
+    num_workers = omp_get_max_threads();
+  }
+
   int64_t num_points = tree_xyz.rows();
   int64_t num_instances = unique_instances_ids.rows();
   int64_t num_instances_region_growing = crown_distance_fields.size();
@@ -38,10 +44,16 @@ ArrayXl grow_trees(
     return instance_ids;
   }
 
+  num_neighbors_region_growing = std::min(num_neighbors_region_growing, num_points);
+
   std::vector<int64_t> growing_indices;
+  std::set<int64_t> region_growing_instance_ids;
 
   for (int64_t i = 0; i < num_points; ++i) {
-    if (seed_mask(i) || instance_ids(i) == -1) {
+    if (seed_mask(i)) {
+      growing_indices.push_back(i);
+      region_growing_instance_ids.insert(instance_ids(i));
+    } else if (instance_ids(i) == -1) {
       growing_indices.push_back(i);
     }
   }
@@ -55,14 +67,6 @@ ArrayXl grow_trees(
 
   ArrayXl instance_id_mapping = ArrayXl::Constant(num_instances, -1);
   ArrayXl inverse_instance_id_mapping = ArrayXl::Constant(num_instances_region_growing, -1);
-
-  std::set<int64_t> region_growing_instance_ids;
-
-  for (int64_t i = 0; i < num_points; ++i) {
-    if (seed_mask(i)) {
-      region_growing_instance_ids.insert(instance_ids(i));
-    }
-  }
 
   int64_t remapped_id = 0;
   for (int64_t i = 0; i < num_instances; ++i) {
@@ -81,7 +85,7 @@ ArrayXl grow_trees(
   ArrayXXl neighbor_indices(growing_xyz.rows(), num_neighbors_region_growing);
   ArrayXX<scalar_T> squared_neighbor_dists(growing_xyz.rows(), num_neighbors_region_growing);
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(num_workers)
   for (int64_t i = 0; i < growing_xyz.rows(); ++i) {
     std::vector<int64_t> knn_index(num_neighbors_region_growing);
     std::vector<scalar_T> knn_dist(num_neighbors_region_growing);

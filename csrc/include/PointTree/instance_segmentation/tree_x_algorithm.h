@@ -19,15 +19,10 @@ namespace PointTree {
 
 template <typename scalar_T>
 ArrayX2<scalar_T> compute_layer_bounds(
-    scalar_T start_z, int64_t num_layers, scalar_T layer_height, scalar_T layer_overlap, int num_workers = -1) {
-  if (num_workers <= 0) {
-    num_workers = omp_get_max_threads();
-  }
-
+    scalar_T start_z, int64_t num_layers, scalar_T layer_height, scalar_T layer_overlap) {
   ArrayX2<scalar_T> layer_bounds;
   layer_bounds.resize(num_layers, 2);
 
-#pragma omp parallel for num_threads(num_workers)
   for (int64_t layer = 0; layer < num_layers; ++layer) {
     if (layer == 0) {
       layer_bounds(layer, 0) = start_z;
@@ -50,7 +45,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
     scalar_T trunk_search_circle_fitting_layer_height,
     scalar_T trunk_search_circle_fitting_layer_overlap,
     int64_t trunk_search_circle_fitting_min_points = 0,
-    int num_workers = 1) {
+    int num_workers = -1) {
   if (num_workers <= 0) {
     num_workers = omp_get_max_threads();
   }
@@ -61,35 +56,35 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
 
   auto num_labels = unique_cluster_labels.rows();
   auto num_layers = trunk_search_circle_fitting_num_layers;
-  std::vector<std::vector<int64_t>> batch_indices(num_labels * num_layers);
+  std::vector<std::vector<int64_t>> batch_point_indices(num_labels * num_layers);
   ArrayXl batch_lengths = ArrayXl::Constant(num_labels * num_layers, 0);
 
   ArrayX2<scalar_T> layer_bounds = compute_layer_bounds<scalar_T>(
       trunk_search_min_z, trunk_search_circle_fitting_num_layers, trunk_search_circle_fitting_layer_height,
-      trunk_search_circle_fitting_layer_overlap, num_workers);
+      trunk_search_circle_fitting_layer_overlap);
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t idx = 0; idx < num_labels * num_layers; ++idx) {
     int64_t label = idx / num_layers;
     int64_t layer = idx % num_layers;
-    std::vector<int64_t> current_batch_indices;
+    std::vector<int64_t> current_batch_point_indices;
     for (int64_t i = 0; i < trunk_layer_xyz.rows(); ++i) {
       if (cluster_labels(i) == unique_cluster_labels(label) && trunk_layer_xyz(i, 2) >= layer_bounds(layer, 0) &&
           trunk_layer_xyz(i, 2) <= layer_bounds(layer, 1)) {
-        current_batch_indices.push_back(i);
+        current_batch_point_indices.push_back(i);
       }
     }
-    if (current_batch_indices.size() >= trunk_search_circle_fitting_min_points) {
-      batch_indices[idx] = current_batch_indices;
-      batch_lengths[idx] = current_batch_indices.size();
+    if (current_batch_point_indices.size() >= trunk_search_circle_fitting_min_points) {
+      batch_point_indices[idx] = current_batch_point_indices;
+      batch_lengths[idx] = current_batch_point_indices.size();
     }
   }
 
   ArrayXl selected_indices(batch_lengths.sum());
   int64_t start_idx = 0;
-  for (int64_t i = 0; i < batch_indices.size(); ++i) {
+  for (int64_t i = 0; i < batch_point_indices.size(); ++i) {
     selected_indices(Eigen::seqN(start_idx, batch_lengths(i))) =
-        Eigen::Map<ArrayXl>(batch_indices[i].data(), batch_indices[i].size());
+        Eigen::Map<ArrayXl>(batch_point_indices[i].data(), batch_point_indices[i].size());
     start_idx += batch_lengths(i);
   }
 
@@ -118,12 +113,12 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
 
   auto num_layers = trunk_search_circle_fitting_num_layers;
   auto num_labels = preliminary_layer_circles.rows() / num_layers;
-  std::vector<std::vector<int64_t>> batch_indices(num_labels * num_layers);
+  std::vector<std::vector<int64_t>> batch_point_indices(num_labels * num_layers);
   ArrayXl batch_lengths = ArrayXl::Constant(preliminary_layer_circles.rows(), 0);
 
   ArrayX2<scalar_T> layer_bounds = compute_layer_bounds<scalar_T>(
       trunk_search_min_z, trunk_search_circle_fitting_num_layers, trunk_search_circle_fitting_layer_height,
-      trunk_search_circle_fitting_layer_overlap, num_workers);
+      trunk_search_circle_fitting_layer_overlap);
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t layer = 0; layer < num_layers; ++layer) {
@@ -138,12 +133,12 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
     KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(layer_xy), 10 /* max leaf size */);
 
     for (int64_t label = 0; label < num_labels; ++label) {
-      std::vector<int64_t> current_batch_indices;
+      std::vector<int64_t> current_batch_point_indices;
 
       int64_t flat_idx = label * num_layers + layer;
 
       bool is_circle = preliminary_layer_circles(flat_idx, 2) != -1;
-      bool is_ellipse = preliminary_layer_ellipses(flat_idx, 3) != -1;
+      bool is_ellipse = preliminary_layer_ellipses(flat_idx, 2) != -1;
 
       if (!is_circle && !is_ellipse) {
         continue;
@@ -171,7 +166,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
           auto dist = search_result[i].second;
 
           if (dist >= min_radius_squared) {
-            current_batch_indices.push_back(layer_point_indices[idx]);
+            current_batch_point_indices.push_back(layer_point_indices[idx]);
           }
         }
       } else {
@@ -201,29 +196,29 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
         outer_ellipse({2, 3}) += buffer_width;
         ArrayX<scalar_T> inner_ellipse = ellipse;
         inner_ellipse({2, 3}) -= buffer_width;
-        ArrayX2<scalar_T> neighbor_points = trunk_layer_xyz(neighbor_indices, {0, 1});
-        ArrayXb is_in_outer_ellipse = points_in_ellipse<scalar_T>(neighbor_points, outer_ellipse);
-        ArrayXb is_in_inner_ellipse = points_in_ellipse<scalar_T>(neighbor_points, inner_ellipse);
+        ArrayX2<scalar_T> neighbor_xy = trunk_layer_xyz(neighbor_indices, {0, 1});
+        ArrayXb is_in_outer_ellipse = points_in_ellipse<scalar_T>(neighbor_xy, outer_ellipse);
+        ArrayXb is_in_inner_ellipse = points_in_ellipse<scalar_T>(neighbor_xy, inner_ellipse);
 
         for (int64_t i = 0; i < num_neighbors; ++i) {
           if (is_in_outer_ellipse(i) && !is_in_inner_ellipse(i)) {
-            current_batch_indices.push_back(neighbor_indices[i]);
+            current_batch_point_indices.push_back(neighbor_indices[i]);
           }
         }
       }
 
-      if (current_batch_indices.size() >= trunk_search_circle_fitting_min_points) {
-        batch_indices[flat_idx] = current_batch_indices;
-        batch_lengths[flat_idx] = current_batch_indices.size();
+      if (current_batch_point_indices.size() >= trunk_search_circle_fitting_min_points) {
+        batch_point_indices[flat_idx] = current_batch_point_indices;
+        batch_lengths[flat_idx] = current_batch_point_indices.size();
       }
     }
   }
 
   ArrayXl selected_indices(batch_lengths.sum());
   int64_t start_idx = 0;
-  for (int64_t i = 0; i < batch_indices.size(); ++i) {
+  for (int64_t i = 0; i < batch_point_indices.size(); ++i) {
     selected_indices(Eigen::seqN(start_idx, batch_lengths(i))) =
-        Eigen::Map<ArrayXl>(batch_indices[i].data(), batch_indices[i].size());
+        Eigen::Map<ArrayXl>(batch_point_indices[i].data(), batch_point_indices[i].size());
     start_idx += batch_lengths(i);
   }
 
@@ -239,7 +234,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     scalar_T region_growing_seed_layer_height,
     scalar_T region_growing_seed_diameter_factor,
     scalar_T region_growing_seed_min_diameter,
-    int num_workers = 1) {
+    int num_workers = -1) {
   if (num_workers <= 0) {
     num_workers = omp_get_max_threads();
   }
@@ -256,16 +251,16 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
   ArrayXl instance_ids = ArrayXl::Constant(num_points, -1);
 
-  std::vector<int64_t> trunk_layer_indices;
+  std::vector<int64_t> seed_layer_indices;
   for (int64_t i = 0; i < xyz.rows(); ++i) {
     if ((distance_to_dtm(i) >= 1.3 - region_growing_seed_layer_height / 2) &&
         (distance_to_dtm(i) <= 1.3 + region_growing_seed_layer_height / 2)) {
-      trunk_layer_indices.push_back(i);
+      seed_layer_indices.push_back(i);
     }
   }
 
-  MatrixX2<scalar_T> trunk_layer_xy = xyz(trunk_layer_indices, {0, 1}).matrix();
-  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(trunk_layer_xy), 10 /* max leaf size */);
+  MatrixX2<scalar_T> seed_layer_xy = xyz(seed_layer_indices, {0, 1}).matrix();
+  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(seed_layer_xy), 10 /* max leaf size */);
 
   std::vector<int64_t> seed_indices = {};
 
@@ -291,8 +286,8 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
     std::transform(
         search_result.begin(), search_result.end(), current_seed_indices.begin(),
-        [trunk_layer_indices](const nanoflann::ResultItem<int64_t, scalar_T> &x) {
-          return trunk_layer_indices[x.first];
+        [seed_layer_indices](const nanoflann::ResultItem<int64_t, scalar_T> &x) {
+          return seed_layer_indices[x.first];
         });
 
 #pragma omp critical
@@ -326,7 +321,7 @@ ArrayXl segment_tree_crowns(
     int64_t region_growing_decrease_search_radius_after_num_iter,
     int64_t region_growing_max_iterations,
     scalar_T region_growing_cum_search_dist_include_terrain,
-    int num_workers) {
+    int num_workers = -1) {
   if (num_workers <= 0) {
     num_workers = omp_get_max_threads();
   }
@@ -442,6 +437,8 @@ ArrayXl segment_tree_crowns(
     search_radius_squared = search_radius * search_radius;
     cumulative_search_dist += search_radius;
   }
+
+  xyz.col(2) = xyz.col(2) * region_growing_z_scale;
 
   return instance_ids;
 }

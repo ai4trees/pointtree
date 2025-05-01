@@ -441,12 +441,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self, dtm: npt.NDArray, dtm_offset: npt.NDArray, point_cloud_id: str, crs: Optional[str] = None
     ) -> None:
         r"""
-        Exports the given digital terran model as GeoTIF.
+        Exports the given digital terran model as a GeoTIF file.
 
         Args:
             dtm: Digital terrain model.
             dtm_offset: X- and y-coordinate of the top left corner of the DTM grid.
             point_cloud_id: ID of the point cloud to be used in the file name.
+            crs: Coordinate reference system to be used. Defaults to :code:`None`, which means that the output file is
+                not georeferenced.
 
         Returns:
             ValueError: If :code:`self._visualization_folder` is :code:`None`.
@@ -454,17 +456,15 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         Shape:
             - :code:`dtm`: :math:`(H, W)`
             - :code:`dtm_offset`: :math:`(2)`
-            - Output: Tuple of two arrays. The first has shape :math:`(H, W)` and second has shape :math:`(2)`.
 
             | where
             |
-            | :math:`N = \text{ number of terrain points}`
             | :math:`H = \text{ extent of the DTM grid in y-direction}`
             | :math:`W = \text{ extent of the DTM grid in x-direction}`
         """
 
         if self._visualization_folder is None:
-            raise ValueError("To create a DTM file, the visualization folder must be set.")
+            raise ValueError("To create a DTM file, the visualization folder must not be None.")
 
         dtm_origin = dtm_offset - self._dtm_resolution / 2
 

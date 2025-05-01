@@ -26,4 +26,4 @@ def hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
         rgb_color.append(decimal)
     rgb_color.append(255)
 
-    return tuple((np.array(rgb_color).astype(float) / 255))
+    return tuple((np.array(rgb_color).astype(float) / 255).tolist())

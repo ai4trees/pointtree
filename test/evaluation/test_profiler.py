@@ -3,7 +3,6 @@
 import time
 
 import numpy as np
-import pytest
 
 
 from pointtree.evaluation import Profiler, PerformanceTracker

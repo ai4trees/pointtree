@@ -104,16 +104,27 @@ jobs:
         with:
           python-version: ${{ matrix.version.python }}
       - name: Install package and dependencies
+        if: ${{ matrix.version.python != '3.13'}}
         shell: bash
         run: |
+          apt-get update && apt-get install -y --no-install-recommends g++
           python -m pip install torch==${{ matrix.version.torch }}
-          python -m pip install --upgrade wheel "setuptools>=62.3.0,<75.9" numpy
           python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install --upgrade -e .'[dev, docs]'
           pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
+      - name: Install package and dependencies
+        if: ${{ matrix.version.python == '3.13'}}
+        shell: bash
+        run: |
+          python -m pip install torch==${{ matrix.version.torch }}
+          python -m pip install --upgrade wheel setuptools numpy
+          python -m pip install --no-use-pep517 torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install --upgrade -e .'[dev, docs]'
+          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
       - name: Install compatible numpy version
-        if: ${{ matrix.version.python == '3.9' || matrix.version.python == '3.10' || matrix.version.python == '3.11' }}
+        if: ${{ matrix.version.python == '3.10' || matrix.version.python == '3.11' || matrix.version.python == '3.12' }}
         shell: bash
         run: |
           python -m pip install numpy==1.26.4

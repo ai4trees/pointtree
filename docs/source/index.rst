@@ -29,6 +29,16 @@ Get started
    .. literalinclude:: how-to/install/includes/install.sh
       :language: sh
 
+To avoid the manual installation of the package and it's dependencies, you can also use our Docker container, which
+contains a ready-to-use installation of the pointtree package. To start the container you can run:
+
+````bash
+docker run --rm -it josafatburmeister/pointtree:latest
+```
+
+Inside the image, you can just start the Python interpreter and import the pointtree package.
+
+
 Upgrade
 -------
 

@@ -23,16 +23,17 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
     polygon: Optional[npt.NDArray[np.float64]] = None,
 ) -> None:
     r"""
-    Plots a shape fitted to a set of 2D points. The shape to be plotted can either be a circle, an ellipse or polygon.
+    Plots a shape fitted to a set of 2D points. The shape to be plotted can either be a circle, an ellipse, or a
+    polygon.
 
     Args:
-        xy: Coordinates of the points to which the circle was fitted.
+        xy: Coordinates of the points to which the shape was fitted.
         file_path: File path under which the image is to be saved.
         circle: Parameters of the circle in the following order: x-coordinate of the center, y-coordinate of the center,
             radius. Defaults to :code:`None`, which means that no circle is plotted.
         ellipse: Parameters of the ellipse in the following order: x- and y-coordinates of the center, radius along the
             semi-major, radius along the semi-minor axis, and the counterclockwise angle of rotation from the x-axis to
-            the semi-major axis of the ellipse.
+            the semi-major axis of the ellipse. Defaults to :code:`None`, which means that no ellipse is plotted.
         polygon: Sorted vertices (x- and y-coordinates) of the polygon. Defaults to :code:`None`, which means that no
             polygon is plotted.
 
@@ -60,15 +61,15 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
     fig_width_x = xy[:, 0].max() - xy[:, 0].min()
     fig_width_y = xy[:, 1].max() - xy[:, 1].min()
     fig_width = max(fig_width_x, fig_width_y)
-    fig_center_x = xy[:, 0].min() + fig_width_x / 2
-    fig_center_y = xy[:, 1].min() + fig_width_y / 2
+    fig_center_x = xy[:, 0].min() + fig_width / 2
+    fig_center_y = xy[:, 1].min() + fig_width / 2
     padding = max(0.2 * fig_width, 0.1)
 
     axis.set_xlim((fig_center_x - fig_width / 2 - padding, fig_center_x + fig_width / 2 + padding))
     axis.set_ylim((fig_center_y - fig_width / 2 - padding, fig_center_y + fig_width / 2 + padding))
 
     if circle is not None:
-        if len(circle) != 3:
+        if circle.ndim != 1 or len(circle) != 3:
             raise ValueError("A circle must contain three parameters.")
 
         center = circle[:2]
@@ -77,7 +78,7 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
         axis.add_patch(circle_patch)
 
     if ellipse is not None:
-        if len(ellipse) != 5:
+        if ellipse.ndim != 1 or len(ellipse) != 5:
             raise ValueError("An ellipse must contain five parameters.")
 
         center = ellipse[:2]

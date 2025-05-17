@@ -2,12 +2,13 @@
 
 __all__ = ["distance_to_dtm"]
 
-import numpy as np
 import numpy.typing as npt
+
+from pointtree._operations_cpp import distance_to_dtm as distance_to_dtm_cpp  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
 
 
 def distance_to_dtm(  # pylint: disable=too-many-locals
-    coords: npt.NDArray,
+    xyz: npt.NDArray,
     dtm: npt.NDArray,
     dtm_offset: npt.NDArray,
     dtm_resolution: float,
@@ -19,7 +20,7 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
     terrain heights of the four closest grid points of the digital terrain model.
 
     Args:
-        coords: Point coordinates of the point cloud to normalize.
+        xyz: Point coordinates of the point cloud to normalize.
         dtm: Rasterized digital terrain model.
         dtm_offset: X and y-coordinates of the top left corner of the DTM grid.
         allow_outside_points: If this option is set to :code:`True` and a point in the point cloud to be normalized is
@@ -34,7 +35,7 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
         ValueError: If the point cloud to be normalized covers a larger base area than the DTM.
 
     Shape:
-        - :code:`coords`: :math:`(N, 3)`
+        - :code:`xyz`: :math:`(N, 3)`
         - :code:`dtm`: :math:`(H, W)`
         - :code:`dtm_offset`: :math:`(2)`
         - Output: :math:`(N)`
@@ -46,30 +47,18 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
         | :math:`W = \text{ extent of the DTM in grid in x-direction}`
     """
 
-    grid_positions = (coords[:, :2] - dtm_offset) / dtm_resolution
-    if allow_outside_points:
-        grid_positions = np.clip(grid_positions, 0, np.flip(np.array(dtm.shape, dtype=coords.dtype)) - 1)
-    grid_indices = np.floor(grid_positions)
-    grid_fractions = grid_positions - grid_indices
-    grid_indices = grid_indices.astype(np.int64)
+    # ensure that the input arrays are in column-major format
+    if not xyz.flags.f_contiguous:
+        xyz = xyz.copy(order="F")
 
-    if not allow_outside_points and (
-        (grid_positions < 0).any()
-        or (grid_positions[:, 0] >= dtm.shape[1]).any()
-        or (grid_positions[:, 1] >= dtm.shape[0]).any()
-    ):
-        raise ValueError("The DTM does not completely cover the point cloud to be normalized.")
+    dtm = dtm.astype(xyz.dtype)
+    dtm_offset = dtm_offset.astype(xyz.dtype)
 
-    height_1 = dtm[grid_indices[:, 1], grid_indices[:, 0]]
-    height_2 = dtm[grid_indices[:, 1], np.minimum(grid_indices[:, 0] + 1, dtm.shape[1] - 1)]
-    height_3 = dtm[np.minimum(grid_indices[:, 1] + 1, dtm.shape[0] - 1), grid_indices[:, 0]]
-    height_4 = dtm[
-        np.minimum(grid_indices[:, 1] + 1, dtm.shape[0] - 1),
-        np.minimum(grid_indices[:, 0] + 1, dtm.shape[1] - 1),
-    ]
+    if not dtm.flags.f_contiguous:
+        dtm = dtm.copy(order="F")
 
-    interp_height_1 = height_1 * (1 - grid_fractions[:, 0]) + height_2 * (grid_fractions[:, 0])
-    interp_height_2 = height_3 * (1 - grid_fractions[:, 0]) + height_4 * (grid_fractions[:, 0])
-    terrain_height = interp_height_1 * (1 - grid_fractions[:, 1]) + interp_height_2 * (grid_fractions[:, 1])
+    dtm_offset = dtm_offset.reshape(-1, 2)
+    if not dtm_offset.flags.f_contiguous:
+        dtm_offset = dtm_offset.reshape(-1, 2).copy(order="F")
 
-    return coords[:, 2] - terrain_height
+    return distance_to_dtm_cpp(xyz, dtm, dtm_offset, float(dtm_resolution), allow_outside_points)

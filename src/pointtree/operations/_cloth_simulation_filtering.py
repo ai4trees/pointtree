@@ -61,7 +61,7 @@ def cloth_simulation_filtering(  # pylint: disable=too-few-public-methods
     csf.setPointCloud(coords)
     ground_indices = CSF.VecInt()
     non_ground_indices = CSF.VecInt()
-    csf.do_filtering(ground_indices, non_ground_indices, exportCloth=True)
+    csf.do_filtering(ground_indices, non_ground_indices, exportCloth=False)
 
     classification = np.full(len(coords), dtype=np.int64, fill_value=-1)
     classification[ground_indices] = 0

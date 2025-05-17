@@ -3,6 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "../include/PointTree/operations/distance_to_dtm.h"
 #include "../include/PointTree/operations/fit_ellipse.h"
 #include "../include/PointTree/operations/points_in_ellipse.h"
 
@@ -10,6 +11,15 @@ PYBIND11_MODULE(_operations_cpp, m) {
   m.doc() = R"pbdoc(
     C++ extension module implementing operations for point cloud processing.
   )pbdoc";
+
+  m.def("distance_to_dtm", &PointTree::distance_to_dtm<float>, pybind11::return_value_policy::reference_internal, "");
+
+  m.def(
+      "distance_to_dtm", &PointTree::distance_to_dtm<double>, pybind11::return_value_policy::reference_internal,
+      R"pbdoc(
+    Computes the height above the terrain for each point. For more details, see the documentation of the Python wrapper
+    method :code:`pointtree.operations.distance_to_dtm`.
+  )pbdoc");
 
   m.def("fit_ellipse", &PointTree::fit_ellipse<float>, pybind11::return_value_policy::reference_internal, "");
 

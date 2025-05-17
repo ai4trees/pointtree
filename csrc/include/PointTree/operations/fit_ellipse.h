@@ -4,7 +4,6 @@
 #include <Eigen/Eigenvalues>
 #include <cmath>
 #include <cstdint>
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 

@@ -12,8 +12,17 @@ namespace PointTree {
 using ArrayXl = Eigen::Array<int64_t, Eigen::Dynamic, 1>;
 using RefArrayXl = Eigen::Ref<ArrayXl>;
 
+using ArrayX2l = Eigen::Array<int64_t, Eigen::Dynamic, 2>;
+using RefArrayX2l = Eigen::Ref<ArrayX2l>;
+
 using ArrayXb = Eigen::Array<bool, Eigen::Dynamic, 1>;
 using RefArrayXb = Eigen::Ref<ArrayXb>;
+
+template <typename scalar_T>
+using Array2 = Eigen::Array<scalar_T, 1, 2>;
+
+template <typename scalar_T>
+using RefArray2 = Eigen::Ref<Array2<scalar_T>>;
 
 template <typename scalar_T>
 using ArrayX = Eigen::Array<scalar_T, Eigen::Dynamic, 1>;

@@ -7,6 +7,7 @@ import shutil
 
 import numpy as np
 import numpy.typing as npt
+from pointtorch import read
 import pytest
 
 from pointtree.instance_segmentation import TreeXAlgorithm
@@ -44,8 +45,8 @@ class TestTreeXAlgorithm:
     ]:
         """
         Generates inputs and expected values for testing the methods
-        :code:`TreeXAlgorithm.fit_preliminary_circles_or_ellipses_to_trunks` and
-        :code:`TreeXAlgorithm.fit_exact_circles_and_ellipses_to_trunks`.
+        :code:`TreeXAlgorithm.fit_circles_or_ellipses_to_trunks` and
+        :code:`TreeXAlgorithm.fit_refined_circles_and_ellipses_to_trunks`.
 
         Args:
             add_noise_points: Whether randomly placed noise points not sampled from a circle / ellipse should be added
@@ -56,7 +57,7 @@ class TestTreeXAlgorithm:
             Tuple of six values. The first is a dictionary containing the keyword arguments to be passed to the
             :code:`TreeXAlgorithm` class to produce the expected results returned by this method. The second is an array
             containing the input point coordinates to be passed to the
-            :code:`TreeXAlgorithm.fit_preliminary_circles_or_ellipses_to_trunks` method. The third is an array
+            :code:`TreeXAlgorithm.fit_circles_or_ellipses_to_trunks` method. The third is an array
             containing IDs indicating which points belong to which trunk cluster. The fourth is an array containing the
             unique cluster IDs. The fifth contains the true parameters of the circles / ellipses from which the input
             points were sampled. The sixth contains the heights of the horizontal layers at which points were generated.
@@ -91,6 +92,7 @@ class TestTreeXAlgorithm:
         for tree in range(num_trees):
             offset = tree * 2.0
             for layer_idx in range(num_layers):
+                height_offset = tree
                 current_height = trunk_search_min_z + layer_height * layer_idx + layer_height / 2 + layer_overlap / 2
                 expected_layer_heigths[layer_idx] = current_height
                 if layer_idx not in skip_layers:
@@ -125,7 +127,7 @@ class TestTreeXAlgorithm:
                     (len(points_2d), 3), dtype=np.float64  # pylint: disable=possibly-used-before-assignment
                 )
                 points_3d[:, :2] = points_2d + offset
-                points_3d[:, 2] = current_height
+                points_3d[:, 2] = current_height + height_offset
                 if layer_idx in skip_layers:
                     points_3d = points_3d[: int(min_points / 2)]
                 cluster_labels.extend(np.full(len(points_3d), fill_value=tree, dtype=np.int64))
@@ -155,11 +157,11 @@ class TestTreeXAlgorithm:
                 [0, 0, 1.1],
                 [0, 0, 1.7],
                 [0, 0, 2.2],
-                [1, 0, 1.1],
-                [1, 0, 1.2],
-                [1, 0, 2.2],
-                [1, 0, 2.3],
-                [1, 0, 2.4],
+                [5, 0, 2.1],
+                [5, 0, 2.2],
+                [5, 0, 3.2],
+                [5, 0, 3.3],
+                [5, 0, 3.4],
                 [0, 0, 1.55],
             ],
             dtype=scalar_type,
@@ -168,6 +170,10 @@ class TestTreeXAlgorithm:
         cluster_labels = np.array([0, 0, 0, 0, 2, 2, 2, 2, 2, 0], dtype=np.int64)
         unique_cluster_labels = np.unique(cluster_labels)
 
+        dtm = np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=scalar_type, order="F")
+        dtm_offset = np.array([0, 0], dtype=scalar_type, order="F")
+        dtm_resolution = 2.0
+
         num_layers = 3
         trunk_search_min_z = 1.0
         trunk_search_circle_fitting_layer_height = 0.6
@@ -175,18 +181,24 @@ class TestTreeXAlgorithm:
         trunk_search_circle_fitting_min_points = 2
 
         expected_indices = [[0, 1, 9], [2, 9], [], [4, 5], [], [6, 7, 8]]
+        expected_terrain_heights = np.array([0, 1], dtype=scalar_type)
         expected_layer_heights = np.array([1.3, 1.8, 2.3], dtype=scalar_type)
 
-        trunk_layer_xy, batch_lengths, layer_heights = collect_inputs_trunk_layers_preliminary_fitting_cpp(
-            trunk_layer_xyz,
-            cluster_labels,
-            unique_cluster_labels,
-            trunk_search_min_z,
-            num_layers,
-            trunk_search_circle_fitting_layer_height,
-            trunk_search_circle_fitting_layer_overlap,
-            trunk_search_circle_fitting_min_points,
-            num_workers,
+        trunk_layer_xy, batch_lengths, terrain_heights, layer_heights = (
+            collect_inputs_trunk_layers_preliminary_fitting_cpp(
+                trunk_layer_xyz,
+                cluster_labels,
+                unique_cluster_labels,
+                dtm,
+                dtm_offset,
+                dtm_resolution,
+                trunk_search_min_z,
+                num_layers,
+                trunk_search_circle_fitting_layer_height,
+                trunk_search_circle_fitting_layer_overlap,
+                trunk_search_circle_fitting_min_points,
+                num_workers,
+            )
         )
 
         assert len(batch_lengths) == len(unique_cluster_labels) * num_layers
@@ -208,12 +220,17 @@ class TestTreeXAlgorithm:
             np.testing.assert_array_equal(expected_xy_batch_item, xy_batch_item)
             start_idx = end_idx
 
+        np.testing.assert_array_equal(expected_terrain_heights, terrain_heights)
         np.testing.assert_array_equal(expected_layer_heights, layer_heights)
 
     def test_collect_inputs_preliminary_fitting_cpp_invalid_inputs(self):
         trunk_layer_xyz = np.zeros((10, 3), dtype=np.float64, order="F")
         cluster_labels = np.zeros((9), dtype=np.int64)
         unique_cluster_labels = np.array([0], dtype=np.int64)
+
+        dtm = np.array([[0, 0, 1, 1], [0, 0, 1, 1]], dtype=np.float64, order="F")
+        dtm_offset = np.array([0, 0], dtype=np.float64, order="F")
+        dtm_resolution = 2.0
 
         num_layers = 3
         trunk_search_min_z = 1.0
@@ -227,6 +244,9 @@ class TestTreeXAlgorithm:
                 trunk_layer_xyz,
                 cluster_labels,
                 unique_cluster_labels,
+                dtm,
+                dtm_offset,
+                dtm_resolution,
                 trunk_search_min_z,
                 num_layers,
                 trunk_search_circle_fitting_layer_height,
@@ -251,8 +271,8 @@ class TestTreeXAlgorithm:
                 [4 + 0.42 / np.sqrt(2), 4 + 0.42 / np.sqrt(2), 2.0],
                 [4 + 0.4 / np.sqrt(2), 4 + 0.4 / np.sqrt(2), 2.0],
                 [4 + 0.4 / np.sqrt(2), 4 + 0.41 / np.sqrt(2), 2.0],
-                [0, 0.51, 2.2],
-                [0, 0.52, 2.3],
+                [0, 0.51, 3.2],
+                [0, 0.52, 3.3],
             ],
             dtype=scalar_type,
             order="F",
@@ -282,6 +302,8 @@ class TestTreeXAlgorithm:
             .copy(order="F")
         )
 
+        terrain_heights = np.array([0, 1], dtype=scalar_type, order="F")
+
         num_layers = 3
         trunk_search_min_z = 1.0
         trunk_search_circle_fitting_layer_height = 0.6
@@ -297,6 +319,7 @@ class TestTreeXAlgorithm:
             trunk_layer_xyz,
             preliminary_layer_circles,
             preliminary_layer_ellipses,
+            terrain_heights,
             trunk_search_min_z,
             num_layers,
             trunk_search_circle_fitting_layer_height,
@@ -370,6 +393,12 @@ class TestTreeXAlgorithm:
         expected_layer_heigths = expected_layer_heigths.astype(scalar_type)
         trunk_layer_xyz = trunk_layer_xyz.astype(scalar_type).copy(order=storage_layout)
 
+        dtm = np.array(
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]], dtype=scalar_type, order=storage_layout
+        )
+        dtm_offset = np.array([0, 0], dtype=scalar_type)
+        dtm_resolution = 1.0
+
         num_trees = len(expected_circles_or_ellipses)
         num_layers = expected_circles_or_ellipses.shape[1]
 
@@ -382,15 +411,16 @@ class TestTreeXAlgorithm:
                 visualization_folder = Path(visualization_folder)
 
         algorithm = TreeXAlgorithm(
+            dtm_resolution=dtm_resolution,
             visualization_folder=visualization_folder,
             trunk_search_circle_fitting_method=circle_fitting_method,
             trunk_search_ellipse_filter_threshold=trunk_search_ellipse_filter_threshold,
             **settings,
         )
 
-        preliminary_circles, preliminary_ellipses, layer_heights, trunk_layer_xy, batch_lengths_xy = (
-            algorithm.fit_preliminary_circles_or_ellipses_to_trunks(
-                trunk_layer_xyz, cluster_labels, unique_cluster_labels, point_cloud_id=point_cloud_id
+        preliminary_circles, preliminary_ellipses, terrain_heights, layer_heights, trunk_layer_xy, batch_lengths_xy = (
+            algorithm.fit_circles_or_ellipses_to_trunks(
+                trunk_layer_xyz, cluster_labels, unique_cluster_labels, dtm, dtm_offset, point_cloud_id=point_cloud_id
             )
         )
         assert preliminary_circles.dtype == scalar_type
@@ -428,8 +458,8 @@ class TestTreeXAlgorithm:
             layer_ellipses,
             trunk_layer_xy,
             batch_lengths_xy,
-        ) = algorithm.fit_exact_circles_and_ellipses_to_trunks(
-            trunk_layer_xyz, preliminary_circles, preliminary_ellipses, point_cloud_id=point_cloud_id
+        ) = algorithm.fit_refined_circles_and_ellipses_to_trunks(
+            trunk_layer_xyz, preliminary_circles, preliminary_ellipses, terrain_heights, point_cloud_id=point_cloud_id
         )
         assert layer_circles.dtype == scalar_type
         assert layer_ellipses.dtype == scalar_type
@@ -621,52 +651,52 @@ class TestTreeXAlgorithm:
         assert expected_trunk_positions.dtype == trunk_positions.dtype
         np.testing.assert_almost_equal(expected_trunk_positions, trunk_positions)
 
-    def test_radius_estimation_gam_circle(self):
+    def test_diameter_estimation_gam_circle(self):
         algorithm = TreeXAlgorithm()
 
         circles = np.array([[1, 1, 1]])
         points = generate_circle_points(circles, min_points=50, max_points=50)
 
-        radius_with_full_circle, polygon_vertices_with_full_ellipse = algorithm.radius_estimation_gam(
+        diameter_with_full_circle, polygon_vertices_with_full_ellipse = algorithm.diameter_estimation_gam(
             points, circles[0, :2], 6
         )
 
-        assert circles[0, 2] == pytest.approx(radius_with_full_circle, abs=0.001)
+        assert circles[0, 2] * 2 == pytest.approx(diameter_with_full_circle, abs=0.001)
         assert polygon_vertices_with_full_ellipse.ndim == 2
         assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
         assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
 
-        radius_with_missing_part, polygon_vertices_with_missing_part = algorithm.radius_estimation_gam(
+        diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.diameter_estimation_gam(
             points[:30], circles[0, :2], 7
         )
 
-        assert circles[0, 2] == pytest.approx(radius_with_missing_part, abs=0.001)
+        assert circles[0, 2] * 2 == pytest.approx(diameter_with_missing_part, abs=0.001)
         assert polygon_vertices_with_missing_part.ndim == 2
         assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
         assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
 
-    def test_radius_estimation_gam_ellipse(self):
+    def test_diameter_estimation_gam_ellipse(self):
         algorithm = TreeXAlgorithm()
 
         ellipses = np.array([[1, 1, 1.2, 0.9, 0]])
         points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
 
-        radius_with_full_ellipse, polygon_vertices_with_full_ellipse = algorithm.radius_estimation_gam(
+        diameter_with_full_ellipse, polygon_vertices_with_full_ellipse = algorithm.diameter_estimation_gam(
             points, ellipses[0, :2], 8
         )
 
-        expected_radius = (ellipses[0, 2] + ellipses[0, 3]) / 2
+        expected_diameter = ellipses[0, 2] + ellipses[0, 3]
 
-        assert expected_radius == pytest.approx(radius_with_full_ellipse, abs=0.02)
+        assert expected_diameter == pytest.approx(diameter_with_full_ellipse, abs=0.025)
         assert polygon_vertices_with_full_ellipse.ndim == 2
         assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
         assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
 
-        radius_with_missing_part, polygon_vertices_with_missing_part = algorithm.radius_estimation_gam(
+        diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.diameter_estimation_gam(
             points[:30], ellipses[0, :2], 9
         )
 
-        assert expected_radius == pytest.approx(radius_with_missing_part, abs=0.1)
+        assert expected_diameter == pytest.approx(diameter_with_missing_part, abs=0.2)
         assert polygon_vertices_with_missing_part.ndim == 2
         assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
         assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
@@ -776,9 +806,49 @@ class TestTreeXAlgorithm:
         with pytest.raises(ValueError):
             algorithm.export_dtm(dtm, dtm_offset, "test")
 
+    @pytest.mark.parametrize("crs", [None, "EPSG:4326"])
+    def test_export_point_cloud(self, crs: Optional[str], cache_dir):
+        algorithm = TreeXAlgorithm(visualization_folder=cache_dir)
+
+        expected_file_path = Path(cache_dir) / "test_point_cloud.laz"
+
+        xyz = np.zeros((5, 3), dtype=np.float64)
+        attributes = {"instance_id": np.array([1, 2, 3, 4, 5], dtype=np.int64)}
+        step_name = "point_cloud"
+
+        algorithm.export_point_cloud(xyz, attributes, step_name, "test", crs=crs)
+
+        assert expected_file_path.exists()
+        point_cloud = read(expected_file_path)
+
+        np.testing.assert_array_equal(xyz, point_cloud.xyz())
+        np.testing.assert_array_equal(point_cloud["instance_id"].to_numpy(), attributes["instance_id"])
+
+    def test_export_point_cloud_invalid_point_cloud(self, cache_dir):
+        algorithm = TreeXAlgorithm(visualization_folder=cache_dir)
+
+        xyz = np.zeros((5, 3), dtype=np.float64)
+        attributes = {"instance_id": np.array([1], dtype=np.int64)}
+        step_name = "point_cloud"
+
+        with pytest.raises(ValueError):
+            algorithm.export_point_cloud(xyz, attributes, step_name, "test")
+
+    def test_export_point_cloud_invalid_visualization_folder(self):
+        algorithm = TreeXAlgorithm(visualization_folder=None)
+
+        xyz = np.zeros((5, 3), dtype=np.float64)
+        step_name = "point_cloud"
+
+        with pytest.raises(ValueError):
+            algorithm.export_point_cloud(xyz, {}, step_name, "test")
+
+    @pytest.mark.parametrize("invalid_tree_id", [-1, 0])
     @pytest.mark.parametrize("storage_layout", ["C", "F"])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
-    def test_segment_crowns(self, storage_layout: str, scalar_type: np.dtype):  # pylint: disable=too-many-locals
+    def test_segment_crowns(
+        self, invalid_tree_id: int, storage_layout: str, scalar_type: np.dtype
+    ):  # pylint: disable=too-many-locals
         point_spacing = 0.1
         ground_plane = generate_grid_points((100, 100), point_spacing)
         ground_plane = np.column_stack([ground_plane, np.zeros(len(ground_plane), dtype=np.float64)])
@@ -799,11 +869,11 @@ class TestTreeXAlgorithm:
         xyz = np.concatenate([ground_plane, crown_1, trunk_1, crown_2, trunk_2]).astype(
             scalar_type, order=storage_layout
         )
-        expected_instance_ids = np.full(len(xyz), fill_value=-1, dtype=np.int64)
+        expected_instance_ids = np.full(len(xyz), fill_value=invalid_tree_id, dtype=np.int64)
         start_tree_1 = len(ground_plane)
         end_tree_1 = start_tree_1 + len(crown_1) + len(trunk_1)
-        expected_instance_ids[start_tree_1:end_tree_1] = 0
-        expected_instance_ids[end_tree_1:] = 1
+        expected_instance_ids[start_tree_1:end_tree_1] = invalid_tree_id + 1
+        expected_instance_ids[end_tree_1:] = invalid_tree_id + 2
 
         distance_to_dtm = xyz[:, 2]
 
@@ -813,33 +883,45 @@ class TestTreeXAlgorithm:
         tree_positions = np.array([[2.05, 2.05], [4.65, 4.65]], dtype=scalar_type, order=storage_layout)
         trunk_diameters = np.array([0.01, 0.01], dtype=scalar_type, order=storage_layout)
 
-        region_growing_z_scale = 2
-        region_growing_seed_layer_height = 0.6
-        max_cum_search_dist_without_terrain = (1.3 - region_growing_seed_layer_height / 2) / region_growing_z_scale
+        cluster_labels = np.full(len(xyz), fill_value=-1, dtype=np.int64, order=storage_layout)
+        start_trunk_1 = len(ground_plane) + len(crown_1)
+        cluster_labels[start_trunk_1 + 10 : start_trunk_1 + 20] = 0
+        start_trunk_2 = start_trunk_1 + len(trunk_1) + len(crown_2)
+        cluster_labels[start_trunk_2 + 10 : start_trunk_2 + 20] = 1
+
+        crown_seg_z_scale = 2
+        crown_seg_seed_layer_height = 0.6
+        max_cum_search_dist_without_terrain = (1.3 - crown_seg_seed_layer_height / 2) / crown_seg_z_scale
 
         algorithm = TreeXAlgorithm(
-            region_growing_voxel_size=0.025,
-            region_growing_cum_search_dist_include_terrain=max_cum_search_dist_without_terrain + 0.2,
-            region_growing_seed_layer_height=region_growing_seed_layer_height,
-            region_growing_z_scale=region_growing_z_scale,
+            crown_seg_voxel_size=0.025,
+            crown_seg_cum_search_dist_include_terrain=max_cum_search_dist_without_terrain + 0.2,
+            crown_seg_seed_layer_height=crown_seg_seed_layer_height,
+            crown_seg_z_scale=crown_seg_z_scale,
+            invalid_tree_id=invalid_tree_id,
         )
 
-        instance_ids = algorithm.segment_crowns(xyz, distance_to_dtm, is_tree, tree_positions, trunk_diameters)
+        instance_ids = algorithm.segment_crowns(
+            xyz, distance_to_dtm, is_tree, tree_positions, trunk_diameters, cluster_labels
+        )
 
         assert len(xyz) == len(instance_ids)
         assert len(np.unique(instance_ids)) == 3
         np.testing.assert_array_equal(expected_instance_ids[start_tree_1:], instance_ids[start_tree_1:])
         # some of the terrain points around the trunks are assigned to the tree instances
-        assert (instance_ids[:start_tree_1] != -1).sum() == 8
+        assert (instance_ids[:start_tree_1] != invalid_tree_id).sum() == 8
 
-    @pytest.mark.parametrize("key", ["xyz", "distance_to_dtm", "is_tree", "tree_positions", "trunk_diameters"])
-    def test_segment_crowns_invalid_xyz(self, key: str):
+    @pytest.mark.parametrize(
+        "key", ["xyz", "distance_to_dtm", "is_tree", "tree_positions", "trunk_diameters", "cluster_labels"]
+    )
+    def test_segment_crowns_invalid_input(self, key: str):
         inputs = {
             "xyz": np.random.randn(50, 3).astype(np.float64),
             "distance_to_dtm": np.random.randn(50).astype(np.float64),
             "is_tree": np.ones(50, dtype=bool),
             "tree_positions": np.zeros((3, 2), dtype=np.float64),
             "trunk_diameters": np.zeros(3, dtype=np.float64),
+            "cluster_labels": np.full(50, fill_value=-1, dtype=np.int64),
         }
         inputs[key] = inputs[key][: len(inputs[key]) - 1]
 
@@ -850,10 +932,17 @@ class TestTreeXAlgorithm:
 
     @pytest.mark.parametrize("create_visualizations", [False, True])
     @pytest.mark.parametrize("use_intensities", [True, False])
+    @pytest.mark.parametrize("trunk_search_circle_fitting_refined_circle_fitting", [True, False])
     @pytest.mark.parametrize("storage_layout", ["C", "F"])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     def test_full_algorithm(
-        self, create_visualizations: bool, use_intensities: bool, storage_layout: str, scalar_type: np.dtype, cache_dir
+        self,
+        create_visualizations: bool,
+        use_intensities: bool,
+        trunk_search_circle_fitting_refined_circle_fitting: bool,
+        storage_layout: str,
+        scalar_type: np.dtype,
+        cache_dir,
     ):  # pylint: disable=too-many-locals, too-many-statements
         point_spacing = 0.1
         min_intensity = 5000
@@ -934,11 +1023,10 @@ class TestTreeXAlgorithm:
 
         algorithm = TreeXAlgorithm(
             trunk_search_dbscan_2d_eps=0.05,
-            trunk_search_dbscan_3d_eps_small=0.25,
-            trunk_search_dbscan_3d_min_points_small=5,
-            trunk_search_dbscan_3d_eps_large=0.25,
-            trunk_search_dbscan_3d_min_points_large=5,
+            trunk_search_dbscan_3d_eps=0.25,
+            trunk_search_dbscan_3d_min_points=5,
             trunk_search_min_cluster_intensity=min_intensity,
+            trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
             visualization_folder=visualization_folder,
         )
 
@@ -968,7 +1056,10 @@ class TestTreeXAlgorithm:
             np.testing.assert_almost_equal(expected_trunk_diameters, trunk_diameters, decimal=2)
             np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
 
-        algorithm = TreeXAlgorithm(trunk_search_min_cluster_points=10000)
+        algorithm = TreeXAlgorithm(
+            trunk_search_min_cluster_points=10000,
+            trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
+        )
 
         instance_ids, trunk_positions, trunk_diameters = algorithm(xyz)
 
@@ -985,3 +1076,15 @@ class TestTreeXAlgorithm:
 
         with pytest.raises(ValueError):
             algorithm(xyz, intensities)
+
+    def test_invalid_trunk_search_min_z(self):
+        with pytest.raises(ValueError):
+            TreeXAlgorithm(invalid_tree_id=1)
+
+    def test_invalid_trunk_search_min_z(self):
+        with pytest.raises(ValueError):
+            TreeXAlgorithm(csf_tree_classification_threshold=0.7, trunk_search_min_z=0.5)
+
+    def test_invalid_trunk_search_circle_fitting_layer_start(self):
+        with pytest.raises(ValueError):
+            TreeXAlgorithm(trunk_search_min_z=0.7, trunk_search_circle_fitting_layer_start=0.5)

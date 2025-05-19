@@ -12,8 +12,8 @@ class TestDistanceToDtm:
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
     def test_distance_to_dtm(self, dtype: np.dtype):
         xyz = np.array([[0, 0, 2], [1, 1, 4], [3, 4, 5]], dtype=dtype)
-        dtm_offset = np.array([-2, -2], dtype=dtype)
-        dtm = np.array([[0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 2, 2], [0, 0, 2, 4]], dtype=dtype)
+        dtm_offset = np.array([-2, -4], dtype=dtype)
+        dtm = np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 1], [0, 1, 2, 2], [0, 0, 2, 4]], dtype=dtype)
         dtm_resolution = 2
 
         dists = distance_to_dtm(xyz, dtm, dtm_offset, dtm_resolution)
@@ -27,7 +27,7 @@ class TestDistanceToDtm:
         coords[:, 0] = 5
         coords[:, 1:] = 2
         dtm = np.ones((3, 2), dtype=np.float64)
-        dtm_offset = np.zeros((2, ), dtype=np.float64)
+        dtm_offset = np.zeros((2,), dtype=np.float64)
         dtm_resolution = 1
 
         dists = distance_to_dtm(coords, dtm, dtm_offset, dtm_resolution, allow_outside_points=True)

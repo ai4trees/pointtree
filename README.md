@@ -8,7 +8,12 @@
 [![coverage](https://codecov.io/gh/ai4trees/pointtree/branch/main/graph/badge.svg)](https://codecov.io/github/ai4trees/pointtree?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pointtree)
 
-The package contains the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
+The package contains implementation of the following tree instance segmentation algorithms:
+
+- TreeXAlgorithm: 
+- CoarseToFineAlgorithm:
+
+the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
 
 ### Package Documentation
 

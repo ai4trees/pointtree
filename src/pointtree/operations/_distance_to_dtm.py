@@ -57,8 +57,7 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
     if not dtm.flags.f_contiguous:
         dtm = dtm.copy(order="F")
 
-    dtm_offset = dtm_offset.reshape(-1, 2)
     if not dtm_offset.flags.f_contiguous:
-        dtm_offset = dtm_offset.reshape(-1, 2).copy(order="F")
+        dtm_offset = dtm_offset.copy(order="F")
 
     return distance_to_dtm_cpp(xyz, dtm, dtm_offset, float(dtm_resolution), allow_outside_points)

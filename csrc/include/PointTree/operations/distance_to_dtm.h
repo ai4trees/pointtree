@@ -1,5 +1,3 @@
-#include <omp.h>
-
 #include <Eigen/Dense>
 #include <cmath>
 #include <cstdint>
@@ -40,14 +38,14 @@ ArrayX<scalar_T> distance_to_dtm(
 
   Eigen::Map<ArrayX<scalar_T>> dtm_flat(dtm.data(), dtm.size());
 
-  auto height_1 = dtm_flat(grid_indices(Eigen::all, 1) * dtm.cols() + grid_indices(Eigen::all, 0));
+  auto height_1 = dtm_flat(grid_indices(Eigen::all, 0) * dtm.rows() + grid_indices(Eigen::all, 1));
   auto height_2 =
-      dtm_flat(grid_indices(Eigen::all, 1) * dtm.cols() + (grid_indices(Eigen::all, 0) + 1).min(dtm.cols() - 1));
+      dtm_flat((grid_indices(Eigen::all, 0) + 1).min(dtm.cols() - 1) * dtm.rows() + grid_indices(Eigen::all, 1));
   auto height_3 =
-      dtm_flat((grid_indices(Eigen::all, 1) + 1).min(dtm.rows() - 1) * dtm.cols() + grid_indices(Eigen::all, 0));
+      dtm_flat(grid_indices(Eigen::all, 0) * dtm.rows() + (grid_indices(Eigen::all, 1) + 1).min(dtm.rows() - 1));
   auto height_4 = dtm_flat(
-      (grid_indices(Eigen::all, 1) + 1).min(dtm.rows() - 1) * dtm.cols() +
-      (grid_indices(Eigen::all, 0) + 1).min(dtm.cols() - 1));
+      (grid_indices(Eigen::all, 0) + 1).min(dtm.cols() - 1) * dtm.rows() +
+      (grid_indices(Eigen::all, 1) + 1).min(dtm.rows() - 1));
 
   auto interp_height_1 = height_1 * (1 - grid_fractions(Eigen::all, 0)) + height_2 * (grid_fractions(Eigen::all, 0));
   auto interp_height_2 = height_3 * (1 - grid_fractions(Eigen::all, 0)) + height_4 * (grid_fractions(Eigen::all, 0));

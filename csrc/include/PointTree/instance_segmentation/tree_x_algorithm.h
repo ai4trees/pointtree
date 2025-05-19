@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 
+#include "../operations/distance_to_dtm.h"
 #include "../operations/points_in_ellipse.h"
 #include "../type_aliases.h"
 
@@ -36,11 +37,15 @@ ArrayX2<scalar_T> compute_layer_bounds(
 }
 
 template <typename scalar_T>
-std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_layers_preliminary_fitting(
+std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>, ArrayX<scalar_T>>
+collect_inputs_trunk_layers_preliminary_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayXl cluster_labels,
     RefArrayXl unique_cluster_labels,
-    scalar_T trunk_search_min_z,
+    RefArrayXX<scalar_T> dtm,
+    RefArray2<scalar_T> dtm_offset,
+    scalar_T dtm_resolution,
+    scalar_T trunk_search_circle_fitting_layer_start,
     int64_t trunk_search_circle_fitting_num_layers,
     scalar_T trunk_search_circle_fitting_layer_height,
     scalar_T trunk_search_circle_fitting_layer_overlap,
@@ -60,23 +65,43 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
   ArrayXl batch_lengths = ArrayXl::Constant(num_labels * num_layers, 0);
 
   ArrayX2<scalar_T> layer_bounds = compute_layer_bounds<scalar_T>(
-      trunk_search_min_z, trunk_search_circle_fitting_num_layers, trunk_search_circle_fitting_layer_height,
-      trunk_search_circle_fitting_layer_overlap);
+      trunk_search_circle_fitting_layer_start, trunk_search_circle_fitting_num_layers,
+      trunk_search_circle_fitting_layer_height, trunk_search_circle_fitting_layer_overlap);
+
+  std::vector<std::vector<int64_t>> current_cluster_point_indices(num_labels);
+  ArrayX<scalar_T> terrain_heights = ArrayX<scalar_T>::Constant(num_labels, 0);
+
+#pragma omp parallel for num_threads(num_workers)
+  for (int64_t idx = 0; idx < num_labels; ++idx) {
+    for (int64_t i = 0; i < trunk_layer_xyz.rows(); ++i) {
+      if (cluster_labels(i) == unique_cluster_labels(idx)) {
+        current_cluster_point_indices[idx].push_back(i);
+      }
+    }
+
+    // compute terrain height at cluster center position
+    ArrayX3<scalar_T> cluster_center_xyz = ArrayX3<scalar_T>::Constant(1, 3, 0);
+    cluster_center_xyz(0, {0, 1}) = trunk_layer_xyz(current_cluster_point_indices[idx], {0, 1}).colwise().mean();
+
+    terrain_heights(idx) = -1 * distance_to_dtm<scalar_T>(cluster_center_xyz, dtm, dtm_offset, dtm_resolution, true)(0);
+  }
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t idx = 0; idx < num_labels * num_layers; ++idx) {
     int64_t label = idx / num_layers;
     int64_t layer = idx % num_layers;
-    std::vector<int64_t> current_batch_point_indices;
-    for (int64_t i = 0; i < trunk_layer_xyz.rows(); ++i) {
-      if (cluster_labels(i) == unique_cluster_labels(label) && trunk_layer_xyz(i, 2) >= layer_bounds(layer, 0) &&
-          trunk_layer_xyz(i, 2) <= layer_bounds(layer, 1)) {
-        current_batch_point_indices.push_back(i);
+    std::vector<int64_t> current_cluster_layer_point_indices;
+
+    for (int64_t i = 0; i < current_cluster_point_indices[label].size(); ++i) {
+      auto j = current_cluster_point_indices[label][i];
+      auto dist_to_dtm = trunk_layer_xyz(j, 2) - terrain_heights(label);
+      if (dist_to_dtm >= layer_bounds(layer, 0) && dist_to_dtm <= layer_bounds(layer, 1)) {
+        current_cluster_layer_point_indices.push_back(j);
       }
     }
-    if (current_batch_point_indices.size() >= trunk_search_circle_fitting_min_points) {
-      batch_point_indices[idx] = current_batch_point_indices;
-      batch_lengths[idx] = current_batch_point_indices.size();
+    if (current_cluster_layer_point_indices.size() >= trunk_search_circle_fitting_min_points) {
+      batch_point_indices[idx] = current_cluster_layer_point_indices;
+      batch_lengths[idx] = current_cluster_layer_point_indices.size();
     }
   }
 
@@ -90,7 +115,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>> collect_inputs_trunk_la
 
   ArrayX<scalar_T> layer_heights = layer_bounds.rowwise().mean();
 
-  return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths, layer_heights);
+  return std::make_tuple(trunk_layer_xyz(selected_indices, {0, 1}), batch_lengths, terrain_heights, layer_heights);
 }
 
 template <typename scalar_T>
@@ -98,7 +123,8 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayX3<scalar_T> preliminary_layer_circles,
     RefArrayX5<scalar_T> preliminary_layer_ellipses,
-    scalar_T trunk_search_min_z,
+    RefArrayX<scalar_T> terrain_heights,
+    scalar_T trunk_search_circle_fitting_layer_start,
     int64_t trunk_search_circle_fitting_num_layers,
     scalar_T trunk_search_circle_fitting_layer_height,
     scalar_T trunk_search_circle_fitting_layer_overlap,
@@ -117,22 +143,15 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
   ArrayXl batch_lengths = ArrayXl::Constant(preliminary_layer_circles.rows(), 0);
 
   ArrayX2<scalar_T> layer_bounds = compute_layer_bounds<scalar_T>(
-      trunk_search_min_z, trunk_search_circle_fitting_num_layers, trunk_search_circle_fitting_layer_height,
-      trunk_search_circle_fitting_layer_overlap);
+      trunk_search_circle_fitting_layer_start, trunk_search_circle_fitting_num_layers,
+      trunk_search_circle_fitting_layer_height, trunk_search_circle_fitting_layer_overlap);
+
+  MatrixX2<scalar_T> trunk_layer_xy = trunk_layer_xyz(Eigen::all, {0, 1}).matrix();
+  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(trunk_layer_xy), 10 /* max leaf size */);
 
 #pragma omp parallel for num_threads(num_workers)
-  for (int64_t layer = 0; layer < num_layers; ++layer) {
-    std::vector<int64_t> layer_point_indices;
-    for (int64_t i = 0; i < trunk_layer_xyz.rows(); ++i) {
-      if (trunk_layer_xyz(i, 2) >= layer_bounds(layer, 0) && trunk_layer_xyz(i, 2) <= layer_bounds(layer, 1)) {
-        layer_point_indices.push_back(i);
-      }
-    }
-
-    MatrixX2<scalar_T> layer_xy = trunk_layer_xyz(layer_point_indices, {0, 1}).matrix();
-    KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(layer_xy), 10 /* max leaf size */);
-
-    for (int64_t label = 0; label < num_labels; ++label) {
+  for (int64_t label = 0; label < num_labels; ++label) {
+    for (int64_t layer = 0; layer < num_layers; ++layer) {
       std::vector<int64_t> current_batch_point_indices;
 
       int64_t flat_idx = label * num_layers + layer;
@@ -164,9 +183,11 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
         for (int64_t i = 0; i < num_neighbors; ++i) {
           auto idx = search_result[i].first;
           auto dist = search_result[i].second;
+          auto dist_to_dtm = trunk_layer_xyz(idx, 2) - terrain_heights(label);
 
-          if (dist >= min_radius_squared) {
-            current_batch_point_indices.push_back(layer_point_indices[idx]);
+          if (dist_to_dtm >= layer_bounds(layer, 0) && dist_to_dtm <= layer_bounds(layer, 1) &&
+              dist >= min_radius_squared) {
+            current_batch_point_indices.push_back(idx);
           }
         }
       } else {
@@ -189,7 +210,11 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
         std::vector<int64_t> neighbor_indices;
 
         for (int64_t i = 0; i < num_neighbors; ++i) {
-          neighbor_indices.push_back(layer_point_indices[search_result[i].first]);
+          auto idx = search_result[i].first;
+          auto dist_to_dtm = trunk_layer_xyz(idx, 2) - terrain_heights(label);
+          if (dist_to_dtm >= layer_bounds(layer, 0) && dist_to_dtm <= layer_bounds(layer, 1)) {
+            neighbor_indices.push_back(idx);
+          }
         }
 
         ArrayX<scalar_T> outer_ellipse = ellipse;
@@ -200,7 +225,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
         ArrayXb is_in_outer_ellipse = points_in_ellipse<scalar_T>(neighbor_xy, outer_ellipse);
         ArrayXb is_in_inner_ellipse = points_in_ellipse<scalar_T>(neighbor_xy, inner_ellipse);
 
-        for (int64_t i = 0; i < num_neighbors; ++i) {
+        for (int64_t i = 0; i < neighbor_indices.size(); ++i) {
           if (is_in_outer_ellipse(i) && !is_in_inner_ellipse(i)) {
             current_batch_point_indices.push_back(neighbor_indices[i]);
           }
@@ -231,6 +256,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     RefArrayX<scalar_T> distance_to_dtm,
     RefArrayX2<scalar_T> tree_positions,
     RefArrayX<scalar_T> trunk_diameters,
+    RefArrayXl cluster_labels,
     scalar_T region_growing_seed_layer_height,
     scalar_T region_growing_seed_diameter_factor,
     scalar_T region_growing_seed_min_diameter,
@@ -254,7 +280,8 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
   std::vector<int64_t> seed_layer_indices;
   for (int64_t i = 0; i < xyz.rows(); ++i) {
     if ((distance_to_dtm(i) >= 1.3 - region_growing_seed_layer_height / 2) &&
-        (distance_to_dtm(i) <= 1.3 + region_growing_seed_layer_height / 2)) {
+        (distance_to_dtm(i) <= 1.3 + region_growing_seed_layer_height / 2) &&
+        cluster_labels(i) == -1) {
       seed_layer_indices.push_back(i);
     }
   }
@@ -277,10 +304,6 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
                                  : region_growing_seed_min_diameter / 2;
     const size_t num_neighbors = kd_tree_2d->index_->radiusSearch(tree_position.data(), search_radius, search_result);
 
-    if (num_neighbors == 0) {
-      std::cout << "No seed points were found for tree " << tree_id << std::endl;
-      continue;
-    }
 
     std::vector<int64_t> current_seed_indices(search_result.size());
 
@@ -289,6 +312,12 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
         [seed_layer_indices](const nanoflann::ResultItem<int64_t, scalar_T> &x) {
           return seed_layer_indices[x.first];
         });
+
+    for (int64_t i = 0; i < xyz.rows(); ++i) {
+      if (cluster_labels(i) == tree_id) {
+        current_seed_indices.push_back(i);
+      }
+    }
 
 #pragma omp critical
     {
@@ -310,6 +339,7 @@ ArrayXl segment_tree_crowns(
     RefArrayXb is_tree,
     RefArrayX2<scalar_T> tree_positions,
     RefArrayX<scalar_T> trunk_diameters,
+    RefArrayXl cluster_labels,
     scalar_T region_growing_voxel_size,
     scalar_T region_growing_z_scale,
     scalar_T region_growing_seed_layer_height,
@@ -334,7 +364,7 @@ ArrayXl segment_tree_crowns(
   auto num_points = xyz.rows();
 
   std::tuple<ArrayXl, std::vector<int64_t>> region_growing_seeds = collect_region_growing_seeds<scalar_T>(
-      xyz, distance_to_dtm, tree_positions, trunk_diameters, region_growing_seed_layer_height,
+      xyz, distance_to_dtm, tree_positions, trunk_diameters, cluster_labels, region_growing_seed_layer_height,
       region_growing_seed_diameter_factor, region_growing_seed_min_diameter);
   ArrayXl instance_ids = std::get<0>(region_growing_seeds);
   std::vector<int64_t> seed_indices = std::get<1>(region_growing_seeds);

@@ -12,8 +12,8 @@ import pytest
 
 from pointtree.instance_segmentation import TreeXAlgorithm
 from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
-    collect_inputs_trunk_layers_preliminary_fitting as collect_inputs_trunk_layers_preliminary_fitting_cpp,
-    collect_inputs_trunk_layers_exact_fitting as collect_inputs_exact_fitting_cpp,
+    collect_inputs_trunk_layers_fitting as collect_inputs_trunk_layers_fitting_cpp,
+    collect_inputs_trunk_layers_refined_fitting as collect_inputs_refined_fitting_cpp,
 )
 
 from test.utils import (  # pylint: disable=wrong-import-order
@@ -185,7 +185,7 @@ class TestTreeXAlgorithm:
         expected_layer_heights = np.array([1.3, 1.8, 2.3], dtype=scalar_type)
 
         trunk_layer_xy, batch_lengths, terrain_heights, layer_heights = (
-            collect_inputs_trunk_layers_preliminary_fitting_cpp(
+            collect_inputs_trunk_layers_fitting_cpp(
                 trunk_layer_xyz,
                 cluster_labels,
                 unique_cluster_labels,
@@ -240,7 +240,7 @@ class TestTreeXAlgorithm:
         num_workers = 1
 
         with pytest.raises(ValueError):
-            collect_inputs_trunk_layers_preliminary_fitting_cpp(
+            collect_inputs_trunk_layers_fitting_cpp(
                 trunk_layer_xyz,
                 cluster_labels,
                 unique_cluster_labels,
@@ -257,7 +257,7 @@ class TestTreeXAlgorithm:
 
     @pytest.mark.parametrize("num_workers", [1, -1])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
-    def test_collect_batch_indices_exact_fitting_cpp(
+    def test_collect_batch_indices_refined_fitting_cpp(
         self, num_workers: int, scalar_type: np.dtype
     ):  # pylint: disable=too-many-locals
         trunk_layer_xyz = np.array(
@@ -273,6 +273,7 @@ class TestTreeXAlgorithm:
                 [4 + 0.4 / np.sqrt(2), 4 + 0.41 / np.sqrt(2), 2.0],
                 [0, 0.51, 3.2],
                 [0, 0.52, 3.3],
+                [0, 0.66, 1],
             ],
             dtype=scalar_type,
             order="F",
@@ -315,7 +316,7 @@ class TestTreeXAlgorithm:
 
         expected_indices = [[0, 1, 2, 4], [], [7, 8], [], [], [9, 10]]
 
-        trunk_layer_xy, batch_lengths = collect_inputs_exact_fitting_cpp(
+        trunk_layer_xy, batch_lengths = collect_inputs_refined_fitting_cpp(
             trunk_layer_xyz,
             preliminary_layer_circles,
             preliminary_layer_ellipses,
@@ -474,12 +475,12 @@ class TestTreeXAlgorithm:
                 for layer in range(num_layers):
                     if has_circle[tree, layer]:
                         expected_visualization_path = (
-                            visualization_folder / "test" / f"exact_circle_trunk_{tree}_layer_{layer}.png"
+                            visualization_folder / "test" / f"refined_circle_trunk_{tree}_layer_{layer}.png"
                         )
                         assert expected_visualization_path.exists()
                     if is_valid_ellipse[tree, layer]:
                         expected_visualization_path = (
-                            visualization_folder / "test" / f"exact_ellipse_trunk_{tree}_layer_{layer}.png"
+                            visualization_folder / "test" / f"refined_ellipse_trunk_{tree}_layer_{layer}.png"
                         )
                         assert expected_visualization_path.exists()
 
@@ -580,16 +581,16 @@ class TestTreeXAlgorithm:
                 cache_dir / point_cloud_id / "preliminary_circle_trunk_0_layer_1_valid.png",
             ),
             (
-                cache_dir / point_cloud_id / "exact_ellipse_trunk_0_layer_1.png",
-                cache_dir / point_cloud_id / "exact_ellipse_trunk_1_layer_1_invalid.png",
+                cache_dir / point_cloud_id / "refined_ellipse_trunk_0_layer_1.png",
+                cache_dir / point_cloud_id / "refined_ellipse_trunk_1_layer_1_invalid.png",
             ),
             (
-                cache_dir / point_cloud_id / "exact_circle_trunk_1_layer_0.png",
-                cache_dir / point_cloud_id / "exact_circle_trunk_0_layer_0_valid.png",
+                cache_dir / point_cloud_id / "refined_circle_trunk_1_layer_0.png",
+                cache_dir / point_cloud_id / "refined_circle_trunk_0_layer_0_valid.png",
             ),
             (
-                cache_dir / point_cloud_id / "exact_circle_trunk_1_layer_1.png",
-                cache_dir / point_cloud_id / "exact_circle_trunk_0_layer_1_valid.png",
+                cache_dir / point_cloud_id / "refined_circle_trunk_1_layer_1.png",
+                cache_dir / point_cloud_id / "refined_circle_trunk_0_layer_1_valid.png",
             ),
         ]
 
@@ -703,8 +704,9 @@ class TestTreeXAlgorithm:
 
     @pytest.mark.parametrize("create_visualization", [False, True])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+    @pytest.mark.parametrize("empty_input_points", [False, True])
     def test_compute_trunk_diameters(  # pylint: disable=too-many-locals, too-many-branches
-        self, create_visualization: bool, scalar_type: np.dtype, cache_dir
+        self, create_visualization: bool, scalar_type: np.dtype, empty_input_points: bool, cache_dir
     ):
         point_cloud_id = None
         visualization_folder = None
@@ -747,10 +749,16 @@ class TestTreeXAlgorithm:
             trunk_layer_xy.append(ellipse_points)
             batch_lengths_xy[num_layers + layer] = len(ellipse_points)
 
+        print("layer_ellipses", layer_ellipses)
+
         trunk_layer_xy_np = np.concatenate(trunk_layer_xy).astype(scalar_type)
 
         best_circle_combination = np.array([[0, 2, 1], [-1, -1, -1]], dtype=np.int64)
         best_ellipse_combination = np.array([[-1, -1, -1], [2, 1, 3]], dtype=np.int64)
+
+        if empty_input_points:
+            trunk_layer_xy = np.array([], dtype=scalar_type)
+            batch_lengths_xy = np.zeros(len(batch_lengths_xy), dtype=np.int64)
 
         expected_visualization_paths = []
         if create_visualization:
@@ -781,7 +789,7 @@ class TestTreeXAlgorithm:
         assert trunk_diameters.dtype == scalar_type
         np.testing.assert_almost_equal(expected_trunk_radii * 2, trunk_diameters, decimal=4)
 
-        if create_visualization:
+        if create_visualization and not empty_input_points:
             for expected_path in expected_visualization_paths:
                 assert expected_path.exists()
 
@@ -1028,6 +1036,7 @@ class TestTreeXAlgorithm:
             trunk_search_min_cluster_intensity=min_intensity,
             trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
             visualization_folder=visualization_folder,
+            crown_seg_cum_search_dist_include_terrain=2
         )
 
         instance_ids, trunk_positions, trunk_diameters = algorithm(
@@ -1059,6 +1068,7 @@ class TestTreeXAlgorithm:
         algorithm = TreeXAlgorithm(
             trunk_search_min_cluster_points=10000,
             trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
+            crown_seg_cum_search_dist_include_terrain=2
         )
 
         instance_ids, trunk_positions, trunk_diameters = algorithm(xyz)
@@ -1077,7 +1087,7 @@ class TestTreeXAlgorithm:
         with pytest.raises(ValueError):
             algorithm(xyz, intensities)
 
-    def test_invalid_trunk_search_min_z(self):
+    def test_invalid_tree_id(self):
         with pytest.raises(ValueError):
             TreeXAlgorithm(invalid_tree_id=1)
 

@@ -38,7 +38,7 @@ ArrayX2<scalar_T> compute_layer_bounds(
 
 template <typename scalar_T>
 std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>, ArrayX<scalar_T>>
-collect_inputs_trunk_layers_preliminary_fitting(
+collect_inputs_trunk_layers_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayXl cluster_labels,
     RefArrayXl unique_cluster_labels,
@@ -119,7 +119,7 @@ collect_inputs_trunk_layers_preliminary_fitting(
 }
 
 template <typename scalar_T>
-std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting(
+std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_refined_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayX3<scalar_T> preliminary_layer_circles,
     RefArrayX5<scalar_T> preliminary_layer_ellipses,
@@ -174,11 +174,14 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
 
         std::vector<nanoflann::ResultItem<int64_t, scalar_T>> search_result;
 
-        const size_t num_neighbors =
-            kd_tree_2d->index_->radiusSearch(circle_center.data(), circle_radius + buffer_width, search_result);
-
         auto min_radius_squared = circle_radius - buffer_width;
         min_radius_squared = min_radius_squared * min_radius_squared;
+        // the search radius needs to be squared since the KDTree uses the squared L2 norm
+        auto max_radius_squared = circle_radius + buffer_width;
+        max_radius_squared = max_radius_squared * max_radius_squared;
+
+        const size_t num_neighbors =
+            kd_tree_2d->index_->radiusSearch(circle_center.data(), max_radius_squared, search_result);
 
         for (int64_t i = 0; i < num_neighbors; ++i) {
           auto idx = search_result[i].first;
@@ -204,8 +207,11 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_exact_fitting
 
         std::vector<nanoflann::ResultItem<int64_t, scalar_T>> search_result;
 
+        auto max_radius_squared = ellipse(2) + buffer_width;
+        max_radius_squared = max_radius_squared * max_radius_squared;
+
         const size_t num_neighbors =
-            kd_tree_2d->index_->radiusSearch(ellipse_center.data(), ellipse(2) + buffer_width, search_result);
+            kd_tree_2d->index_->radiusSearch(ellipse_center.data(), max_radius_squared, search_result);
 
         std::vector<int64_t> neighbor_indices;
 
@@ -302,6 +308,8 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     scalar_T search_radius = search_radii(tree_id) > region_growing_seed_min_diameter / 2
                                  ? search_radii(tree_id)
                                  : region_growing_seed_min_diameter / 2;
+    // the search radius needs to be squared since the KDTree uses the squared L2 norm
+    search_radius = search_radius * search_radius;
     const size_t num_neighbors = kd_tree_2d->index_->radiusSearch(tree_position.data(), search_radius, search_result);
 
 

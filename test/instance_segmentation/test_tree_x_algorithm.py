@@ -184,21 +184,19 @@ class TestTreeXAlgorithm:
         expected_terrain_heights = np.array([0, 1], dtype=scalar_type)
         expected_layer_heights = np.array([1.3, 1.8, 2.3], dtype=scalar_type)
 
-        trunk_layer_xy, batch_lengths, terrain_heights, layer_heights = (
-            collect_inputs_trunk_layers_fitting_cpp(
-                trunk_layer_xyz,
-                cluster_labels,
-                unique_cluster_labels,
-                dtm,
-                dtm_offset,
-                dtm_resolution,
-                trunk_search_min_z,
-                num_layers,
-                trunk_search_circle_fitting_layer_height,
-                trunk_search_circle_fitting_layer_overlap,
-                trunk_search_circle_fitting_min_points,
-                num_workers,
-            )
+        trunk_layer_xy, batch_lengths, terrain_heights, layer_heights = collect_inputs_trunk_layers_fitting_cpp(
+            trunk_layer_xyz,
+            cluster_labels,
+            unique_cluster_labels,
+            dtm,
+            dtm_offset,
+            dtm_resolution,
+            trunk_search_min_z,
+            num_layers,
+            trunk_search_circle_fitting_layer_height,
+            trunk_search_circle_fitting_layer_overlap,
+            trunk_search_circle_fitting_min_points,
+            num_workers,
         )
 
         assert len(batch_lengths) == len(unique_cluster_labels) * num_layers
@@ -677,7 +675,7 @@ class TestTreeXAlgorithm:
         assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
 
     def test_diameter_estimation_gam_ellipse(self):
-        algorithm = TreeXAlgorithm()
+        algorithm = TreeXAlgorithm(trunk_search_gam_max_radius_diff=0.4)
 
         ellipses = np.array([[1, 1, 1.2, 0.9, 0]])
         points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
@@ -719,6 +717,7 @@ class TestTreeXAlgorithm:
         algorithm = TreeXAlgorithm(
             trunk_search_circle_fitting_num_layers=num_layers,
             trunk_search_circle_fitting_std_num_layers=num_layers - 1,
+            trunk_search_gam_max_radius_diff=0.05,
             visualization_folder=visualization_folder,
         )
 
@@ -742,14 +741,12 @@ class TestTreeXAlgorithm:
             if layer == 0:
                 ellipses = np.array([[0, 0, 1.3, 0.8, 0]])
             else:
-                ellipses = np.array([[0, 0, 1.0 - 0.1 * layer, 1.0 - 0.1 * layer, 0]])
+                ellipses = np.array([[0, 0, 1.0 - 0.1 * layer + 0.1, 1.0 - 0.1 * layer - 0.1, 0]])
 
             layer_ellipses[1, layer] = ellipses[0]
             ellipse_points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
             trunk_layer_xy.append(ellipse_points)
             batch_lengths_xy[num_layers + layer] = len(ellipse_points)
-
-        print("layer_ellipses", layer_ellipses)
 
         trunk_layer_xy_np = np.concatenate(trunk_layer_xy).astype(scalar_type)
 
@@ -764,13 +761,20 @@ class TestTreeXAlgorithm:
         if create_visualization:
             for label in range(2):
                 if best_circle_combination[label][0] != -1:
+                    is_circle = True
                     selected_layers = best_circle_combination[label]
                 else:
+                    is_circle = False
                     selected_layers = best_ellipse_combination[label]
                 for layer in selected_layers:
                     visualization_folder = cast(Path, visualization_folder)
+                    if is_circle:
+                        expected_file_name = f"gam_trunk_{label}_layer_{layer}.png"
+                    else:
+                        expected_file_name = f"gam_trunk_{label}_layer_{layer}_invalid.png"
+
                     expected_visualization_paths.append(
-                        visualization_folder / "test" / f"gam_trunk_{label}_layer_{layer}.png"
+                        visualization_folder / "test" / expected_file_name
                     )
 
         expected_trunk_radii = np.array([1 - 0.03, 1 - 0.03], dtype=np.float64)
@@ -1036,7 +1040,7 @@ class TestTreeXAlgorithm:
             trunk_search_min_cluster_intensity=min_intensity,
             trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
             visualization_folder=visualization_folder,
-            crown_seg_cum_search_dist_include_terrain=2
+            crown_seg_cum_search_dist_include_terrain=2,
         )
 
         instance_ids, trunk_positions, trunk_diameters = algorithm(
@@ -1068,7 +1072,7 @@ class TestTreeXAlgorithm:
         algorithm = TreeXAlgorithm(
             trunk_search_min_cluster_points=10000,
             trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
-            crown_seg_cum_search_dist_include_terrain=2
+            crown_seg_cum_search_dist_include_terrain=2,
         )
 
         instance_ids, trunk_positions, trunk_diameters = algorithm(xyz)

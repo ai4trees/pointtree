@@ -11,6 +11,7 @@ from pointtorch import read
 import pytest
 
 from pointtree.instance_segmentation import TreeXAlgorithm
+from pointtree.instance_segmentation.tree_x_presets import TreeXPresetDefault, TreeXPresetTLS, TreeXPresetULS
 from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     collect_inputs_trunk_layers_fitting as collect_inputs_trunk_layers_fitting_cpp,
     collect_inputs_trunk_layers_refined_fitting as collect_inputs_refined_fitting_cpp,
@@ -20,6 +21,7 @@ from test.utils import (  # pylint: disable=wrong-import-order
     generate_circle_points,
     generate_ellipse_points,
     generate_grid_points,
+    generate_tree_point_cloud,
 )
 
 
@@ -773,9 +775,7 @@ class TestTreeXAlgorithm:
                     else:
                         expected_file_name = f"gam_trunk_{label}_layer_{layer}_invalid.png"
 
-                    expected_visualization_paths.append(
-                        visualization_folder / "test" / expected_file_name
-                    )
+                    expected_visualization_paths.append(visualization_folder / "test" / expected_file_name)
 
         expected_trunk_radii = np.array([1 - 0.03, 1 - 0.03], dtype=np.float64)
 
@@ -956,76 +956,10 @@ class TestTreeXAlgorithm:
         scalar_type: np.dtype,
         cache_dir,
     ):  # pylint: disable=too-many-locals, too-many-statements
-        point_spacing = 0.1
-        min_intensity = 5000
-        ground_plane = generate_grid_points((100, 100), point_spacing)
-        ground_plane = np.column_stack([ground_plane, np.zeros(len(ground_plane), dtype=np.float64)])
-        intensities_ground_plane = np.zeros(len(ground_plane), dtype=scalar_type)
 
-        points_per_layer = 200
-
-        num_layers_trunk_1 = 30
-        trunk_1: List[float] = []
-        for layer in range(num_layers_trunk_1):
-            layer_height = layer * point_spacing
-            layer_points = generate_circle_points(
-                np.array([[2.05, 2.05, 0.15]]),
-                min_points=points_per_layer,
-                max_points=points_per_layer,
-                variance=0.01,
-                seed=layer,
-            )
-            layer_points = np.column_stack(
-                (layer_points, np.full(len(layer_points), fill_value=layer_height, dtype=np.float64))
-            )
-            trunk_1.extend(layer_points)
-        intensities_trunk_1 = np.full(len(trunk_1), fill_value=min_intensity - 1, dtype=scalar_type)
-
-        num_layers_trunk_2 = 35
-        trunk_2: List[float] = []
-        for layer in range(num_layers_trunk_2):
-            layer_height = layer * point_spacing
-            layer_points = generate_circle_points(
-                np.array([[5.65, 5.65, 0.25]]),
-                min_points=points_per_layer,
-                max_points=points_per_layer,
-                variance=0.01,
-                seed=layer,
-            )
-            layer_points = np.column_stack(
-                (layer_points, np.full(len(layer_points), fill_value=layer_height, dtype=np.float64))
-            )
-            trunk_2.extend(layer_points)
-        intensities_trunk_2 = np.full(len(trunk_2), fill_value=min_intensity + 1, dtype=scalar_type)
-
-        crown_1 = generate_grid_points((20, 20, 20), point_spacing)
-        crown_1[:, :2] += 1.05
-        crown_1[:, 2] += 3.1
-        intensities_crown_1 = np.full(len(crown_1), fill_value=min_intensity - 1, dtype=scalar_type)
-        crown_2 = generate_grid_points((30, 30, 30), point_spacing)
-        crown_2[:, :2] += 4.15
-        crown_2[:, 2] += 3.6
-        intensities_crown_2 = np.full(len(crown_2), fill_value=min_intensity + 1, dtype=scalar_type)
-
-        expected_trunk_positions = np.array([[2.05, 2.05], [5.65, 5.65]], dtype=np.float64)
-        expected_trunk_diameters = np.array([0.3, 0.5], dtype=np.float64)
-        expected_tree_heights = np.array([5.0, 6.5], dtype=np.float64)
-
-        xyz = np.concatenate([ground_plane, crown_1, np.array(trunk_1), crown_2, np.array(trunk_2)]).astype(
-            scalar_type, order=storage_layout
+        xyz, intensities, expected_trunk_positions, expected_trunk_diameters, expected_tree_heights = (
+            generate_tree_point_cloud(scalar_type, storage_layout, generate_intensities=use_intensities)
         )
-        if use_intensities:
-            intensities = np.concatenate(
-                [
-                    intensities_ground_plane,
-                    intensities_crown_1,
-                    intensities_trunk_1,
-                    intensities_crown_2,
-                    intensities_trunk_2,
-                ]
-            )
-        else:
-            intensities = None
 
         visualization_folder = None
         point_cloud_id = None
@@ -1037,7 +971,7 @@ class TestTreeXAlgorithm:
             trunk_search_dbscan_2d_eps=0.05,
             trunk_search_dbscan_3d_eps=0.25,
             trunk_search_dbscan_3d_min_points=5,
-            trunk_search_min_cluster_intensity=min_intensity,
+            trunk_search_min_cluster_intensity=5000,
             trunk_search_circle_fitting_refined_circle_fitting=trunk_search_circle_fitting_refined_circle_fitting,
             visualization_folder=visualization_folder,
             crown_seg_cum_search_dist_include_terrain=2,
@@ -1068,6 +1002,16 @@ class TestTreeXAlgorithm:
             np.testing.assert_almost_equal(expected_trunk_positions, trunk_positions, decimal=2)
             np.testing.assert_almost_equal(expected_trunk_diameters, trunk_diameters, decimal=2)
             np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
+
+    @pytest.mark.parametrize("trunk_search_circle_fitting_refined_circle_fitting", [True, False])
+    @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+    def test_full_algorithm_no_trees_detected(
+        self,
+        trunk_search_circle_fitting_refined_circle_fitting: bool,
+        scalar_type: np.dtype,
+    ):
+
+        xyz, _, _, _, _ = generate_tree_point_cloud(scalar_type, "C", generate_intensities=False)
 
         algorithm = TreeXAlgorithm(
             trunk_search_min_cluster_points=10000,

@@ -37,8 +37,7 @@ ArrayX2<scalar_T> compute_layer_bounds(
 }
 
 template <typename scalar_T>
-std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>, ArrayX<scalar_T>>
-collect_inputs_trunk_layers_fitting(
+std::tuple<ArrayX2<scalar_T>, ArrayXl, ArrayX<scalar_T>, ArrayX<scalar_T>> collect_inputs_trunk_layers_fitting(
     RefArrayX3<scalar_T> trunk_layer_xyz,
     RefArrayXl cluster_labels,
     RefArrayXl unique_cluster_labels,
@@ -196,7 +195,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_trunk_layers_refined_fitti
       } else {
         auto ellipse = preliminary_layer_ellipses(flat_idx, Eigen::all);
         ArrayX2<scalar_T> ellipse_center = ellipse.leftCols(2);
-        scalar_T ellipse_diameter = std::sqrt(ellipse(2) * ellipse(2) + ellipse(3) * ellipse(3));
+        scalar_T ellipse_diameter = ellipse(2) + ellipse(3);
         scalar_T buffer_width;
 
         if (ellipse_diameter <= trunk_search_circle_fitting_switch_buffer_threshold) {
@@ -286,8 +285,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
   std::vector<int64_t> seed_layer_indices;
   for (int64_t i = 0; i < xyz.rows(); ++i) {
     if ((distance_to_dtm(i) >= 1.3 - region_growing_seed_layer_height / 2) &&
-        (distance_to_dtm(i) <= 1.3 + region_growing_seed_layer_height / 2) &&
-        cluster_labels(i) == -1) {
+        (distance_to_dtm(i) <= 1.3 + region_growing_seed_layer_height / 2) && cluster_labels(i) == -1) {
       seed_layer_indices.push_back(i);
     }
   }
@@ -311,7 +309,6 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
     // the search radius needs to be squared since the KDTree uses the squared L2 norm
     search_radius = search_radius * search_radius;
     const size_t num_neighbors = kd_tree_2d->index_->radiusSearch(tree_position.data(), search_radius, search_result);
-
 
     std::vector<int64_t> current_seed_indices(search_result.size());
 

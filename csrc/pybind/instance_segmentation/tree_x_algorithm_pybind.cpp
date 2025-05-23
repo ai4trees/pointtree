@@ -11,13 +11,11 @@ PYBIND11_MODULE(_tree_x_algorithm_cpp, m) {
   )pbdoc";
 
   m.def(
-      "collect_inputs_trunk_layers_fitting",
-      &PointTree::collect_inputs_trunk_layers_fitting<float>,
+      "collect_inputs_trunk_layers_fitting", &PointTree::collect_inputs_trunk_layers_fitting<float>,
       pybind11::return_value_policy::reference_internal, "");
 
   m.def(
-      "collect_inputs_trunk_layers_fitting",
-      &PointTree::collect_inputs_trunk_layers_fitting<double>,
+      "collect_inputs_trunk_layers_fitting", &PointTree::collect_inputs_trunk_layers_fitting<double>,
       pybind11::return_value_policy::reference_internal,
       R"pbdoc(
     In the trunk identification, horizontal layers are extracted from the potential trunk clusters and circles or

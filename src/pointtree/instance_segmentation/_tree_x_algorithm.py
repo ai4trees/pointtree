@@ -1021,9 +1021,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             for label_idx, label in enumerate(unique_cluster_labels):
                 for layer in range(self._trunk_search_circle_fitting_num_layers):
                     flat_idx = label_idx * num_layers + layer
-                    batch_start_idx_xy = batch_starts_xy[
-                        flat_idx
-                    ]
+                    batch_start_idx_xy = batch_starts_xy[flat_idx]
                     batch_end_idx_xy = batch_start_idx_xy + batch_lengths_xy[flat_idx]
                     circle_idx = batch_starts_circles[flat_idx]
                     if batch_lengths_xy[flat_idx] < self._trunk_search_circle_fitting_min_points:

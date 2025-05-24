@@ -14,15 +14,16 @@ import numpy.typing as npt
 from pointtorch import PointCloud
 from pointtorch.operations.numpy import voxel_downsampling, make_labels_consecutive
 from pygam import LinearGAM, s
-from sklearn.cluster import DBSCAN
 import rasterio
 from rasterio.transform import from_origin
+from sklearn.cluster import DBSCAN
 
 from pointtree.evaluation import Profiler
 from pointtree.operations import (
     create_digital_terrain_model,
     cloth_simulation_filtering,
     distance_to_dtm,
+    fit_ellipse,
     estimate_with_linear_model,
     polygon_area,
 )
@@ -31,23 +32,25 @@ from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # 
     collect_inputs_trunk_layers_fitting as collect_inputs_trunk_layers_fitting_cpp,
     collect_inputs_trunk_layers_refined_fitting as collect_inputs_trunk_layers_refined_fitting_cpp,
 )
-from pointtree.operations import fit_ellipse
 from pointtree.visualization import plot_fitted_shape
 
 from ._instance_segmentation_algorithm import InstanceSegmentationAlgorithm
 from .filters import (
-    filter_instances_min_points,
-    filter_instances_vertical_extent,
     filter_instances_intensity,
+    filter_instances_min_points,
     filter_instances_pca,
+    filter_instances_vertical_extent,
 )
 
 
 class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many-instance-attributes
     r"""
-    Tree instance segmentation algorithm proposed in `Tockner, Andreas, et al. "Automatic Tree Crown Segmentation \
-    Using Dense Forest Point Clouds from Personal Laser Scanning (PLS)." International Journal of Applied Earth \
-    Observation and Geoinformation 114 (2022): 103025. <https://doi.org/10.1016/j.jag.2022.103025>`__.
+    Revised version of the tree instance segmentation algorithm originally introduced in `Tockner, Andreas, et al. \
+    "Automatic Tree Crown Segmentation Using Dense Forest Point Clouds from Personal Laser Scanning (PLS)." \
+    International Journal of Applied Earth Observation and Geoinformation 114 (2022): 103025. \
+    <https://doi.org/10.1016/j.jag.2022.103025>`__ and `Gollob, Christoph, Tim Ritter, and Arne Nothdurft. "Forest
+    Inventory with Long Range and High-Speed Personal Laser Scanning (PLS) and Simultaneous Localization and Mapping
+    (SLAM) technology." Remote Sensing 12.9 (2020): 1509. <https://doi.org/10.3390/rs12091509>`__.
 
     Args:
         invalid_tree_id: ID that is assigned to points that do not belong to any tree instance. Must either be zero or
@@ -367,7 +370,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         trunk_search_circle_fitting_max_std_position: Optional[float] = None,
         trunk_search_circle_fitting_std_num_layers: int = 6,
         trunk_search_gam_buffer_width: float = 0.03,
-        trunk_search_gam_max_radius_diff: float = 0.3,
+        trunk_search_gam_max_radius_diff: Optional[float] = 0.3,
         # region growing parameters
         crown_seg_voxel_size: float = 0.05,
         crown_seg_z_scale: float = 2,
@@ -1817,7 +1820,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         radius_diff = polar_radii.max() - polar_radii.min()
 
-        if radius_diff > self._trunk_search_gam_max_radius_diff or (polar_radii < 0).any():
+        if (self.trunk_search_gam_max_radius_diff is not None and radius_diff > self._trunk_search_gam_max_radius_diff) or (polar_radii < 0).any():
             return None, cartesian_coords
 
         trunk_area = polygon_area(cartesian_coords_x, cartesian_coords_y)

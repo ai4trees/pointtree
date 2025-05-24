@@ -1820,7 +1820,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         radius_diff = polar_radii.max() - polar_radii.min()
 
-        if (self.trunk_search_gam_max_radius_diff is not None and radius_diff > self._trunk_search_gam_max_radius_diff) or (polar_radii < 0).any():
+        if (
+            self.trunk_search_gam_max_radius_diff is not None and radius_diff > self._trunk_search_gam_max_radius_diff
+        ) or (polar_radii < 0).any():
             return None, cartesian_coords
 
         trunk_area = polygon_area(cartesian_coords_x, cartesian_coords_y)

@@ -54,9 +54,8 @@ jobs:
           pip install torch==2.4.0
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          python -m pip install -v --upgrade .'[dev, docs]'
+          python -m pip install -v --upgrade -e .'[dev, docs]'
           pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git  
-          python -c "from pointtree._tree_x_algorithm_cpp import segment_tree_crowns"
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest

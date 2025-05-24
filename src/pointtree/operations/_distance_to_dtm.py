@@ -4,7 +4,7 @@ __all__ = ["distance_to_dtm"]
 
 import numpy.typing as npt
 
-from pointtree._operations_cpp import distance_to_dtm as distance_to_dtm_cpp  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
+from pointtree._operations_cpp import distance_to_dtm as distance_to_dtm_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
 
 
 def distance_to_dtm(  # pylint: disable=too-many-locals

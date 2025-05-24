@@ -10,7 +10,7 @@ import numpy.typing as npt
 from ._generate_points import generate_circle_points, generate_grid_points
 
 
-def generate_tree_point_cloud(
+def generate_tree_point_cloud(  # pylint: disable=too-many-locals
     scalar_type: np.dtype, storage_layout: str, generate_intensities: bool
 ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
     """

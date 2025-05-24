@@ -26,7 +26,7 @@ from pointtree.operations import (
     estimate_with_linear_model,
     polygon_area,
 )
-from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
+from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     segment_tree_crowns as segment_tree_crowns_cpp,
     collect_inputs_trunk_layers_fitting as collect_inputs_trunk_layers_fitting_cpp,
     collect_inputs_trunk_layers_refined_fitting as collect_inputs_trunk_layers_refined_fitting_cpp,
@@ -556,7 +556,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             self._visualization_folder / f"{point_cloud_id}_{step_name}.laz",
         )
 
-    def find_trunks(  # pylint: disable=too-many-locals, too-many-statements
+    def find_trunks(  # pylint: disable=too-many-locals, too-many-statements, too-many-branches
         self,
         trunk_layer_xyz: npt.NDArray,
         dtm: npt.NDArray,
@@ -859,7 +859,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 point_cloud_id=point_cloud_id,
             )
 
-        cluster_labels = make_labels_consecutive(cluster_labels, ignore_id=-1)
+        cluster_labels = make_labels_consecutive(cluster_labels, ignore_id=-1)  # type: ignore[assignment]
 
         return trunk_positions, trunk_diameters, cluster_labels[inverse_indices]
 
@@ -1422,7 +1422,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 minimum_std = np.inf
                 for combination in combinations:
                     diameter_std = np.std(circle_diameters[np.array(combination)])
-                    position_std = 0
+                    position_std = np.zeros(2, dtype=diameter_std.dtype)
                     if self._trunk_search_circle_fitting_max_std_position is not None:
                         position_std = np.std(layer_circles[label, np.array(combination), :2], axis=0)
                     if (
@@ -1442,7 +1442,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 for combination in combinations:
                     diameter_std = np.std(ellipse_diameters[np.array(combination)])
 
-                    position_std = 0
+                    position_std = np.zeros(2, dtype=diameter_std.dtype)
                     if self._trunk_search_circle_fitting_max_std_position is not None:
                         position_std = np.std(layer_ellipses[label, np.array(combination), :2], axis=0)
 
@@ -1964,7 +1964,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         return full_instance_ids
 
-    def __call__(
+    def __call__(  # pylint: disable=too-many-locals
         self,
         xyz: npt.NDArray,
         intensities: Optional[npt.NDArray] = None,

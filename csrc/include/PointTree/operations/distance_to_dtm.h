@@ -27,7 +27,7 @@ ArrayX<scalar_T> distance_to_dtm(
     grid_positions.col(1) = grid_positions.col(1).min(dtm.rows() - 1);
   }
 
-  ArrayX2l grid_indices = grid_positions.floor().cast<int64_t>();
+  ArrayX2l grid_indices = grid_positions.floor().template cast<int64_t>();
 
   if (!allow_outside_points && ((grid_positions < 0).any() || (grid_positions.col(0) >= dtm.cols()).any() ||
                                 (grid_positions.col(1) >= dtm.rows()).any())) {

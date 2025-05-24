@@ -1,4 +1,4 @@
-"""Tests for pointtree.instance_segmentation.TreeXAlgorithm."""
+"""Tests for pointtree.instance_segmentation.TreeXAlgorithm."""  # pylint: disable=too-many-lines
 
 import os
 from pathlib import Path
@@ -11,7 +11,6 @@ from pointtorch import read
 import pytest
 
 from pointtree.instance_segmentation import TreeXAlgorithm
-from pointtree.instance_segmentation.tree_x_presets import TreeXPresetDefault, TreeXPresetTLS, TreeXPresetULS
 from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     collect_inputs_trunk_layers_fitting as collect_inputs_trunk_layers_fitting_cpp,
     collect_inputs_trunk_layers_refined_fitting as collect_inputs_refined_fitting_cpp,
@@ -25,7 +24,7 @@ from test.utils import (  # pylint: disable=wrong-import-order
 )
 
 
-class TestTreeXAlgorithm:
+class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
     """Tests for pointtree.instance_segmentation.TreeXAlgorithm."""
 
     @pytest.fixture
@@ -705,7 +704,7 @@ class TestTreeXAlgorithm:
     @pytest.mark.parametrize("create_visualization", [False, True])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     @pytest.mark.parametrize("empty_input_points", [False, True])
-    def test_compute_trunk_diameters(  # pylint: disable=too-many-locals, too-many-branches
+    def test_compute_trunk_diameters(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
         self, create_visualization: bool, scalar_type: np.dtype, empty_input_points: bool, cache_dir
     ):
         point_cloud_id = None

@@ -1,4 +1,6 @@
-__all__ = ["TreeXPresetDefault", "TreeXPresetTLS", "TreeXPresetULS"]
+"""Presets for the treeX algorithm."""
+
+__all__ = ["TreeXPreset", "TreeXPresetTLS", "TreeXPresetULS"]
 
 from collections.abc import Mapping
 from dataclasses import dataclass, make_dataclass, field, asdict
@@ -8,38 +10,70 @@ from typing import Any, List, Optional, Tuple
 from ._tree_x_algorithm import TreeXAlgorithm
 
 
-def create_default_preset():
+def create_default_preset() -> "TreeXPreset":
+    """
+    Returns:
+        Preset class that contains the default settings of the TreeX algorithm.
+    """
+
     constructor_signature = inspect.signature(TreeXAlgorithm.__init__)
-    fields: List[Tuple[str, type, Any]] = []
+    fields: List[Tuple[str, Any, Any]] = []
 
     for name, param in constructor_signature.parameters.items():
         if name == "self":
             continue
         if param.default is not inspect.Parameter.empty:
             type_annotation = param.annotation if param.annotation is not inspect.Parameter.empty else Any
-            fields.append((name, type_annotation, field(default=param.default)))
+            fields.append((name, type_annotation, field(default=param.default)))  # pylint: disable=invalid-field-call
 
-    return make_dataclass("TreeXPresetDefault", fields=fields)
+    return make_dataclass("TreeXPresetDefault", fields=fields)  # type: ignore[return-value]
 
 
-class TreeXPresetDefault(create_default_preset(), Mapping):
+class TreeXPreset(create_default_preset(), Mapping):  # type: ignore[misc]
+    """
+    Preset for the treeX algorithm containing the default settings of the algorithm.
+    """
+
     def __len__(self):
+        """
+        Returns:
+            Number of parameters included in the preset.
+        """
+
         return len(asdict(self))
 
     def __iter__(self):
+        """
+        Returns:
+            Iterator over the preset.
+        """
+
         return iter(asdict(self))
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
+        """
+        Args:
+            key: Parameter name.
+
+        Returns: Parameter value for the given parameter name.
+        """
+
         return asdict(self)[key]
 
 
 @dataclass
-class TreeXPresetTLS(TreeXPresetDefault):
-    pass
+class TreeXPresetTLS(TreeXPreset):
+    """
+    Preset for the treeX algorithm for dense terrestrial point clouds (e.g., from stationary or mobile scanning).
+    """
 
 
 @dataclass
-class TreeXPresetULS(TreeXPresetDefault):
+class TreeXPresetULS(TreeXPreset):  # pylint: disable=too-many-instance-attributes
+    """
+    Preset for the treeX algorithm for sparser UAV-borne point clouds.
+    """
+
     # parameters for the identification of trunk clusters
     trunk_search_min_z: float = 1.0
     trunk_search_max_z: float = 7.0

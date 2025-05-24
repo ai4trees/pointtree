@@ -18,7 +18,7 @@ from sklearn.cluster import DBSCAN
 import torch
 from torch_scatter import scatter_max
 
-from pointtree._coarse_to_fine_algorithm_cpp import (  # type: ignore[import-not-found] # pylint: disable=import-error, no-name-in-module
+from pointtree._coarse_to_fine_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     grow_trees as grow_trees_cpp,
 )
 from pointtree.evaluation import Profiler

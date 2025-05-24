@@ -54,7 +54,7 @@ jobs:
           pip install torch==2.4.0
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          python -m pip install -v --upgrade .'[dev, docs]'
+          python -m pip install -v --upgrade --force-reinstall .'[dev, docs]'
           pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git  
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:

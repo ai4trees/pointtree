@@ -2,6 +2,7 @@ pointtree.instance\_segmentation
 ================================
 .. automodule:: pointtree.instance_segmentation
    :members:
+   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 

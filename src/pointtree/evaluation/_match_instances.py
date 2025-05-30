@@ -217,7 +217,7 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
     This method implements the instance matching methods proposed in the following works:
 
     - `Kirillov, Alexander, et al. "Panoptic segmentation." Proceedings of the IEEE/CVF Conference on Computer Vision \
-       and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
+      and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
       
       This method matches predicted and ground-truth instances if their IoU is striclty greater than 0.5, which results
       in an unambigous matching.
@@ -434,8 +434,8 @@ def match_instances_tree_learn(  # pylint: disable=too-many-locals
             mask_satisfies_match_condition = iou_matrix[matched_preds, matched_gts] >= min_iou_treshold
         else:
             mask_satisfies_match_condition = iou_matrix[matched_preds, matched_gts] > min_iou_treshold
-        matched_preds = matched_preds[mask_satisfies_match_condition]
-        matched_gts = matched_gts[mask_satisfies_match_condition]
+        matched_preds = matched_preds[mask_satisfies_match_condition]  # type: ignore[assignment]
+        matched_gts = matched_gts[mask_satisfies_match_condition]  # type: ignore[assignment]
 
     matched_target_ids[matched_preds] = matched_gts
     matched_predicted_ids[matched_gts] = matched_preds

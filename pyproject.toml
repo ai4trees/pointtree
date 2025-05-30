@@ -1,15 +1,15 @@
 [build-system]
-requires = ["setuptools >=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "pointtree"
 version = "0.1.0"
 authors = [
-    {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+  {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
 ]
 maintainers = [
-    {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
+  {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"}
 ]
 description = "A Python Package for Tree Instance Segmentation in 3D Point Clouds."
 readme = "README.md"
@@ -23,21 +23,24 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 keywords = ["tree", "point cloud", "segmentation"]
-requires-python = ">=3.10"
+requires-python = ">=3.10, <3.13"
 dependencies = [
+    "circle_detection>=0.1.0, <2.0.0",
     "cloth-simulation-filter>=1.1.5, <2.0.0",
     "laspy>=2.0.0, <3.0.0",
     "numba>=0.55.0, <1.0.0",
     "numpy>=1.21.0, <3.0.0",
     "pandas>=2.0.0, <3.0.0",
     "pointtorch>=0.1.0, <1.0.0",
+    "psutil>=5.9.0, < 7.0.0",
     "pyclesperanto-prototype>=0.22.0, <1.0.0",
+    "pygam>=0.9.0, <1.0.0",
+    "rasterio>=1.3.9, <1.4.3",
     "scipy>=1.8.0, <2.0.0",
-    "scikit-image>=0.21.0, <1.0.0",
+    "scikit-image>=0.25.0, <1.0.0",
     "scikit-learn>=1.2.0, <2.0.0"
 ]
 [project.optional-dependencies]
@@ -51,9 +54,11 @@ dev = [
     "pytest-cov",
     "scipy-stubs",
     "types-Pillow",
+    "types-psutil",
 ]
 docs = [
     "sphinx",
+    "sphinx-autodoc-typehints",
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx-docsearch",
@@ -82,3 +87,6 @@ build_command = "python -m build"
 
 [tool.setuptools.package-data]
 pointtree = ["*.typed"]
+
+[tool.scikit-build]
+build-dir = "build/{wheel_tag}"

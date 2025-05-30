@@ -1,0 +1,67 @@
+#include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+#include "../../include/PointTree/instance_segmentation/tree_x_algorithm.h"
+
+PYBIND11_MODULE(_tree_x_algorithm_cpp, m) {
+  m.doc() = R"pbdoc(
+    C++ extension module implementing selected steps of the TreeXAlgorithm.
+  )pbdoc";
+
+  m.def(
+      "collect_inputs_stem_layers_fitting", &PointTree::collect_inputs_stem_layers_fitting<float>,
+      pybind11::return_value_policy::reference_internal, "");
+
+  m.def(
+      "collect_inputs_stem_layers_fitting", &PointTree::collect_inputs_stem_layers_fitting<double>,
+      pybind11::return_value_policy::reference_internal,
+      R"pbdoc(
+    In the stem identification, horizontal layers are extracted from the potential stem clusters and circles or
+    ellipses are fitted to these layers. Initially, the circle / ellipse fitting is done using the downsampled points
+    assigned to the individual clusters. For this preliminary circle / ellipse fitting, this method compiles the points
+    and the indices of these points within the respective layer for each stem cluster and layer.
+  )pbdoc");
+
+  m.def(
+      "collect_inputs_stem_layers_refined_fitting", &PointTree::collect_inputs_stem_layers_refined_fitting<float>,
+      pybind11::return_value_policy::reference_internal, "");
+
+  m.def(
+      "collect_inputs_stem_layers_refined_fitting", &PointTree::collect_inputs_stem_layers_refined_fitting<double>,
+      pybind11::return_value_policy::reference_internal, R"pbdoc(
+    In the stem identification, horizontal layers are extracted from the potential stem clusters and circles /
+    ellipses are fitted to these layers. After fitting preliminary circles or ellipses to each layer, the points within
+    a buffer region around the outline of each circle / ellipse are extracted and the circle / ellipse fitting is
+    repeated using theses points. For this more exact circle / ellipse fitting, this method compiles the points and the
+    indices of these points within the respective buffer region for each stem cluster and layer.
+  )pbdoc");
+
+  m.def(
+      "collect_region_growing_seeds", &PointTree::collect_region_growing_seeds<float>,
+      pybind11::return_value_policy::reference_internal, "");
+
+  m.def(
+      "collect_region_growing_seeds", &PointTree::collect_region_growing_seeds<double>,
+      pybind11::return_value_policy::reference_internal, R"pbdoc(
+    Method that collects the seed points for tree crown segmentation using region growing.
+  )pbdoc");
+
+  m.def(
+      "segment_tree_crowns", &PointTree::segment_tree_crowns<float>, pybind11::return_value_policy::reference_internal,
+      "");
+
+  m.def(
+      "segment_tree_crowns", &PointTree::segment_tree_crowns<double>, pybind11::return_value_policy::reference_internal,
+      R"pbdoc(
+    C++ implementation of the region-growing method for tree crown segmentation. For more details, see the documentation
+    of the Python wrapper method :code:`TreeXAlgorithm.segment_tree_crowns()`.
+  )pbdoc");
+
+#ifdef VERSION_INFO
+  m.attr("__version__") = (VERSION_INFO);
+#else
+  m.attr("__version__") = "dev";
+#endif
+}

@@ -5,10 +5,16 @@ __all__ = ["points_in_ellipse"]
 import numpy as np
 import numpy.typing as npt
 
+from pointtree._operations_cpp import points_in_ellipse as points_in_ellipse_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
 
-def points_in_ellipse(xy: npt.NDArray[np.float64], ellipse: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
+
+def points_in_ellipse(xy: npt.NDArray, ellipse: npt.NDArray) -> npt.NDArray[np.bool_]:
     r"""
     Tests whether 2D points are within the boundaries of an ellipse.
+
+    If the input arrays have a row-major storage layout
+    (`numpy's <https://numpy.org/doc/stable/dev/internals.html>`__ default), a copy of the input arrays is created. To
+    pass them by reference, they must be in column-major format.
 
     Args:
         xy: Coordinates of the points to test.
@@ -25,7 +31,6 @@ def points_in_ellipse(xy: npt.NDArray[np.float64], ellipse: npt.NDArray[np.float
     Shape:
         - :code:`xy`: :math:`(N, 2)`
         - :code:`ellipse`: :math:`(5)`
-        - :code:`batch_indices_query_points`: :math:`(N')`
         - Output: :math:`(N)`
 
           | where
@@ -36,16 +41,14 @@ def points_in_ellipse(xy: npt.NDArray[np.float64], ellipse: npt.NDArray[np.float
     if xy.ndim != 2 or xy.shape[1] != 2:
         raise ValueError("xy must be an array of 2D coordinates.")
 
-    if ellipse.shape != (5,):
+    if ellipse.ndim != 1 or ellipse.shape[0] != 5:
         raise ValueError("ellipse must contain five parameters.")
 
-    center_x, center_y, radius_major, radius_minor, theta = ellipse
+    if not xy.flags.f_contiguous:
+        xy = xy.copy(order="F")  # ensure that the input array is in column-major
 
-    cos_theta = np.cos(theta)
-    sin_theta = np.sin(theta)
+    ellipse = ellipse.astype(xy.dtype)
+    if not ellipse.flags.f_contiguous:
+        ellipse = ellipse.copy(order="F")  # ensure that the input array is in column-major
 
-    a = (cos_theta * (xy[:, 0] - center_x) + sin_theta * (xy[:, 1] - center_y)) ** 2
-    b = (sin_theta * (xy[:, 0] - center_x) - cos_theta * (xy[:, 1] - center_y)) ** 2
-    ellipse_equation = (a / radius_major**2) + (b / radius_minor**2)
-
-    return ellipse_equation <= 1
+    return points_in_ellipse_cpp(xy, ellipse)

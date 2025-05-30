@@ -5,3 +5,11 @@
 #content .field-list ul:not(.search)>li, #content .field-list ul:not(.search) p {
     margin-top: 1rem;
 }
+
+.sig-param > :nth-child(n+3) {
+    font-weight: 150;
+}
+
+.sig-return-typehint {
+    font-weight: 150;
+}

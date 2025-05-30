@@ -24,6 +24,7 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     matched_target_ids: npt.NDArray[np.int64],
     invalid_instance_id: int = -1,
     min_precision_fp: float = 0.5,
+    labeled_mask: Optional[np.ndarray] = None,
 ):
     r"""
     Computes metrics to measure the instance detection quality. Based on a given matching of ground-truth
@@ -60,8 +61,13 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         matched_target_ids: ID of the matched ground-truth instance for each predicted instance.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
             matched. Defaults to -1.
-        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must belong to labeled
-            ground-truth instances in order to count the predicted instance as false positive. Defaults to 0.5.
+        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled
+            in order to count the predicted instance as false positive in the computation of instance detection metrics.
+            If :code:`labeled_mask` is not :code:`None`, the points for which the mask is :code:`True` are considered as
+            labeled points. If :code:`labeled_mask` is :code:`None`, all points which are labeled as tree insgtances are
+            considered as labeled points. Defaults to 0.5.
+        labeled_mask: Boolean mask indicating which points are labeled. This mask is used to exclude false positive
+            instances that mainly consist of unlabeled points. Defaults to :code:`None`.
 
     Raises:
         ValueError: If :code:`target` and :code:`prediction` have different lengths, if the length of
@@ -88,6 +94,9 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     if len(target) != len(prediction):
         raise ValueError("Target and prediction must have the same length.")
 
+    if labeled_mask is None:
+        labeled_mask = target != invalid_instance_id
+
     target_ids = np.unique(target)
     target_ids = target_ids[target_ids != invalid_instance_id]
 
@@ -109,7 +118,7 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         for predicted_id, matched_target_id in enumerate(matched_target_ids):
             if matched_target_id == invalid_instance_id:
                 # count percentage of points belonging to labeled ground-truth instances
-                intersection = np.logical_and(target != invalid_instance_id, prediction == predicted_id).sum()
+                intersection = np.logical_and(labeled_mask, prediction == predicted_id).sum()
                 precision = intersection / (prediction == predicted_id).sum()
 
                 if precision >= min_precision_fp:
@@ -563,6 +572,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     ] = "for_ai_net_coverage",
     invalid_instance_id: int = -1,
     min_precision_fp: float = 0.5,
+    labeled_mask: Optional[np.ndarray] = None,
     compute_partition_metrics: bool = True,
     num_partitions: int = 10,
 ) -> Tuple[
@@ -603,9 +613,13 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
             computing the instance segmentation metrics.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
             matched. Defaults to -1.
-        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must belong to labeled
-            ground-truth instances in order to count the predicted instance as false positive in the computation of
-            instance detection metrics. Defaults to 0.5.
+        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled
+            in order to count the predicted instance as false positive in the computation of instance detection metrics.
+            If :code:`labeled_mask` is not :code:`None`, the points for which the mask is :code:`True` are considered as
+            labeled points. If :code:`labeled_mask` is :code:`None`, all points which are labeled as tree insgtances are
+            considered as labeled points. Defaults to 0.5.
+        labeled_mask: Boolean mask indicating which points are labeled. This mask is used to exclude false positive
+            instances that mainly consist of unlabeled points. Defaults to :code:`None`.
         compute_partition_metrics: Whether the metrics per partition should be computed. Defaults to :code:`True`.
         num_partitions: Number of partitions for the computation of instance segmentation metrics per partition.
             Defaults to 10.
@@ -640,6 +654,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         matched_target_ids,
         invalid_instance_id=invalid_instance_id,
         min_precision_fp=min_precision_fp,
+        labeled_mask=labeled_mask,
     )
 
     matched_target_ids, matched_predicted_ids = match_instances(

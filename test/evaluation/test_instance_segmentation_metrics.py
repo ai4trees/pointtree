@@ -40,6 +40,33 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["OmissionError"] == metrics["FN"] / (metrics["TP"] + metrics["FN"])
         assert metrics["F1Score"] == 2 * metrics["TP"] / (2 * metrics["TP"] + metrics["FP"] + metrics["FN"])
 
+    def test_instance_detection_metrics_labeled_mask(self):
+        target = np.array([1, 1, 1, 0, 0, 2, -1, -1, -1, -1, -1], dtype=np.int64)
+        prediction = np.array([0, -1, 2, 2, 2, 1, 1, -1, 3, 3, 3], dtype=np.int64)
+        labeled_mask = np.array([True] * 7 + [False] * 4, dtype=bool)
+
+        matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64)
+        matched_target_ids = np.array([-1, -1, 0, -1], dtype=np.int64)
+
+        metrics = instance_detection_metrics(
+            target,
+            prediction,
+            matched_predicted_ids,
+            matched_target_ids,
+            invalid_instance_id=-1,
+            min_precision_fp=0.5,
+            labeled_mask=labeled_mask,
+        )
+
+        assert metrics["TP"] == 1
+        assert metrics["FP"] == 2
+        assert metrics["FN"] == 2
+        assert metrics["Precision"] == metrics["TP"] / (metrics["TP"] + metrics["FP"])
+        assert metrics["CommissionError"] == metrics["FP"] / (metrics["TP"] + metrics["FP"])
+        assert metrics["Recall"] == metrics["TP"] / (metrics["TP"] + metrics["FN"])
+        assert metrics["OmissionError"] == metrics["FN"] / (metrics["TP"] + metrics["FN"])
+        assert metrics["F1Score"] == 2 * metrics["TP"] / (2 * metrics["TP"] + metrics["FP"] + metrics["FN"])
+
     @pytest.mark.parametrize("min_precision_fp", [0, 0.5])
     def test_instance_detection_metrics_all_correct(self, min_precision_fp: float):
         target = np.array([1, 1, 1, 0, 0, 2, -1, 2], dtype=np.int64)

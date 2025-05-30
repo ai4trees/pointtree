@@ -69,6 +69,7 @@ class TreeXPresetOriginal(TreeXPreset):
     International Journal of Applied Earth Observation and Geoinformation 114 (2022): 103025. \
     <https://doi.org/10.1016/j.jag.2022.103025>`__. and 
     """
+
     trunk_search_min_z: float = 1.0
     trunk_search_max_z: float = 3.0
     trunk_search_voxel_size: float = 0.015
@@ -79,12 +80,12 @@ class TreeXPresetOriginal(TreeXPreset):
     trunk_search_min_cluster_intensity: Optional[float] = 6000
     trunk_search_min_explained_variance: Optional[float] = None
     trunk_search_max_trunk_inclination: Optional[float] = None
+    trunk_search_refined_circle_fitting: bool = True
     trunk_search_circle_fitting_layer_start: float = 1.0
     trunk_search_circle_fitting_num_layers: int = 14
     trunk_search_circle_fitting_layer_height: float = 0.125
     trunk_search_circle_fitting_layer_overlap: float = 0.025
     trunk_search_circle_fitting_min_points: int = 50
-    trunk_search_circle_fitting_refined_circle_fitting: bool = True
     trunk_search_circle_fitting_small_buffer_width: float = 0.06
     trunk_search_circle_fitting_large_buffer_width: float = 0.09
     trunk_search_circle_fitting_switch_buffer_threshold: float = 0.3

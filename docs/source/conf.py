@@ -35,11 +35,19 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    "sphinxawesome_theme.highlighting",
     "sphinx_design",
     "sphinx_mdinclude",
     "sphinx_sitemap",
+    "sphinx_autodoc_typehints",
 ]
+autodoc_typehints_format = "short"
+typehints_fully_qualified = False
+always_use_bars_union = True
+typehints_document_rtype = False
+typehints_use_signature = True
+typehints_use_signature_return = True
+typehints_defaults = "braces-after"
+pygments_style = "sphinx"
 
 autodoc_type_aliases = {"ArrayLike": "ArrayLike"}
 default_role = "literal"
@@ -51,18 +59,8 @@ napoleon_custom_sections = [
     ("Parameters for the region growing segmentation", "params_style"),
 ]
 napoleon_use_ivar = True
-nitpicky = True
-nitpick_ignore = [
-    ("py:class", "abc.ABC"),
-    ("py:class", "numpy.dtype"),
-    ("py:class", "numpy.float64"),
-    ("py:class", "numpy.int64"),
-    ("py:class", "numpy.ndarray"),
-    ("py:class", "pandas.core.frame.DataFrame"),
-    ("py:class", "pandas.DataFrame"),
-    ("py:class", "torch.Tensor"),
-    ("py:class", "torch.Size"),
-]
+nitpicky = False
+
 python_maximum_signature_line_length = 88
 
 # Global substitutions for reStructuredText files

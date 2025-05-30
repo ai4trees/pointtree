@@ -6,7 +6,12 @@ import numpy as np
 import pytest
 
 from pointtree.instance_segmentation import TreeXAlgorithm
-from pointtree.instance_segmentation.tree_x_presets import TreeXPreset, TreeXPresetOriginal, TreeXPresetTLS, TreeXPresetULS
+from pointtree.instance_segmentation.tree_x_presets import (
+    TreeXPreset,
+    TreeXPresetOriginal,
+    TreeXPresetTLS,
+    TreeXPresetULS,
+)
 
 from test.utils import (  # pylint: disable=wrong-import-order
     generate_tree_point_cloud,

@@ -217,7 +217,7 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
     This method implements the instance matching methods proposed in the following works:
 
     - `Kirillov, Alexander, et al. "Panoptic segmentation." Proceedings of the IEEE/CVF Conference on Computer Vision \
-       and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
+      and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
       
       This method matches predicted and ground-truth instances if their IoU is striclty greater than 0.5, which results
       in an unambigous matching.

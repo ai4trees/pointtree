@@ -10,10 +10,10 @@
 
 The package contains implementation of the following tree instance segmentation algorithms:
 
-- TreeXAlgorithm: 
-- CoarseToFineAlgorithm:
+- TreeXAlgorithm
+- CoarseToFineAlgorithm
 
-the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
+It contains the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
 
 ### Package Documentation
 
@@ -43,12 +43,12 @@ algorithm = TreeXAlgorithm(visualization_folder=visualization_folder)
 
 #### 2. Using Presets
 
-We provide presets tailored to typical point cloud characteristics from different laser scanning modalities: terrestrial (TLS), personal (PLS), and UAV-borne (ULS). These presets simplify setup for common use cases.
+We provide presets tailored to typical point cloud characteristics from different laser scanning modalities: terrestrial (TLS), and UAV-borne (ULS). These presets simplify setup for common use cases.
 
 ```python
 from pointtree.instance_segmentation import TreeXPresetTLS, TreeXPresetPLS, TreeXPresetULS
 
-preset = TreeXPresetTLS()  # or use TreeXPresetPLS(), TreeXPresetULS()
+preset = TreeXPresetTLS()  # or use TreeXPresetULS()
 algorithm = TreeXAlgorithm(**preset)
 ```
 
@@ -73,7 +73,7 @@ point_cloud = read(file_path)
 instance_ids, trunk_positions, trunk_diameters = algorithm(
     point_cloud[["x", "y", "z"]].to_numpy(),
     intensities=point_cloud["intensity"].to_numpy(),
-    point_cloud_id="Sauen",  # Optional: Used for naming visualization / intermediate outputs
+    point_cloud_id="test-point-cloud",  # Optional: Used for naming visualization / intermediate outputs
     crs="EPSG:4326"  # Optional: Used for georeferencing intermediate outputs
 )
 

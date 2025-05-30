@@ -46,7 +46,7 @@ algorithm = TreeXAlgorithm(visualization_folder=visualization_folder)
 We provide presets tailored to typical point cloud characteristics from different laser scanning modalities: terrestrial (TLS), and UAV-borne (ULS). These presets simplify setup for common use cases.
 
 ```python
-from pointtree.instance_segmentation import TreeXPresetTLS, TreeXPresetPLS, TreeXPresetULS
+from pointtree.instance_segmentation import TreeXPresetTLS, TreeXPresetULS
 
 preset = TreeXPresetTLS()  # or use TreeXPresetULS()
 algorithm = TreeXAlgorithm(**preset)

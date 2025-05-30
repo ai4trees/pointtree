@@ -692,10 +692,10 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
         assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
 
         diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.stem_diameter_estimation_gam(
-            points[:30], ellipses[0, :2]
+            points[:35], ellipses[0, :2]
         )
 
-        assert expected_diameter == pytest.approx(diameter_with_missing_part, abs=0.2)
+        assert expected_diameter == pytest.approx(diameter_with_missing_part, abs=0.1)
         assert polygon_vertices_with_missing_part.ndim == 2
         assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
         assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()

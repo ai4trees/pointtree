@@ -4,17 +4,18 @@ __all__ = ["cloth_simulation_filtering"]
 
 import CSF
 import numpy as np
-import numpy.typing as npt
+
+from pointtree.type_aliases import FloatArray, LongArray
 
 
 def cloth_simulation_filtering(  # pylint: disable=too-few-public-methods
-    coords: npt.NDArray[np.float64],
+    coords: FloatArray,
     classification_threshold: float,
     resolution: float,
     rigidness: int,
     correct_steep_slope: bool = False,
     iterations: int = 100,
-) -> npt.NDArray[np.int64]:
+) -> LongArray:
     r"""
     Detects ground points using the Cloth Simulation Filtering (CSF) algorithm proposed in `Zhang, Wuming, et al. \
     "An Easy-to-Use Airborne LiDAR Data Filtering Method Based on Cloth Simulation." Remote Sensing 8.6 (2016): 501
@@ -28,9 +29,8 @@ def cloth_simulation_filtering(  # pylint: disable=too-few-public-methods
         resolution: Resolution of the cloth grid (in meter).
         rigidness: Rigidness of the cloth (the three levels 1, 2, and 3 are available, where 1 is
             the lowest and 3 the highest rigidness).
-        correct_steep_slope: Whether the cloth should be corrected for steep slopes in a post-pressing step. Defaults to
-            :code:`False`.
-        iterations: Maximum number of iterations. Defaults to 100.
+        correct_steep_slope: Whether the cloth should be corrected for steep slopes in a post-pressing step.
+        iterations: Maximum number of iterations.
 
     Returns:
         Class IDs for each point. For terrain points, the class ID is set to 0 and for non-terrain points to 1.

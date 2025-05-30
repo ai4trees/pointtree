@@ -62,7 +62,7 @@ class TreeXPreset(create_default_preset(), Mapping):  # type: ignore[misc]
 
 
 @dataclass
-class TreeXPresetOriginal(TreeXPreset):
+class TreeXPresetOriginal(TreeXPreset):  # pylint: disable=too-many-instance-attributes
     """
     Preset for the treeX algorithm with settings similar to those used in the papers `Tockner, Andreas, et al. \
     "Automatic Tree Crown Segmentation Using Dense Forest Point Clouds from Personal Laser Scanning (PLS)." \
@@ -70,30 +70,31 @@ class TreeXPresetOriginal(TreeXPreset):
     <https://doi.org/10.1016/j.jag.2022.103025>`__. and 
     """
 
-    trunk_search_min_z: float = 1.0
-    trunk_search_max_z: float = 3.0
-    trunk_search_voxel_size: float = 0.015
-    trunk_search_dbscan_2d_eps: float = 0.025
-    trunk_search_dbscan_2d_min_points: int = 90
-    trunk_search_min_cluster_points: Optional[int] = 300
-    trunk_search_min_cluster_height: Optional[float] = 1.3
-    trunk_search_min_cluster_intensity: Optional[float] = 6000
-    trunk_search_min_explained_variance: Optional[float] = None
-    trunk_search_max_trunk_inclination: Optional[float] = None
-    trunk_search_refined_circle_fitting: bool = True
-    trunk_search_circle_fitting_layer_start: float = 1.0
-    trunk_search_circle_fitting_num_layers: int = 14
-    trunk_search_circle_fitting_layer_height: float = 0.125
-    trunk_search_circle_fitting_layer_overlap: float = 0.025
-    trunk_search_circle_fitting_min_points: int = 50
-    trunk_search_circle_fitting_small_buffer_width: float = 0.06
-    trunk_search_circle_fitting_large_buffer_width: float = 0.09
-    trunk_search_circle_fitting_switch_buffer_threshold: float = 0.3
-    trunk_search_ellipse_filter_threshold: float = 0.6
-    trunk_search_circle_fitting_max_std_diameter: float = 0.0185
-    trunk_search_circle_fitting_max_std_position: Optional[float] = None
-    trunk_search_circle_fitting_std_num_layers: int = 6
-    trunk_search_gam_max_radius_diff: float = None
+    stem_search_min_z: float = 1.0
+    stem_search_max_z: float = 3.0
+    stem_search_voxel_size: float = 0.015
+    stem_search_dbscan_2d_eps: float = 0.025
+    stem_search_dbscan_2d_min_points: int = 90
+    stem_search_min_cluster_points: Optional[int] = 300
+    stem_search_min_cluster_height: Optional[float] = 1.3
+    stem_search_min_cluster_intensity: Optional[float] = 6000
+    stem_search_min_explained_variance: Optional[float] = None
+    stem_search_max_stem_inclination: Optional[float] = None
+    stem_search_refined_circle_fitting: bool = True
+    stem_search_ellipse_fitting: bool = True
+    stem_search_circle_fitting_layer_start: float = 1.0
+    stem_search_circle_fitting_num_layers: int = 14
+    stem_search_circle_fitting_layer_height: float = 0.125
+    stem_search_circle_fitting_layer_overlap: float = 0.025
+    stem_search_circle_fitting_min_points: int = 50
+    stem_search_circle_fitting_small_buffer_width: float = 0.06
+    stem_search_circle_fitting_large_buffer_width: float = 0.09
+    stem_search_circle_fitting_switch_buffer_threshold: float = 0.3
+    stem_search_ellipse_filter_threshold: float = 0.6
+    stem_search_circle_fitting_max_std_diameter: float = 0.0185
+    stem_search_circle_fitting_max_std_position: Optional[float] = None
+    stem_search_circle_fitting_std_num_layers: int = 6
+    stem_search_gam_max_radius_diff: Optional[float] = None
 
 
 @dataclass
@@ -109,22 +110,19 @@ class TreeXPresetULS(TreeXPreset):  # pylint: disable=too-many-instance-attribut
     Preset for the treeX algorithm for sparser UAV-borne point clouds.
     """
 
-    # parameters for the identification of trunk clusters
-    trunk_search_min_z: float = 1.0
-    trunk_search_max_z: float = 7.0
-    trunk_search_voxel_size: float = 0.03
-    trunk_search_dbscan_2d_eps: float = 0.05
-    trunk_search_dbscan_2d_min_points: int = 20
-    trunk_search_dbscan_3d_eps: float = 0.3
-    trunk_search_dbscan_3d_min_points: int = 3
-    trunk_search_min_cluster_points: Optional[int] = 80
-    trunk_search_circle_fitting_num_layers: int = 5
-    trunk_search_circle_fitting_layer_height: float = 1.4
-    trunk_search_circle_fitting_layer_overlap: float = 0.3
-    trunk_search_circle_fitting_min_points = 3
-    trunk_search_circle_fitting_max_std_diameter: float = 0.05
-    trunk_search_circle_fitting_std_num_layers: int = 2
-    trunk_search_min_cluster_height: float = 2.0
-
-    # region growing parameters
-    crown_seg_voxel_size: float = 0.05
+    # parameters for the identification of stem clusters
+    stem_search_min_z: float = 1.0
+    stem_search_max_z: float = 7.0
+    stem_search_voxel_size: float = 0.03
+    stem_search_dbscan_2d_eps: float = 0.05
+    stem_search_dbscan_2d_min_points: int = 20
+    stem_search_dbscan_3d_eps: float = 0.3
+    stem_search_dbscan_3d_min_points: int = 3
+    stem_search_min_cluster_points: Optional[int] = 80
+    stem_search_min_cluster_height: float = 2.0
+    stem_search_circle_fitting_num_layers: int = 5
+    stem_search_circle_fitting_layer_height: float = 1.4
+    stem_search_circle_fitting_layer_overlap: float = 0.3
+    stem_search_circle_fitting_min_points = 3
+    stem_search_circle_fitting_max_std_diameter: float = 0.05
+    stem_search_circle_fitting_std_num_layers: int = 2

@@ -4,14 +4,14 @@ __all__ = ["estimate_with_linear_model"]
 
 from typing import Tuple
 
-import numpy as np
-import numpy.typing as npt
 from sklearn.linear_model import LinearRegression
+
+from pointtree.type_aliases import FloatArray
 
 
 def estimate_with_linear_model(
-    x_train: npt.NDArray[np.float64], y_train: npt.NDArray[np.float64], x_predict: npt.NDArray[np.float64]
-) -> Tuple[npt.NDArray[np.float64], LinearRegression]:
+    x_train: FloatArray, y_train: FloatArray, x_predict: FloatArray
+) -> Tuple[FloatArray, LinearRegression]:
     r"""
     Fits a linear model to the training data :code:`x_train` and :code:`y_train`, and computes the predictions of
     the model for :code:`x_predict`.

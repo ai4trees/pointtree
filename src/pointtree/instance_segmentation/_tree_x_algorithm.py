@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Region-growing-based tree instance segmentation algorithm."""  # pylint: disable=too-many-lines
 
 __all__ = ["TreeXAlgorithm"]
@@ -19,6 +17,7 @@ import rasterio
 from rasterio.transform import from_origin
 from sklearn.cluster import DBSCAN
 
+from pointtree.type_aliases import BoolArray, FloatArray, LongArray
 from pointtree.evaluation import Profiler
 from pointtree.operations import (
     create_digital_terrain_model,
@@ -42,10 +41,6 @@ from .filters import (
     filter_instances_pca,
     filter_instances_vertical_extent,
 )
-
-BoolArray = npt.NDArray[np.bool_]
-FloatArray = npt.NDArray[Union[np.float32, np.float64]]
-LongArray = npt.NDArray[np.int64]
 
 
 class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many-instance-attributes
@@ -209,6 +204,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             (in meters).
         stem_search_circle_fitting_layer_overlap: Overlap between adjacent horizontal layers used for circle / ellipse
             fitting (in meters).
+        stem_search_circle_fitting_bandwidth: Bandwidth for circle fitting. It is used in the calculation of the
+            goodness of fit and the circumferential completeness index and determines how far points may be from the
+            outline of a circle to be counted as belonging to the outline. When calculating the goodness of fit, a
+            Gaussian kernel is used to measure the contribution of a point to the outline of the circle, and the
+            bandwidth of the kernel is set to the specified value (in meters).
         stem_search_circle_fitting_min_points: Minimum number of points that a horizontal layer must contain in order to
             perform circle / ellipse fitting on it.
         stem_search_circle_fitting_min_stem_diameter: Minimum circle / ellipse diameter to be considered a valid fit.
@@ -387,12 +387,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_search_pc1_min_explained_variance: Optional[float] = 0.5,
         stem_search_max_inclination: Optional[float] = 45,
         stem_search_refined_circle_fitting: bool = False,
-        stem_search_ellipse_fitting: bool = True,
+        stem_search_ellipse_fitting: bool = False,
         stem_search_circle_fitting_method: Literal["m-estimator", "ransac"] = "ransac",
         stem_search_circle_fitting_layer_start: float = 1.0,
         stem_search_circle_fitting_num_layers: int = 15,
         stem_search_circle_fitting_layer_height: float = 0.225,
         stem_search_circle_fitting_layer_overlap: float = 0.025,
+        stem_search_circle_fitting_bandwidth: float = 0.01,
         stem_search_circle_fitting_min_points: int = 15,
         stem_search_circle_fitting_min_stem_diameter: float = 0.02,
         stem_search_circle_fitting_max_stem_diameter: float = 1.0,
@@ -473,6 +474,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._stem_search_circle_fitting_layer_start = stem_search_circle_fitting_layer_start
         self._stem_search_circle_fitting_layer_height = stem_search_circle_fitting_layer_height
         self._stem_search_circle_fitting_layer_overlap = stem_search_circle_fitting_layer_overlap
+        self._stem_search_circle_fitting_bandwidth = stem_search_circle_fitting_bandwidth
         self._stem_search_circle_fitting_min_points = stem_search_circle_fitting_min_points
         self._stem_search_circle_fitting_min_stem_diameter = stem_search_circle_fitting_min_stem_diameter
         self._stem_search_circle_fitting_max_stem_diameter = stem_search_circle_fitting_max_stem_diameter
@@ -937,12 +939,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             min_radius = self._stem_search_circle_fitting_min_stem_diameter / 2
             max_radius = self._stem_search_circle_fitting_max_stem_diameter / 2
-            bandwidth = 0.01
 
             circle_detector: Union[MEstimator, Ransac]
             if self._stem_search_circle_fitting_method == "m-estimator":
                 circle_detector = MEstimator(
-                    bandwidth=bandwidth,
+                    bandwidth=self._stem_search_circle_fitting_bandwidth,
                     break_min_change=1e-6,
                     min_step_size=1e-10,
                     max_iterations=300,
@@ -960,7 +961,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     num_workers=self._num_workers,
                 )
             else:
-                circle_detector = Ransac(bandwidth=bandwidth)
+                circle_detector = Ransac(bandwidth=self._stem_search_circle_fitting_bandwidth)
                 circle_detector.detect(
                     stem_layer_xy,
                     batch_lengths=batch_lengths_xy,
@@ -971,7 +972,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 max_circles=1,
                 deduplication_precision=4,
                 min_circumferential_completeness_idx=self._stem_search_circle_fitting_min_completeness_idx,
-                circumferential_completeness_idx_max_dist=bandwidth,
+                circumferential_completeness_idx_max_dist=self._stem_search_circle_fitting_bandwidth,
                 circumferential_completeness_idx_num_regions=int(365 / 5),
                 non_maximum_suppression=True,
                 num_workers=self._num_workers,
@@ -1006,7 +1007,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
                     if has_ellipse:
                         # filter out ellipses if radius is outside the accepted range
-                        radius_major, radius_minor = ellipses[flat_idx, 2:4]
+                        radius_major, radius_minor = ellipses[flat_idx, 2:4]  # type: ignore[index]
 
                         if radius_minor / radius_major < self._stem_search_ellipse_filter_threshold:
                             has_ellipse = False
@@ -1033,7 +1034,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                                 )
                             )
                     if has_ellipse:
-                        ellipse = ellipses[flat_idx]
+                        ellipse = ellipses[flat_idx]  # type: ignore[index]
 
                         layer_ellipses[cluster_idx, layer] = ellipse
                         if self._visualization_folder is not None and point_cloud_id is not None:
@@ -1197,7 +1198,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             min_radius = self._stem_search_circle_fitting_min_stem_diameter / 2
             max_radius = self._stem_search_circle_fitting_max_stem_diameter / 2
-            bandwidth = 0.01
 
             with Profiler("Fitting of refined circles to stem candidates", self._performance_tracker):
                 self._logger.info("Fit refined circles...")
@@ -1205,7 +1205,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 circle_detector: Union[MEstimator, Ransac]
                 if self._stem_search_circle_fitting_method == "m-estimator":
                     circle_detector = MEstimator(
-                        bandwidth=bandwidth,
+                        bandwidth=self._stem_search_circle_fitting_bandwidth,
                         break_min_change=1e-6,
                         min_step_size=1e-10,
                         max_iterations=300,
@@ -1223,7 +1223,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         num_workers=self._num_workers,
                     )
                 else:
-                    circle_detector = Ransac(bandwidth=bandwidth)
+                    circle_detector = Ransac(bandwidth=self._stem_search_circle_fitting_bandwidth)
                     circle_detector.detect(
                         stem_layers_xy,
                         batch_lengths=batch_lengths_xy,
@@ -1235,7 +1235,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     max_circles=1,
                     deduplication_precision=4,
                     min_circumferential_completeness_idx=self._stem_search_circle_fitting_min_completeness_idx,
-                    circumferential_completeness_idx_max_dist=bandwidth,
+                    circumferential_completeness_idx_max_dist=self._stem_search_circle_fitting_bandwidth,
                     circumferential_completeness_idx_num_regions=int(365 / 5),
                     non_maximum_suppression=True,
                     num_workers=self._num_workers,
@@ -1279,7 +1279,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         radius_major, radius_minor = ellipses[flat_idx, 2:4]
 
                         if radius_minor / radius_major >= self._stem_search_ellipse_filter_threshold:
-                            layer_ellipses[cluster_idx, layer] = ellipses[flat_idx]
+                            layer_ellipses[cluster_idx, layer] = ellipses[flat_idx]  # type: ignore[index]
                         else:
                             has_ellipse = False
 
@@ -1294,7 +1294,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                                     stem_layers_xy[batch_start_idx:batch_end_idx],
                                     visualization_path,
                                     None,
-                                    ellipses[flat_idx],
+                                    ellipses[flat_idx],  # type: ignore[index]
                                 )
                             )
 
@@ -1496,7 +1496,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             else:
                 next_invalid_label += 1
 
-    def compute_stem_positions(
+    def compute_stem_positions(  # pylint: disable=too-many-locals
         self,
         layer_circles: FloatArray,
         layer_ellipses: FloatArray,

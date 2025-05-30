@@ -1301,7 +1301,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
                     has_ellipse = ellipses is not None and ellipses[flat_idx, 2] != -1
                     if has_ellipse:
-                        radius_major, radius_minor = ellipses[flat_idx, 2:4]
+                        radius_major, radius_minor = ellipses[flat_idx, 2:4]  # type: ignore[index]
 
                         if radius_minor / radius_major >= self._stem_search_ellipse_filter_threshold:
                             layer_ellipses[cluster_idx, layer] = ellipses[flat_idx]  # type: ignore[index]

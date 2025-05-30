@@ -1046,3 +1046,9 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
     def test_invalid_stem_search_circle_fitting_layer_start(self):
         with pytest.raises(ValueError):
             TreeXAlgorithm(stem_search_min_z=0.7, stem_search_circle_fitting_layer_start=0.5)
+
+    def test_invalid_stem_search_diameters(self):
+        with pytest.raises(ValueError):
+            TreeXAlgorithm(
+                stem_search_circle_fitting_min_stem_diameter=1, stem_search_circle_fitting_max_stem_diameter=0.5
+            )

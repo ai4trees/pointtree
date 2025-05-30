@@ -352,6 +352,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         ValueError: If :code:`stem_search_circle_fitting_layer_start` is set to a value smaller than
             :code:`stem_search_min_z`.
         ValueError: If :code:`invalid_tree_id` is set to a value greater than one.
+        ValueError: If :code:`stem_search_circle_fitting_min_stem_diameter` is greater than or equal to
+            :code:`stem_search_circle_fitting_max_stem_diameter`.
     """
 
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals, too-many-statements
@@ -430,6 +432,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         if stem_search_circle_fitting_layer_start < stem_search_min_z:
             raise ValueError("stem_search_min_z must be smaller than stem_search_circle_fitting_layer_start.")
+
+        if stem_search_circle_fitting_min_stem_diameter >= stem_search_circle_fitting_max_stem_diameter:
+            raise ValueError("Minimum stem diameter must be smaller than maximum stem diameter.")
 
         self._invalid_tree_id = invalid_tree_id
         self._num_workers = num_workers if num_workers is not None else 1
@@ -753,7 +758,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             layer_ellipses = layer_ellipses[filter_mask]
 
             cluster_labels[~np.isin(cluster_labels, unique_cluster_labels[filter_mask], assume_unique=True)] = -1
-            cluster_labels, unique_cluster_labels = make_labels_consecutive(  # type: ignore[assignment]
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(
                 cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 
@@ -939,6 +944,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             min_radius = self._stem_search_circle_fitting_min_stem_diameter / 2
             max_radius = self._stem_search_circle_fitting_max_stem_diameter / 2
+            min_start_radius = min_radius + min(
+                2 * self._stem_search_circle_fitting_bandwidth, (max_radius - min_radius) / 4
+            )
+            max_start_radius = max_radius - min(
+                2 * self._stem_search_circle_fitting_bandwidth, (max_radius - min_radius) / 4
+            )
 
             circle_detector: Union[MEstimator, Ransac]
             if self._stem_search_circle_fitting_method == "m-estimator":
@@ -955,8 +966,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     batch_lengths=batch_lengths_xy,
                     n_start_x=3,
                     n_start_y=3,
-                    min_start_radius=min_radius,
-                    max_start_radius=max_radius,
+                    min_start_radius=min_start_radius,
+                    max_start_radius=max_start_radius,
+                    break_min_radius=min_radius,
+                    break_max_radius=max_radius,
                     n_start_radius=3,
                     num_workers=self._num_workers,
                 )
@@ -965,6 +978,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 circle_detector.detect(
                     stem_layer_xy,
                     batch_lengths=batch_lengths_xy,
+                    break_min_radius=min_radius,
+                    break_max_radius=max_radius,
                     num_workers=self._num_workers,
                     seed=self._random_seed,
                 )
@@ -1198,6 +1213,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             min_radius = self._stem_search_circle_fitting_min_stem_diameter / 2
             max_radius = self._stem_search_circle_fitting_max_stem_diameter / 2
+            min_start_radius = min_radius + min(
+                2 * self._stem_search_circle_fitting_bandwidth, (max_radius - min_radius) / 4
+            )
+            max_start_radius = max_radius - min(
+                2 * self._stem_search_circle_fitting_bandwidth, (max_radius - min_radius) / 4
+            )
 
             with Profiler("Fitting of refined circles to stem candidates", self._performance_tracker):
                 self._logger.info("Fit refined circles...")
@@ -1217,8 +1238,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         batch_lengths=batch_lengths_xy,
                         n_start_x=3,
                         n_start_y=3,
-                        min_start_radius=min_radius,
-                        max_start_radius=max_radius,
+                        min_start_radius=min_start_radius,
+                        max_start_radius=max_start_radius,
+                        break_min_radius=min_radius,
+                        break_max_radius=max_radius,
                         n_start_radius=3,
                         num_workers=self._num_workers,
                     )
@@ -1227,6 +1250,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     circle_detector.detect(
                         stem_layers_xy,
                         batch_lengths=batch_lengths_xy,
+                        break_min_radius=min_radius,
+                        break_max_radius=max_radius,
                         num_workers=self._num_workers,
                         seed=self._random_seed,
                     )

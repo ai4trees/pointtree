@@ -413,6 +413,7 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
         algorithm = TreeXAlgorithm(
             dtm_resolution=dtm_resolution,
             visualization_folder=visualization_folder,
+            stem_search_ellipse_fitting=True,
             stem_search_circle_fitting_method=circle_fitting_method,
             stem_search_ellipse_filter_threshold=stem_search_ellipse_filter_threshold,
             **settings,

@@ -54,9 +54,9 @@ jobs:
           pip install torch==2.4.0
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          pip install --upgrade pointtorch  
+          pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade -e .'[dev, docs]'
-          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git  
+          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
@@ -76,8 +76,9 @@ jobs:
           pip install torch==2.4.0
           pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade .'[dev, docs]'
-          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git  
+          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
@@ -112,6 +113,7 @@ jobs:
           python -m pip install torch==${{ matrix.version.torch }}
           python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install --upgrade -e .'[dev, docs]'
           pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
       - name: Install package and dependencies
@@ -122,6 +124,7 @@ jobs:
           python -m pip install --upgrade wheel setuptools numpy
           python -m pip install --no-use-pep517 torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install --upgrade -e .'[dev, docs]'
           pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
       - name: Install compatible numpy version

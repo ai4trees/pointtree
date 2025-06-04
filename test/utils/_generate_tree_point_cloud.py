@@ -22,9 +22,12 @@ def generate_tree_point_cloud(  # pylint: disable=too-many-locals
             :code:`"F"` (Fortran style).
         generate_intensities: Whether intensity values should be generated.
 
-    Returns: Tuple of five arrays. The first contains the coordinates of the generated points and the second the
-        intensity values. The other arrays contain the trunk positions, trunk diameters, and heights of the generated
-        trees.
+    Returns: Tuple of five arrays:
+        - Coordinates of the generated points
+        - Intensity values of the generated points
+        - Trunk positions of the generated trees
+        - Trunk diameters of the generated trees
+        - Heights of the generated trees
     """
     point_spacing = 0.1
     intensity = 5000

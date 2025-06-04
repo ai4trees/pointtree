@@ -11,17 +11,17 @@ from typing import Dict, Literal, Optional, Tuple
 
 from numba import njit, prange
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 
+from pointtree.type_aliases import FloatArray, LongArray
 from ._match_instances import match_instances
 
 
 def instance_detection_metrics(  # pylint: disable=too-many-locals
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    matched_predicted_ids: npt.NDArray[np.int64],
-    matched_target_ids: npt.NDArray[np.int64],
+    target: LongArray,
+    prediction: LongArray,
+    matched_predicted_ids: LongArray,
+    matched_target_ids: LongArray,
     invalid_instance_id: int = -1,
     min_precision_fp: float = 0.5,
     labeled_mask: Optional[np.ndarray] = None,
@@ -60,14 +60,14 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
         matched_target_ids: ID of the matched ground-truth instance for each predicted instance.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched. Defaults to -1.
+            matched.
         min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled
             in order to count the predicted instance as false positive in the computation of instance detection metrics.
             If :code:`labeled_mask` is not :code:`None`, the points for which the mask is :code:`True` are considered as
             labeled points. If :code:`labeled_mask` is :code:`None`, all points which are labeled as tree insgtances are
-            considered as labeled points. Defaults to 0.5.
+            considered as labeled points.
         labeled_mask: Boolean mask indicating which points are labeled. This mask is used to exclude false positive
-            instances that mainly consist of unlabeled points. Defaults to :code:`None`.
+            instances that mainly consist of unlabeled points.
 
     Raises:
         ValueError: If :code:`target` and :code:`prediction` have different lengths, if the length of
@@ -142,11 +142,11 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
 
 @njit(parallel=True)
 def _compute_instance_segmentation_metrics(
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    matched_predicted_ids: npt.NDArray[np.int64],
+    target: LongArray,
+    prediction: LongArray,
+    matched_predicted_ids: LongArray,
     invalid_instance_id: int,
-) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
+) -> Tuple[FloatArray, FloatArray, FloatArray]:
     r"""
     Computes metrics to measure the quality of the point-wise segmentation.
 
@@ -155,12 +155,16 @@ def _compute_instance_segmentation_metrics(
         prediction: Predicted instance ID for each point.
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched. Defaults to -1.
+            matched.
 
     Returns:
-        :A tuple of three arrays: The first contains the IoU, the second the precision, and the third the recall for
-        each instance pair. For ground-truth instances that have not been matched to any predicted instance, the metrics
-        are set to zero.
+        :A tuple of three arrays containing the metrics for each instance pair:
+            - IoU
+            - Precision
+            - Recall
+
+            For ground-truth instances that have not been matched to any predicted instance, the metrics are set to
+            zero.
 
     Shape:
         - :code:`target`: :math:`(N)`
@@ -197,9 +201,9 @@ def _compute_instance_segmentation_metrics(
 
 
 def instance_segmentation_metrics(  # pylint: disable=too-many-locals
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    matched_predicted_ids: npt.NDArray[np.int64],
+    target: LongArray,
+    prediction: LongArray,
+    matched_predicted_ids: LongArray,
     invalid_instance_id: int = -1,
 ) -> Tuple[Dict[str, float], pd.DataFrame]:
     r"""
@@ -232,17 +236,19 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
         prediction: Predicted instance ID for each point.
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched. Defaults to -1.
+            matched.
 
     Raises:
         ValueError: If :code:`target` and :code:`prediction` have different lengths, or if the length of
             :code:`matched_predicted_ids` is not equal to the number of ground-truth instances.
 
     Returns:
-        :A tuple with two elements: The first is a dictionary containing the segmentation metrics averaged over all
-        instance pairs. The dictionary contains the following keys: `"MeanIoU"`, `"MeanPrecision"`, and `"MeanRecall"`.
-        The second is a pandas.DataFrame containing the segmentation metrics for each instance pair. The dataframe
-        contains the following columns: `"TargetID"`, `"PredictionID"`, `"IoU"`, `"Precision"`, `"Recall"`.
+        :A tuple with two elements:
+            - A dictionary containing the segmentation metrics averaged over all instance pairs. The dictionary contains
+              the following keys: :code:`"MeanIoU"`, :code:`"MeanPrecision"`, and :code:`"MeanRecall"`.
+            - A pandas.DataFrame containing the segmentation metrics for each instance pair. The dataframe contains the
+              following columns: :code:`"TargetID"`, :code:`"PredictionID"`, :code:`"IoU"`, :code:`"Precision"`,
+              :code:`"Recall"`.
 
     Shape:
         - :code:`target`: :math:`(N)`
@@ -292,10 +298,10 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
 @njit(parallel=True)
 def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals
-    xyz: npt.NDArray,
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    matched_predicted_ids: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    target: LongArray,
+    prediction: LongArray,
+    matched_predicted_ids: LongArray,
     partition: Literal["xy", "z"],
     invalid_instance_id: int = -1,
     num_partitions: int = 10,
@@ -310,8 +316,8 @@ def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
         partition: Partioning schme to be used: `"xy"` | `"z"`.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched. Defaults to -1.
-        num_partitions: Number of partitions. Defaults to 10.
+            matched.
+        num_partitions: Number of partitions.
 
     Raises:
         ValueError: If :code:`partition` is set to an invalid value, if :code:`xyz` and :code:`target` have different
@@ -319,9 +325,13 @@ def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too
             :code:`matched_predicted_ids` is not equal to the number of ground-truth instances.
 
     Returns:
-        :A tuple of three arrays: The first contains the IoU, the second the precision, and the third the recall for
-        each partition for each instance pair. For ground-truth instances that have not been matched to any predicted
-        instance, the metrics are set to zero.
+        :A tuple of three arrays containing the metrics for each instance pair:
+            - IoU
+            - Precision
+            - Recall
+
+            For ground-truth instances that have not been matched to any predicted instance, the metrics are set to
+            zero.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
@@ -404,10 +414,10 @@ def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too
 
 
 def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
-    xyz: npt.NDArray,
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    matched_predicted_ids: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    target: LongArray,
+    prediction: LongArray,
+    matched_predicted_ids: LongArray,
     partition: Literal["xy", "z"],
     invalid_instance_id: int = -1,
     num_partitions: int = 10,
@@ -464,8 +474,8 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
         partition: Partioning schme to be used: `"xy"` | `"z"`.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched. Defaults to -1.
-        num_partitions: Number of partitions. Defaults to 10.
+            matched.
+        num_partitions: Number of partitions.
 
     Raises:
         ValueError: If :code:`partition` is set to an invalid value, if :code:`xyz` and :code:`target` have different
@@ -473,11 +483,13 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
             :code:`matched_predicted_ids` is not equal to the number of ground-truth instances.
 
     Returns:
-        :A tuple of two pandas.DataFrames: The first contains the segmentation metrics for each partition averaged over
-        all instance pairs. The dataframe contains the following columns: `"Partition",` `"MeanIoU"`, `"MeanPrecision"`,
-        and `"MeanRecall"`. The second contains the segmentation metrics for each partition and each instance pair. The
-        dataframe contains the following keys: `"Partition"`, `"TargetID"`, `"PredictionID"`, `"IoU"`, `"Precision"`,
-        `"Recall"`.
+        :A tuple of two pandas.DataFrames:
+            - Segmentation metrics for each partition averaged over all instance pairs. The dataframe contains the
+              following columns: :code:`"Partition",` :code:`"MeanIoU"`, :code:`"MeanPrecision"`, and
+              :code:`"MeanRecall"`.
+            - Segmentation metrics for each partition and each instance pair. The dataframe contains the following keys:
+              :code:`"Partition"`, :code:`"TargetID"`, :code:`"PredictionID"`, :code:`"IoU"`, :code:`"Precision"`,
+              :code:`"Recall"`.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
@@ -548,9 +560,9 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
 
 def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-many-locals
-    xyz: npt.NDArray,
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    target: LongArray,
+    prediction: LongArray,
     *,
     detection_metrics_matching_method: Literal[
         "panoptic_segmentation",
@@ -612,31 +624,32 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         segmentation_metrics_matching_method: Method to be used for matching ground-truth and predicted instances for
             computing the instance segmentation metrics.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched. Defaults to -1.
+            matched.
         min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled
             in order to count the predicted instance as false positive in the computation of instance detection metrics.
             If :code:`labeled_mask` is not :code:`None`, the points for which the mask is :code:`True` are considered as
             labeled points. If :code:`labeled_mask` is :code:`None`, all points which are labeled as tree insgtances are
-            considered as labeled points. Defaults to 0.5.
+            considered as labeled points.
         labeled_mask: Boolean mask indicating which points are labeled. This mask is used to exclude false positive
-            instances that mainly consist of unlabeled points. Defaults to :code:`None`.
-        compute_partition_metrics: Whether the metrics per partition should be computed. Defaults to :code:`True`.
+            instances that mainly consist of unlabeled points.
+        compute_partition_metrics: Whether the metrics per partition should be computed.
         num_partitions: Number of partitions for the computation of instance segmentation metrics per partition.
-            Defaults to 10.
 
     Returns:
-        :Tuple of six pandas.DataFrames: The first contains the instance detection metrics and the instance
-        segmentation metrics averaged over all instance pairs. The dataframe has the following columns:
-        :code:`"DetectionTP"`, :code:`"DetectionFP"`, :code:`"DetectionFN"`, :code:`"DetectionPrecision"`,
-        :code:`"DetectionComissionError"`, :code:`"DetectionRecall"`, :code:`"DetectionOmissionError"`,
-        :code:`"DetectionF1Score"`, :code:`"SegmentationMeanIoU"`, :code:`"SegmentationMeanPrecision"`, and
-        :code:`"SegmentationMeanRecall"`. The second contains the instance segmentation metrics for each instance pair.
-        The third contains the instance segmentation metrics for different horizontal partitions, averaged over all
-        instance pairs. The fourth contains the instance segmentation metrics for different horizontal partitions for
-        each instance pair. The fifth contains the instance segmentation metrics for different vertical partitions,
-        averaged over all instance pairs. The sixth contains the instance segmentation metrics for different vertical
-        partitions for each instance pair. The elements containing the metrics per partition are :code:`None` when
-        :code:`compute_partition_metrics` is set :code:`False`.
+        :Tuple of six pandas.DataFrames:
+            - Instance detection metrics and the instance segmentation metrics averaged over all instance pairs. The
+              dataframe has the following columns: :code:`"DetectionTP"`, :code:`"DetectionFP"`, :code:`"DetectionFN"`,
+              :code:`"DetectionPrecision"`, :code:`"DetectionComissionError"`, :code:`"DetectionRecall"`,
+              :code:`"DetectionOmissionError"`, :code:`"DetectionF1Score"`, :code:`"SegmentationMeanIoU"`,
+              :code:`"SegmentationMeanPrecision"`, and :code:`"SegmentationMeanRecall"`.
+            - Instance segmentation metrics for each instance pair.
+            - Instance segmentation metrics for different horizontal partitions, averaged over all instance pairs.
+            - Instance segmentation metrics for different horizontal partitions for each instance pair.
+            - Instance segmentation metrics for different vertical partitions, averaged over all instance pairs.
+            - Instance segmentation metrics for different vertical partitions for each instance pair.
+
+            The elements containing the metrics per partition are :code:`None` when :code:`compute_partition_metrics` is
+            set to :code:`False`.
     """
 
     matched_target_ids, matched_predicted_ids = match_instances(

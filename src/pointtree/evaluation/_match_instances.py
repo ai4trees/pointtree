@@ -11,14 +11,15 @@ from typing import Literal, Optional, Tuple
 
 from numba import njit, prange
 import numpy as np
-import numpy.typing as npt
 import scipy
+
+from pointtree.type_aliases import FloatArray, LongArray
 
 
 def match_instances(
-    xyz: npt.NDArray,
-    target: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    target: LongArray,
+    prediction: LongArray,
     method: Literal[
         "panoptic_segmentation",
         "point2tree",
@@ -29,7 +30,7 @@ def match_instances(
         "tree_learn",
     ],
     invalid_instance_id: int = -1,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     This method implements the instance matching methods proposed in the following works:
 
@@ -90,11 +91,12 @@ def match_instances(
         target: Ground truth instance ID for each point.
         prediction: Predicted instance ID for each point.
         method: Instance matching method to be used.
-        invalid_instance_id: ID that is assigned to points not assigned to any instance. Defaults to -1.
+        invalid_instance_id: ID that is assigned to points not assigned to any instance.
 
     Returns:
-        Tuple of two arrays. The first contains the ID of the matched ground-truth instance for each predicted instance.
-        The second contains the ID of the matched predicted instance for each ground-truth instance.
+        :Tuple of two arrays:
+            - IDs of the matched ground-truth instances for each predicted instance.
+            - IDs of the matched predicted instances for each ground-truth instance.
 
     Raises:
         ValueError: If the unique instance IDs are not continuous, starting with zero.
@@ -103,7 +105,7 @@ def match_instances(
         - :code:`xyz`: :math:`(N, 3)`
         - :code:`target`: :math:`(N)`
         - :code:`prediction`: :math:`(N)`
-        - Output: Tuple of two arrays. The first has shape :math:`(P)`, the second has shape :math:`(G)`.
+        - Output: :math:`(P)`, :math:`(G)`
 
         | where
         |
@@ -203,16 +205,16 @@ def match_instances(
 
 @njit(parallel=True)
 def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional-arguments
-    xyz: npt.NDArray,
-    target: npt.NDArray[np.int64],
-    unique_target_ids: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    unique_prediction_ids: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    target: LongArray,
+    unique_target_ids: LongArray,
+    prediction: LongArray,
+    unique_prediction_ids: LongArray,
     invalid_instance_id: int = -1,
     min_iou_treshold: Optional[float] = 0.5,
     accept_equal_iou: bool = False,
     sort_by_target_height: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     This method implements the instance matching methods proposed in the following works:
 
@@ -280,20 +282,21 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
         unique_target_ids: Unique ground-truth instance IDs excluding :code:`invalid_instance_id`.
         prediction: Predicted instance ID for each point.
         unique_prediction_ids: Unique predicted instance IDs excluding :code:`invalid_instance_id`.
-        invalid_instance_id: ID that is assigned to points not assigned to any instance. Defaults to -1.
+        invalid_instance_id: ID that is assigned to points not assigned to any instance.
         min_iou_treshold: IoU threshold for instance matching. If set to a value that is not :code:`None`,
             instances are only matched if their IoU is equal to (only if :code:`accept_equal_iou` is :code:`True`) or
-            stricly greater than this threshold. Defaults to :code:`0.5`.
+            stricly greater than this threshold.
         accept_equal_iou: Whether matched pairs of instances should be accepted if their IoU is equal to
-            :code:`min_iou_treshold`. Defaults to :code:`False`.
+            :code:`min_iou_treshold`.
         sort_by_target_height: Whether the instance matching should process the target instances sorted according to
             their height. This corresponds to the matching approach proposed by Wielgosz et al. The processing order of
             the target instances is only relevant if the matching can be ambiguous, i.e. if matches with an IoU <= 0.5
-            are accepted. Defaults to :code:`False`.
+            are accepted.
 
     Returns:
-        Tuple of two arrays. The first contains the ID of the matched ground-truth instance for each predicted instance.
-        The second contains the ID of the matched predicted instance for each ground-truth instance.
+        :Tuple of two arrays:
+            - IDs of the matched ground-truth instances for each predicted instance.
+            - IDs of the matched predicted instances for each ground-truth instance.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
@@ -301,7 +304,7 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
         - :code:`unique_target_ids`: math:`(G)`
         - :code:`prediction`: :math:`(N)`
         - :code:`unique_prediction_ids`: math:`(P)`
-        - Output: Tuple of two arrays. The first has shape :math:`(P)`, the second has shape :math:`(G)`.
+        - Output: :math:`(P)`, :math:`(G)`
 
         | where
         |
@@ -361,14 +364,14 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
 
 
 def match_instances_tree_learn(  # pylint: disable=too-many-locals
-    target: npt.NDArray[np.int64],
-    unique_target_ids: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    unique_prediction_ids: npt.NDArray[np.int64],
+    target: LongArray,
+    unique_target_ids: LongArray,
+    prediction: LongArray,
+    unique_prediction_ids: LongArray,
     invalid_instance_id: int = -1,
     min_iou_treshold: Optional[float] = 0.5,
     accept_equal_iou: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     Instance matching method that is proposed in `Henrich, Jonathan, et al. "TreeLearn: A Deep Learning Method for
     Segmenting Individual Trees from Ground-Based LiDAR Forest Point Clouds." Ecological Informatics 84 (2024): 102888.
@@ -381,23 +384,24 @@ def match_instances_tree_learn(  # pylint: disable=too-many-locals
         unique_target_ids: Unique ground-truth instance IDs excluding :code:`invalid_instance_id`.
         prediction: Predicted instance ID for each point.
         unique_prediction_ids: Unique predicted instance IDs excluding :code:`invalid_instance_id`.
-        invalid_instance_id: ID that is assigned to points not assigned to any instance. Defaults to -1.
+        invalid_instance_id: ID that is assigned to points not assigned to any instance.
         min_iou_treshold: IoU threshold for instance matching. If set to a value that is not :code:`None`,
-            instances are only matched if their IoU is strictly greater than this threshold. Defaults to :code:`0.5`,
-            which corresponds to the setting proposed by Henrich et al.
+            instances are only matched if their IoU is strictly greater than this threshold. Setting it to :code:`0.5`,
+            corresponds to the setting proposed by Henrich et al.
         accept_equal_iou: Whether matched pairs of instances should be accepted if their IoU is equal to
-            :code:`min_iou_treshold`. Defaults to :code:`False`.
+            :code:`min_iou_treshold`.
 
     Returns:
-        Tuple of two arrays. The first contains the ID of the matched ground-truth instance for each predicted instance.
-        The second contains the ID of the matched predicted instance for each ground-truth instance.
+        :Tuple of two arrays:
+            - IDs of the matched ground-truth instances for each predicted instance.
+            - IDs of the matched predicted instances for each ground-truth instance.
 
     Shape:
         - :code:`target`: :math:`(N)`
         - :code:`unique_target_ids`: math:`(G)`
         - :code:`prediction`: :math:`(N)`
         - :code:`unique_prediction_ids`: math:`(P)`
-        - Output: Tuple of two arrays. The first has shape :math:`(P)`, the second has shape :math:`(G)`.
+        - Output: :math:`(P)`, :math:`(G)`
 
         | where
         |
@@ -445,14 +449,14 @@ def match_instances_tree_learn(  # pylint: disable=too-many-locals
 
 @njit(parallel=True)
 def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
-    target: npt.NDArray[np.int64],
-    unique_target_ids: npt.NDArray[np.int64],
-    prediction: npt.NDArray[np.int64],
-    unique_prediction_ids: npt.NDArray[np.int64],
+    target: LongArray,
+    unique_target_ids: LongArray,
+    prediction: LongArray,
+    unique_prediction_ids: LongArray,
     invalid_instance_id: int = -1,
     min_iou_treshold: Optional[float] = None,
     accept_equal_iou: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     Instance matching method that is proposed in `Xiang, Binbin, et al. "Automated Forest Inventory: Analysis of
     High-Density Airborne LiDAR Point Clouds with 3D Deep Learning." Remote Sensing of Environment 305 (2024): 114078.
@@ -466,25 +470,26 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
         unique_target_ids: Unique ground-truth instance IDs excluding :code:`invalid_instance_id`.
         prediction: Predicted instance ID for each point.
         unique_prediction_ids: Unique predicted instance IDs excluding :code:`invalid_instance_id`.
-        invalid_instance_id: ID that is assigned to points not assigned to any instance. Defaults to -1.
+        invalid_instance_id: ID that is assigned to points not assigned to any instance.
         min_iou_treshold: IoU threshold for instance matching. If set to a value that is not :code:`None`,
-            instances are only matched if their IoU is strictly greater than this threshold. Defaults to :code:`None`,
-            which corresponds to the setting proposed by Xiang et al.
+            instances are only matched if their IoU is strictly greater than this threshold. Setting it to :code:`None`,
+            corresponds to the setting proposed by Xiang et al.
         accept_equal_iou: Whether matched pairs of instances should be accepted if their IoU is equal to
-            :code:`min_iou_treshold`. Defaults to :code:`False`.
+            :code:`min_iou_treshold`.
 
     Returns:
-        Tuple of two arrays. The first contains the ID of the matched ground-truth instance for each predicted instance.
-        If a predicted instance is matched with multiple ground-truth instances, the ID of the matched ground-truth
-        instance with which it has the highest IoU is returned. The second contains the ID of the matched predicted
-        instance for each ground-truth instance.
+        :Tuple of two arrays:
+            - IDs of the matched ground-truth instances for each predicted instance. If a predicted instance is matched
+              with multiple ground-truth instances, the ID of the matched ground-truth instance with which it has the
+              highest IoU is returned.
+            - IDs of the matched predicted instances for each ground-truth instance.
 
     Shape:
         - :code:`target`: :math:`(N)`
         - :code:`unique_target_ids`: math:`(G)`
         - :code:`prediction`: :math:`(N)`
         - :code:`unique_prediction_ids`: math:`(P)`
-        - Output: Tuple of two arrays. The first has shape :math:`(P)`, the second has shape :math:`(G)`.
+        - Output: :math:`(P)`, :math:`(G)`
 
         | where
         |

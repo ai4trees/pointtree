@@ -22,8 +22,9 @@ def estimate_with_linear_model(
         x_predict: Inference data.
 
     Returns:
-        Tuple of two elements. The first is an array containing the predictions for :code:`x_predict` and the second
-        is the fitted linear model.
+        :Tuple of two elements:
+            - An array containing the predictions for :code:`x_predict`
+            - The fitted linear model
 
     Shape:
         - :code:`x_train`: :math:`(N)` or :math:`(N, D)`

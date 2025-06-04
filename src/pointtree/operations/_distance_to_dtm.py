@@ -2,18 +2,17 @@
 
 __all__ = ["distance_to_dtm"]
 
-import numpy.typing as npt
-
+from pointtree.type_aliases import FloatArray
 from pointtree._operations_cpp import distance_to_dtm as distance_to_dtm_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
 
 
 def distance_to_dtm(  # pylint: disable=too-many-locals
-    xyz: npt.NDArray,
-    dtm: npt.NDArray,
-    dtm_offset: npt.NDArray,
+    xyz: FloatArray,
+    dtm: FloatArray,
+    dtm_offset: FloatArray,
     dtm_resolution: float,
     allow_outside_points: bool = True,
-) -> npt.NDArray:
+) -> FloatArray:
     r"""
     Compute the height above the terrain for each point of a point cloud by subtracting the corresponding terrain height
     from the z-coordinate of the point. The terrain height for a given point is obtained by bilinearly interpolating the
@@ -26,7 +25,6 @@ def distance_to_dtm(  # pylint: disable=too-many-locals
         allow_outside_points: If this option is set to :code:`True` and a point in the point cloud to be normalized is
             not in the area covered by the DTM, the height of the nearest DTM points is still determined and used for
             normalization. Otherwise, a :code:`ValueError` is thrown if points are outside the area covered by the DTM.
-            Defaults to :code:`True`.
 
     Returns:
         Height above the terrain of each point.

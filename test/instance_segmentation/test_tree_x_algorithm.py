@@ -55,13 +55,16 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
             variance: Variance of the distance of the generated points to the circle / ellipse outlines.
 
         Returns:
-            Tuple of six values. The first is a dictionary containing the keyword arguments to be passed to the
-            :code:`TreeXAlgorithm` class to produce the expected results returned by this method. The second is an array
-            containing the input point coordinates to be passed to the
-            :code:`TreeXAlgorithm.fit_circles_or_ellipses_to_stems` method. The third is an array
-            containing IDs indicating which points belong to which stem cluster. The fourth is an array containing the
-            unique cluster IDs. The fifth contains the true parameters of the circles / ellipses from which the input
-            points were sampled. The sixth contains the heights of the horizontal layers at which points were generated.
+            :Tuple of six values:
+                - A dictionary containing the keyword arguments to be passed to the :code:`TreeXAlgorithm` class to
+                  produce the expected results returned by this method.
+                - An array containing the input point coordinates to be passed to the
+                  :code:`TreeXAlgorithm.fit_circles_or_ellipses_to_stems` method.
+                - An array containing IDs indicating which points belong to which stem cluster.
+                - An array containing the unique cluster IDs.
+                - An array containing the true parameters of the circles / ellipses from which the input points were
+                  sampled.
+                - An array containing the heights of the horizontal layers at which points were generated.
         """
 
         stem_search_min_z = 1.0

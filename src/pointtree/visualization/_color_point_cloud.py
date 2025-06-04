@@ -26,10 +26,10 @@ def color_instance_segmentation(
         point_cloud: Point cloud to be colored.
         instance_id_column: Name of the column containing the instance IDs.
         target_instance_id_column: Name of the column containing the ground truth instance IDs.
-        fp_ids: List of the predicted tree IDs that represent false positives. Defaults to `None`, which means that
-            false positives are not colored by a dedicated color.
-        fn_ids: List of the ground truth tree IDs that represents false negatives. Defaults to `None`, which means that
-            false negatives are not colored by a dedicated color.
+        fp_ids: List of the predicted tree IDs that represent false positives. If set to :code:`None`, false positives
+            are not colored by a dedicated color.
+        fn_ids: List of the ground truth tree IDs that represents false negatives. If set to :code:`None`, false
+            negatives are not colored by a dedicated color.
 
     Returns:
         pandas.DataFrame: Point cloud with added or modified "r", "g", "b", "a" attributes.

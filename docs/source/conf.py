@@ -49,7 +49,6 @@ typehints_use_signature_return = True
 typehints_defaults = "braces-after"
 pygments_style = "sphinx"
 
-autodoc_type_aliases = {"ArrayLike": "ArrayLike"}
 default_role = "literal"
 napoleon_custom_sections = [
     ("Parameters for the DBSCAN clustering of trunk points", "params_style"),

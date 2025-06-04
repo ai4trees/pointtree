@@ -10,17 +10,18 @@ __all__ = [
 from typing import Optional, Tuple
 
 import numpy as np
-import numpy.typing as npt
 from pointtorch.operations.numpy import make_labels_consecutive
 from sklearn.decomposition import PCA
 
+from pointtree.type_aliases import FloatArray, LongArray
+
 
 def filter_instances_min_points(
-    instance_ids: npt.NDArray[np.int64],
-    unique_instance_ids: npt.NDArray[np.int64],
+    instance_ids: LongArray,
+    unique_instance_ids: LongArray,
     min_points: Optional[int],
     inplace: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     Removes instances with less than :code:`min_points`.
 
@@ -29,17 +30,18 @@ def filter_instances_min_points(
         unique_instance_ids: Unique instance IDs.
         min_points: Minimum number of points an instance must have to not be discarded. If set to :code:`None`, the
             instances are not filtered.
-        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array. Defaults to
-            :code:`False`.
+        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array.
 
     Returns:
-        Tuple of two arrays. The first contains the updated instance ID of each point. Points that do not
-        belong to any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
+        :Tuple of two arrays:
+            - Updated instance ID of each point. Points that do not belong to any instance are assigned the ID
+              :code:`-1`.
+            - Unique instance IDs.
 
     Shape:
         - :code:`instance_ids`: :math:`(N)`
         - :code:`unique_instance_ids`: :math:`(I)`
-        - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I')`
+        - Output: :math:`(N)`, :math:`(I')`
 
         | where
         |
@@ -61,12 +63,12 @@ def filter_instances_min_points(
 
 
 def filter_instances_vertical_extent(
-    xyz: npt.NDArray,
-    instance_ids: npt.NDArray[np.int64],
-    unique_instance_ids: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    instance_ids: LongArray,
+    unique_instance_ids: LongArray,
     min_vertical_extent: Optional[float],
     inplace: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     Removes instances whose extent in z-direction is less than :code:`min_vertical_extent`.
 
@@ -75,18 +77,19 @@ def filter_instances_vertical_extent(
         unique_instance_ids: Unique instance IDs.
         min_vertical_extent: Minimum vertical extent an instance must have to not be discarded. If set to :code:`None`,
             the instances are not filtered.
-        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array. Defaults to
-            :code:`False`.
+        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array.
 
     Returns:
-        Tuple of two arrays. The first contains the updated instance ID of each point. Points that do not
-        belong to any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
+        :Tuple of two arrays:
+            - Updated instance ID of each point. Points that do not belong to any instance are assigned the ID
+              :code:`-1`.
+            - Unique instance IDs.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
         - :code:`instance_ids`: :math:`(N)`
         - :code:`unique_instance_ids`: :math:`(I)`
-        - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I')`
+        - Output: :math:`(N)`, :math:`(I')`
 
         | where
         |
@@ -122,13 +125,13 @@ def filter_instances_vertical_extent(
 
 
 def filter_instances_pca(
-    xyz: npt.NDArray,
-    instance_ids: npt.NDArray[np.int64],
-    unique_instance_ids: npt.NDArray[np.int64],
+    xyz: FloatArray,
+    instance_ids: LongArray,
+    unique_instance_ids: LongArray,
     min_explained_variance: Optional[float],
     max_inclination: Optional[float],
     inplace: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     Performs a principal component analysis on the points of each instance and removes instances for which the first
     principal component explains less than :code:`min_explained_variance` of the point's variance or the inclination
@@ -141,18 +144,18 @@ def filter_instances_pca(
             must explain in order to not be discarded.
         max_inclination: Maximum inclination angle to the z-axis that the first principal component of an instance
             can have before being discarded (in degree).
-        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array. Defaults to
-            :code:`False`.
+        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array.
 
     Returns:
-        Tuple of two arrays. The first contains the updated instance ID of each point. Points that do not
-        belong to any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
-
+        :Tuple of two arrays:
+            - Updated instance ID of each point. Points that do not belong to any instance are assigned the ID
+              :code:`-1`.
+            - Unique instance IDs.
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
         - :code:`instance_ids`: :math:`(N)`
         - :code:`unique_instance_ids`: :math:`(I)`
-        - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I')`
+        - Output: :math:`(N)`, :math:`(I')`
 
         | where
         |
@@ -194,13 +197,13 @@ def filter_instances_pca(
 
 
 def filter_instances_intensity(
-    intensities: npt.NDArray,
-    instance_ids: npt.NDArray[np.int64],
-    unique_instance_ids: npt.NDArray[np.int64],
+    intensities: FloatArray,
+    instance_ids: LongArray,
+    unique_instance_ids: LongArray,
     min_intensity: Optional[float],
     threshold_percentile: float = 0.8,
     inplace: bool = False,
-) -> Tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> Tuple[LongArray, LongArray]:
     r"""
     Removes instances, for which the specified percentile of the reflection intensities of the instance points is below
     than or equal to :code:`min_intensity`.
@@ -211,18 +214,18 @@ def filter_instances_intensity(
         min_intensity: Maximum intensity at which instances are discarded. If set to :code:`None`, the instances are
             not filtered.
         threshold_percentile: Percentile of the reflection intensity values to be used for the filtering. The percentile
-            must be specified as a value in :math:`[0, 1]`. Defaults to 0.8.
-        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array. Defaults to
-            :code:`False`.
+            must be specified as a value in :math:`[0, 1]`.
+        inplace: Whether the filtering should be applied inplace to the :code:`instance_ids` array.
 
     Returns:
-        Tuple of two arrays. The first contains the updated instance ID of each point. Points that do not
-        belong to any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
-
+        :Tuple of two arrays:
+            - Updated instance ID of each point. Points that do not belong to any instance are assigned the ID
+              :code:`-1`.
+            - Unique instance IDs.
     Shape:
         - :code:`instance_ids`: :math:`(N)`
         - :code:`unique_instance_ids`: :math:`(I)`
-        - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I')`
+        - Output: :math:`(N)`, :math:`(I')`
 
         | where
         |

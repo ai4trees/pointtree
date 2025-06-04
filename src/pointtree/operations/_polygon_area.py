@@ -3,10 +3,11 @@
 __all__ = ["polygon_area"]
 
 import numpy as np
-import numpy.typing as npt
+
+from pointtree.type_aliases import FloatArray
 
 
-def polygon_area(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64]) -> float:
+def polygon_area(x: FloatArray, y: FloatArray) -> float:
     r"""
     Computes the area of a convex polygon using the
     `Shoelace formula <https://en.wikipedia.org/wiki/Shoelace_formula>`__. It is expected that the input vertices are

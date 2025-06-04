@@ -18,6 +18,7 @@ from sklearn.cluster import DBSCAN
 import torch
 from torch_scatter import scatter_max
 
+from pointtree.type_aliases import BoolArray, FloatArray, LongArray
 from pointtree._coarse_to_fine_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     grow_trees as grow_trees_cpp,
 )
@@ -37,9 +38,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
     Args:
         trunk_class_id: Integer class ID that designates the tree trunk points.
         crown_class_id: Integer class ID that designates the tree crown points.
-        branch_class_id: Integer class ID that designates the tree branch points. Defaults to `None`, assuming that
-            branch points are not separately labeled. If branches are separately labeled, the branch points are treated
-            as trunk points by this algorithm.
+        branch_class_id: Integer class ID that designates the tree branch points. If set to :code:`None`, it is assumed
+            that branch points are not separately labeled. If branches are separately labeled, the branch points are
+            treated as trunk points by this algorithm.
         algorithm: Variant of the algorithm to be used: :code:`"full"`: The full algorithm is used.
             :code:`"watershed_crown_top_positions"`: A marker-controlled Watershed segmentation is performed, using the
             crown top positions as markers. :code:`"watershed_matched_tree_positions"`: A marker-controlled Watershed
@@ -47,64 +48,58 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             positions and trunk positions.
 
         downsampling_voxel_size: Voxel size for the voxel-based downsampling of the tree points before performing the
-            tree instance segmentation. Defaults to :code:`None`, which means that the tree instance segmentation is
-            performed with the full resolution of the point cloud.
+            tree instance segmentation. If set to :code:`None`, the tree instance segmentation is performed with the
+            full resolution of the point cloud.
         visualization_folder: Path of a directory in which to store visualizations of intermediate results of the
-            algorithm. Defaults to `None`, which means that no visualizations are stored.
-        num_workers (int, optional): Number of workers to use for parallel processing. If :code:`workers` is set to -1,
-            all CPU threads are used. Defaults to :code:`-1`.
+            algorithm. If set to :code:`None`, no visualizations are stored.
+        num_workers: Number of workers to use for parallel processing. If :code:`workers` is set to -1, all CPU threads
+            are used.
             
     Parameters for the DBSCAN clustering of trunk points:
         eps_trunk_clustering: Parameter :math:`\epsilon` for clustering the trunk points using the DBSCAN
             algorithm. Further details on the meaning of the parameter can be found in the documentation of
             `sklearn.cluster.DBSCAN <https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html>`__.
-            Defaults to 2.5 m.
         min_samples_trunk_clustering: Parameter :math:`MinSamples` for clustering the trunk points using the
             DBSCAN algorithm. Further details on the meaning of the parameter can be found in the documentation of
             `sklearn.cluster.DBSCAN <https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html>`__.
-            Defaults to 1.
         min_trunk_points: Minimum number of points a cluster of trunk points must contain to be considered as a trunk.
-            Defaults to 100.
 
     Parameters for the construction and maximum filtering of the canopy height model:
-        grid_size_canopy_height_model: Width of the 2D grid cells used to create the canopy height model. Defaults to
-            0.5 m.
+        grid_size_canopy_height_model: Width of the 2D grid cells used to create the canopy height model (in meters).
         min_distance_crown_tops: Minimum horizontal distance that local maxima of the canopy height model must have in
-            order to be considered as separate crown tops. Defaults to 7 m.
+            order to be considered as separate crown tops (in meters).
         min_points_crown_detection: Minimum number of points that must be contained in a cell of the canopy height model
-            for the cell to be considered a possible crown top. Defaults to 100.
+            for the cell to be considered a possible crown top.
         min_tree_height: Minimum height that a local maximum of the canopy height model must have to be considered as a
-            crown top. Defaults to 2.5 m.
-        smooth_canopy_height_model: Whether to smooth the canopy height model using a Gaussian blur filter. Defaults to
-            `True`.
+            crown top (in meters).
+        smooth_canopy_height_model: Whether to smooth the canopy height model using a Gaussian blur filter.
         smooth_sigma: Parameter :math:`\sigma` of the Gaussian blur filter used to smooth the canopy height model.
-            Defaults to 1.
 
     Parameters for the matching of trunk positions and crown top positions:
         distance_match_trunk_and_crown_top: Maximum horizontal distance between trunk positions and crown top positions
-            up to which both are considered to belong to the same tree. Defaults to 5 m.
+            up to which both are considered to belong to the same tree.
 
     Parameters for the Watershed segmentation:
         correct_watershed: Whether erroneous parts of the watershed segmentation should be replaced by a Voronoi
-            segmentation. Defaults to `True`.
+            segmentation.
 
     Parameters for the region growing segmentation:
         max_point_spacing_region_growing: The results of the Watershed segmentation are only refined in sufficiently
             dense point cloud regions. For this purpose, the average distance of the points to their nearest neighbor is
             determined for each tree. If this average distance is less than :code:`max_point_spacing_region_growing` the
-            tree is considered for refining its segmentation using the region growing approach. Defaults to 0.08 m.
-        max_radius_region_growing: Maximum radius in which to search for neighboring points during region growing.
-            Defaults to 1m .
+            tree is considered for refining its segmentation using the region growing approach (in meters).
+        max_radius_region_growing: Maximum radius in which to search for neighboring points during region growing (in
+            meters).
         multiplier_outside_coarse_border: In our region growing approach, the points are processed in a sorted order,
             with points with the smallest distance to an already assigned tree point being processed first. For points
             that lie outside the crown boundary, the distance is multiplied by a constant factor to restrict growth in
             areas outside the crown boundary. This parameter defines this constant factor. The larger the factor, the
-            more growth is restricted in areas outside the crown boundaries. Defaults to 2.
+            more growth is restricted in areas outside the crown boundaries.
         num_neighbors_region_growing: In our region growing approach, the k-nearest neighbors of each seed point a are
             searched and may be added to the same tree instance. This parameter specifies the number of neighbors to
-            search. Defaults to 27.
+            search.
         z_scale: Factor by which the z-coordinates are multiplied in region growing. Using a value between zero and one
-            favors upward growth. Defaults to 0.5.
+            favors upward growth.
     """
 
     def __init__(  # pylint: disable=too-many-arguments, too-many-locals
@@ -176,25 +171,26 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         self._z_scale = z_scale
 
     def _segment_tree_points(  # pylint: disable=too-many-locals
-        self, tree_coords: np.ndarray, classification: np.ndarray, point_cloud_id: Optional[str] = None
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, tree_xyz: FloatArray, classification: LongArray, point_cloud_id: Optional[str] = None
+    ) -> Tuple[LongArray, LongArray]:
         r"""
         Multi-stage tree instance segmentation algorithm.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             classification: Class IDs of each tree point.
-            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
-                `None`, which means that no visualizations are created.
+            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. If set to
+                :code:`None`, no visualizations are created.
 
         Returns:
-            Instance IDs of each point and unique instance IDs. Points that do not belong to any instance are assigned
-            the ID :math:`-1`.
+            :Tuple of two arrays:
+                - Instance IDs of each point. Points that do not belong to any instance are assigned the ID :code:`-1`.
+                - Unique instance IDs.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`classification`: :math:`(N)`
-            - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(I)`.
+            - Output: :math:`(N)`, :math:`(I)`
 
             | where
             |
@@ -207,7 +203,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             crown_top_positions_grid,
             canopy_height_model,
             grid_origin,
-        ) = self.compute_crown_top_positions(tree_coords, classification)
+        ) = self.compute_crown_top_positions(tree_xyz, classification)
 
         if self._algorithm == "watershed_crown_top_positions":
             if self._visualization_folder is not None and point_cloud_id is not None:
@@ -223,8 +219,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 watershed_labels_with_border,
                 watershed_labels_without_border,
             ) = self.coarse_segmentation(
-                tree_coords,
-                np.full(len(tree_coords), fill_value=-1, dtype=np.int64),
+                tree_xyz,
+                np.full(len(tree_xyz), fill_value=-1, dtype=np.int64),
                 crown_top_positions_grid,
                 canopy_height_model,
                 grid_origin,
@@ -233,13 +229,13 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
             return instance_ids, unique_instance_ids
 
-        instance_ids, unique_instance_ids = self.cluster_trunks(tree_coords, classification)
+        instance_ids, unique_instance_ids = self.cluster_trunks(tree_xyz, classification)
         with Profiler("Filtering of trunk clusters", self._performance_tracker):
             self._logger.info("Filter trunk clusters...")
             instance_ids, unique_instance_ids = filter_instances_min_points(
                 instance_ids, unique_instance_ids, self._min_trunk_points
             )
-        trunk_positions = self.compute_trunk_positions(tree_coords, instance_ids, unique_instance_ids)
+        trunk_positions = self.compute_trunk_positions(tree_xyz, instance_ids, unique_instance_ids)
 
         tree_positions = self.match_trunk_and_crown_tops(
             trunk_positions,
@@ -247,10 +243,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         )
 
         # convert tree coordinates to grid indices for height map
-        tree_positions_grid = np.copy(tree_positions)
-        tree_positions_grid -= grid_origin
-        tree_positions_grid /= self._grid_size_canopy_height_model
-        tree_positions_grid = tree_positions_grid.astype(int)
+        tree_positions_grid = ((tree_positions - grid_origin) / self._grid_size_canopy_height_model).astype(np.int64)
 
         if self._visualization_folder is not None and point_cloud_id is not None:
             save_tree_map(
@@ -270,7 +263,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             watershed_labels_with_border,
             watershed_labels_without_border,
         ) = self.coarse_segmentation(
-            tree_coords,
+            tree_xyz,
             instance_ids,
             tree_positions_grid,
             canopy_height_model,
@@ -283,7 +276,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             return instance_ids, unique_instance_ids
 
         seed_mask, instance_ids = self.determine_overlapping_crowns(
-            tree_coords,
+            tree_xyz,
             classification,
             instance_ids,
             unique_instance_ids,
@@ -299,29 +292,31 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         )
 
         instance_ids = self.grow_trees(
-            tree_coords, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask
+            tree_xyz, instance_ids, unique_instance_ids, grid_origin, crown_distance_fields, seed_mask
         )
 
         return instance_ids, unique_instance_ids
 
-    def cluster_trunks(self, tree_coords: np.ndarray, classification: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def cluster_trunks(self, tree_xyz: FloatArray, classification: LongArray) -> Tuple[LongArray, LongArray]:
         r"""
         Clusters tree trunk points using the
         `DBSCAN <https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html>`__ algorithm and assigns
         the same unique instance ID to the points belonging to the same cluster.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             classification: Class ID of all tree points.
 
         Returns:
-            Tuple of two arrays. The first contains the instance ID of each tree point. Points that do not belong to any
-                instance are assigned the ID :math:`-1`. The second contains the unique instance IDs.
+            :Tuple of two arrays:
+                - Instance ID of each tree point. Points that do not belong to any instance are assigned the ID
+                  :code:`-1`.
+                - Unique instance IDs.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`classification`: :math:`(N)`
-            - Output: Tuple of two arrays. The first has shape :math:`(N)` and the second :math:`(T)`
+            - Output: :math:`(N)`, :math:`(T)`
 
             | where
             |
@@ -336,14 +331,14 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 trunk_mask = np.logical_or(trunk_mask, classification == self._branch_class_id)
 
             if trunk_mask.sum() == 0:
-                return np.full(len(tree_coords), dtype=np.int64, fill_value=-1), np.empty(0, dtype=np.int64)
+                return np.full(len(tree_xyz), dtype=np.int64, fill_value=-1), np.empty(0, dtype=np.int64)
 
-            trunk_points = tree_coords[trunk_mask]
+            trunk_xyz = tree_xyz[trunk_mask]
 
             dbscan = DBSCAN(eps=self._eps_trunk_clustering, min_samples=self._min_samples_trunk_clustering)
-            clustering = dbscan.fit(trunk_points)
+            clustering = dbscan.fit(trunk_xyz)
 
-            instance_ids = np.full(len(tree_coords), fill_value=-1, dtype=np.int64)
+            instance_ids = np.full(len(tree_xyz), fill_value=-1, dtype=np.int64)
             instance_ids[trunk_mask] = clustering.labels_
 
             return make_labels_consecutive(  # type: ignore[return-value]
@@ -351,13 +346,13 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             )
 
     def compute_trunk_positions(
-        self, tree_coords: np.ndarray, instance_ids: np.ndarray, unique_instance_ids: np.ndarray
-    ) -> np.ndarray:
+        self, tree_xyz: FloatArray, instance_ids: LongArray, unique_instance_ids: LongArray
+    ) -> FloatArray:
         r"""
         Computes the 2D position of each trunk.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             instance_ids: Instance IDs of each tree point.
             unique_instance_ids: Unique instance IDs.
             min_points: Minimum number of points an instance must have to not be discarded.
@@ -366,7 +361,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             2D position of each trunk.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`instance_ids`: :math:`(N)`
             - :code:`unique_instance_ids`: :math:`(T)`
             - Output: :math:`(T, 2)`
@@ -381,17 +376,17 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             trunk_positions = np.empty((len(unique_instance_ids), 2))
 
             for instance_id in unique_instance_ids:
-                instance_points = tree_coords[instance_ids == instance_id]
+                instance_points = tree_xyz[instance_ids == instance_id]
                 trunk_positions[instance_id] = instance_points[:, :2].mean(axis=0)
 
         return trunk_positions
 
     @staticmethod
     def create_height_map(  # pylint: disable=too-many-locals
-        points: np.ndarray,
+        xyz: FloatArray,
         grid_size: float,
-        bounding_box: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        bounding_box: Optional[FloatArray] = None,
+    ) -> Tuple[FloatArray, LongArray, FloatArray]:
         r"""
         Creates a 2D height map from a given point cloud. For this purpose, the 3D point cloud is projected onto a 2D
         grid and the maximum z-coordinate within each grid cell is recorded. The value of grid cells that do not contain
@@ -399,21 +394,22 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         minimum z-coordinate.
 
         Args:
-            points: Coordinates of each point.
+            xyz: Coordinates of each point.
             grid_size: Grid size of the height map.
             bounding_box: Bounding box coordinates specifying the area for which to compute the height map. The first
                 element is expected to be the minimum xy-coordinate of the bounding box and the second the maximum
                 xy-coordinate.
 
         Returns:
-            Tuple of three arrays. The first is the height map. The second is a map of the same size containing the
-            number of points within each grid cell. The third contains the position of the grid origin.
+            :Tuple of three arrays:
+                - Height map.
+                - A map of the same size containing the number of points within each grid cell.
+                - Position of the grid origin.
 
         Shape:
-            - :code:`points`: :math:`(N, 3)`
+            - :code:`xyz`: :math:`(N, 3)`
             - :code:`bounding_box`: :math:`(2, 2)`
-            - Output: Tuple of three arrays. The first and second have shape :math:`(W, H)`. The third has shape \
-              :math:`(2)`.
+            - Output: :math:`(W, H)`, :math:`(W, H)`, :math:`(2)`.
 
             | where
             |
@@ -422,16 +418,16 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`H = \text{ extent of the height map in y-direction}`
         """
 
-        if len(points) == 0:
+        if len(xyz) == 0:
             return np.empty((0, 0), dtype=np.float64), np.empty((0, 0), dtype=np.float64), np.empty(0, dtype=np.float64)
 
         if bounding_box is None:
-            bounding_box = np.row_stack([points[:, :2].min(axis=0), points[:, :2].max(axis=0)])
+            bounding_box = np.row_stack([xyz[:, :2].min(axis=0), xyz[:, :2].max(axis=0)])
 
-        points = points.copy()
-        points = points[(points[:, :2] <= bounding_box[1]).all(axis=-1)]
-        points[:, :2] -= bounding_box[0]
-        points[:, 2] -= points[:, 2].min(axis=0)
+        xyz = xyz.copy()
+        xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
+        xyz[:, :2] -= bounding_box[0]
+        xyz[:, 2] -= xyz[:, 2].min(axis=0)
 
         device = torch.device("cpu")
 
@@ -440,13 +436,13 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             available_memory = torch.cuda.mem_get_info(device=torch.device("cuda:0"))[0]
             float_size = torch.empty((0,)).float().element_size()
             long_size = torch.empty((0,)).long().element_size()
-            approx_required_memory = len(points) * (4 * float_size + 6 * long_size)
+            approx_required_memory = len(xyz) * (4 * float_size + 6 * long_size)
 
             if available_memory > approx_required_memory:
                 device = torch.device("cuda:0")
 
-        points_torch = torch.from_numpy(points).to(device)
-        grid_indices = torch.floor(points_torch[:, :2] / grid_size).long()
+        xyz_torch = torch.from_numpy(xyz).to(device)
+        grid_indices = torch.floor(xyz_torch[:, :2] / grid_size).long()
         first_cell = np.floor(bounding_box[0] / grid_size).astype(np.int64)
         last_cell = np.floor(bounding_box[1] / grid_size).astype(np.int64)
 
@@ -458,14 +454,14 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         del grid_indices
         inverse_indices, sorting_indices = torch.sort(inverse_indices)
 
-        max_height, _ = scatter_max(points_torch[sorting_indices, 2], inverse_indices, dim=0)
+        max_height, _ = scatter_max(xyz_torch[sorting_indices, 2], inverse_indices, dim=0)
 
         unique_grid_indices_np = unique_grid_indices.cpu().numpy()
         del unique_grid_indices
 
         height_map = np.zeros(num_cells)
         height_map[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = max_height.cpu().numpy()
-        point_counts = np.zeros(num_cells)
+        point_counts = np.zeros(num_cells, dtype=np.int64)
         point_counts[unique_grid_indices_np[:, 0], unique_grid_indices_np[:, 1]] = (
             point_counts_per_grid_cell.cpu().numpy()
         )
@@ -473,27 +469,27 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         return height_map, point_counts, first_cell * grid_size
 
     def compute_crown_top_positions(
-        self, tree_coords: np.ndarray, classification: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        self, tree_xyz: FloatArray, classification: LongArray
+    ) -> Tuple[FloatArray, LongArray, FloatArray, FloatArray]:
         r"""
         Constructs a 2D canopy height model, identifies the local maxima corresponding to the crown tops and calculates
         their 2D position.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             classification: Class IDs of each tree point.
 
         Returns:
-            Tuple of four arrays. The first contains the 2D position of each crown top as floating point coordinates.
-            The second contains the tree positions as integer coordinates in the grid coordinate system of the canopy
-            height model. The third contains the canopy height model. The fourth contains the position of the grid
-            origin.
+            :Tuple of four arrays:
+                - 2D position of each crown top as floating point coordinates.
+                - Tree positions as integer coordinates in the grid coordinate system of the canopy height model.
+                - Canopy height model
+                - Position of the grid origin.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`classification`: :math:`(N)`
-            - Output: Tuple of three tensors. The first has shape :math:`(C, 2)`. The second has shape :math:`(W, H)`. \
-              The third has shape :math:`(2)`.
+            - Output: :math:`(C, 2)`, :math:`(C, 2)`, :math:`(W, H)`, :math:`(2)`.
 
             | where
             |
@@ -503,7 +499,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             | :math:`H = \text{ extent of the canopy height model in y-direction}`
         """
         with Profiler("Detection of crown top positions", self._performance_tracker):
-            if len(tree_coords) == 0:
+            if len(tree_xyz) == 0:
                 self._logger.info("Detect crown positions...")
                 return (
                     np.empty((0, 0), dtype=np.float64),
@@ -515,10 +511,10 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         with Profiler("Height map computation", self._performance_tracker):
             bounding_box = None
             if self._algorithm != "watershed_crown_top_positions":
-                bounding_box = np.row_stack([tree_coords[:, :2].min(axis=0), tree_coords[:, :2].max(axis=0)])
-                tree_coords = tree_coords[classification == self._crown_class_id]
+                bounding_box = np.row_stack([tree_xyz[:, :2].min(axis=0), tree_xyz[:, :2].max(axis=0)])
+                tree_xyz = tree_xyz[classification == self._crown_class_id]
             canopy_height_model, count_map, grid_origin = self.create_height_map(
-                tree_coords, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box
+                tree_xyz, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box
             )
 
         with Profiler("Detection of crown top positions", self._performance_tracker):
@@ -528,7 +524,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             footprint = disk(footprint_size)
 
             if self._smooth_canopy_height_model:
-                smoothed_canopy_height_model = ndi.gaussian_filter(canopy_height_model, sigma=self._smooth_sigma)
+                smoothed_canopy_height_model = cast(
+                    FloatArray, ndi.gaussian_filter(canopy_height_model, sigma=self._smooth_sigma)
+                )
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
                 smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(
@@ -554,7 +552,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
         return crown_top_positions, crown_top_positions_grid, canopy_height_model, grid_origin
 
-    def match_trunk_and_crown_tops(self, trunk_positions: np.ndarray, crown_top_positions: np.ndarray) -> np.ndarray:
+    def match_trunk_and_crown_tops(self, trunk_positions: FloatArray, crown_top_positions: FloatArray) -> FloatArray:
         r"""
         Merges trunk and crown topm positions corresponding to the same tree.
 
@@ -609,45 +607,47 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def coarse_segmentation(  # pylint: disable=too-many-locals
         self,
-        tree_coords: np.ndarray,
-        instance_ids: np.ndarray,
-        tree_positions_grid: np.ndarray,
-        canopy_height_model: np.ndarray,
-        grid_origin: np.ndarray,
+        tree_xyz: FloatArray,
+        instance_ids: LongArray,
+        tree_positions_grid: LongArray,
+        canopy_height_model: FloatArray,
+        grid_origin: FloatArray,
         *,
         point_cloud_id: Optional[str] = None,
-        trunk_positions_grid: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        trunk_positions_grid: Optional[LongArray] = None,
+    ) -> Tuple[LongArray, LongArray, LongArray, LongArray]:
         r"""
         Coarse tree instance segmentation using the marker-controlled Watershed algorithm.
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             instance_ids: Instance IDs of each tree point.
             tree_positions_grid: The 2D positions of all tree instances as in integer coordinates in the grid coordinate
                 system of the canopy height model.
             canopy_height_model: The canopy height model to segment.
             grid_origin: 2D coordinates of the origin of the canopy height model.
-            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
-                `None`, which means that no visualizations are created.
+            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. If set to
+                :code:`None`, no visualizations are created.
             trunk_positions_grid: The 2D positions of tree trunks that were not matched with a tree crown as in integer
                 coordinates in the grid coordinate system of the canopy height model. Only used for visualization
                 purposes.
 
         Returns:
-            Tuple of four arrays. The first contains the instance ID of each tree point. Points that do not belong to
-            any instance are assigned the ID :math:`-1`. The second contains the unique instance IDs. The third contains
-            the 2D segmentation mask with the pixels at the boundary lines between neighboring trees are assigned the
-            background value of 0. The fourth contains the same segmentation mask without boundary lines.
+            :Tuple of four arrays:
+                - Instance ID of each tree point. Points that do not belong to any instance are assigned the ID
+                  :code:`-1`.
+                - Unique instance IDs.
+                - 2D segmentation mask with the pixels at the boundary lines between neighboring trees are assigned the
+                  background value of 0.
+                - Segmentation mask without boundary lines.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`instance_ids`: :math:`(N)`
             - :code:`tree_positions_grid`: :math:`(N, 2)`
             - :code:`canopy_height_model`: :math:`(W, H)`
             - :code:`grid_origin`: :math:`(2)`
-            - Output: Tuple of five arrays. The first has shape :math:`(N)` and the second :math:`(I)`. The third and \
-              fourth have shape :math:`(W, H)`. The fifth has shape :math:`(N, 2)`.
+            - Output: :math:`(N)`, :math:`(I)`, :math:`(W, H)`, :math:`(W, H)`
 
             | where
             |
@@ -724,8 +724,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                         trunk_positions=trunk_positions_grid,
                     )
 
-            grid_indices = np.floor((tree_coords[:, :2] - grid_origin) / self._grid_size_canopy_height_model).astype(
-                int
+            grid_indices = np.floor((tree_xyz[:, :2] - grid_origin) / self._grid_size_canopy_height_model).astype(
+                np.int64
             )
             mask = np.logical_and(
                 instance_ids == -1, (grid_indices < watershed_labels_without_border.shape).all(axis=1)
@@ -744,8 +744,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         )
 
     def watershed_segmentation(
-        self, canopy_height_model: np.ndarray, tree_positions_grid: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, canopy_height_model: FloatArray, tree_positions_grid: LongArray
+    ) -> Tuple[LongArray, LongArray]:
         r"""
         Marker-controlled Watershed segmentation of the canopy height model.
 
@@ -755,9 +755,10 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 located.
 
         Returns:
-            Tuple of two arrays. The first contains the Watershed segmentation mask with the pixels at the boundary
-            lines between neighboring trees are assigned the background value of 0. The second contains the same
-            Watershed segmentation mask without boundary lines.
+            :Tuple of two arrays:
+                - Watershed segmentation mask with the pixels at the boundary lines between neighboring trees are
+                  assigned the background value of 0.
+                - Watershed segmentation mask without boundary lines.
 
         Shape:
             - :code:`canopy_height_model`: :math:`(W, H)`
@@ -793,11 +794,11 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def watershed_correction(  # pylint: disable=too-many-locals
         self,
-        watershed_labels_with_border: np.ndarray,
-        watershed_labels_without_border: np.ndarray,
-        tree_positions_grid: np.ndarray,
+        watershed_labels_with_border: LongArray,
+        watershed_labels_without_border: LongArray,
+        tree_positions_grid: LongArray,
         point_cloud_id: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[LongArray, LongArray]:
         r"""
         Detects erroneous parts within a Watershed segmentation mask and replaces them by a Voronoi segmentation.
 
@@ -807,19 +808,20 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             watershed_labels_without_border: Uncorrected Watershed labels without boundary lines.
             tree_positions_grid: Indices of the grid cells of the canopy height model in which the tree positions are
                 located.
-            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
-                `None`, which means that no visualizations are created.
+            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. If set to
+                :code:`None`, no visualizations are created.
 
         Returns:
-            Tuple of two arrays. The first contains the corrected Watershed segmentation mask with the pixels at the
-            boundary lines between neighboring trees are assigned the background value of 0. The second contains the
-            same Watershed segmentation mask without boundary lines.
+            :Tuple of two arrays:
+                - Corrected Watershed segmentation mask with the pixels at the boundary lines between neighboring trees
+                  are assigned the background value of 0.
+                - Corrected Watershed segmentation mask without boundary lines.
 
         Shape:
             - :code:`watershed_labels_with_border`: :math:`(W, H)`
             - :code:`watershed_labels_without_border`: :math:`(W, H)`
             - :code:`tree_positions_grid`: :math:`(I, 2)`
-            - Output: Tuple of two arrays. Both have shape :math:`(W, H)`.
+            - Output: :math:`(W, H)`, :math:`(W, H).
 
             | where
             |
@@ -928,14 +930,14 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def determine_overlapping_crowns(  # pylint: disable=too-many-locals
         self,
-        tree_coords: np.ndarray,
-        classification: np.ndarray,
-        instance_ids: np.ndarray,
-        unique_instance_ids: np.ndarray,
-        canopy_height_model: np.ndarray,
-        watershed_labels_with_border: np.ndarray,
-        watershed_labels_without_border: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        tree_xyz: FloatArray,
+        classification: LongArray,
+        instance_ids: LongArray,
+        unique_instance_ids: LongArray,
+        canopy_height_model: FloatArray,
+        watershed_labels_with_border: LongArray,
+        watershed_labels_without_border: LongArray,
+    ) -> Tuple[BoolArray, LongArray]:
         r"""
         Identifies trees whose crowns overlap with neighboring trees. If such trees have sufficient point density and
         contain trunk points, their segmentation is refined. For this purpose, the trunk points are selected as seed
@@ -943,7 +945,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
 
         Args:
-            tree_coords: Coordinates of all tree points.
+            tree_xyz: Coordinates of all tree points.
             classification: Class ID of all tree points.
             instance_ids: Instance IDs of each tree point.
             unique_instance_ids: Unique instance IDs.
@@ -952,18 +954,19 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 trees are assigned the background value of 0.
 
         Returns:
-            Tuple of two arrays. The first contains a boolean mask indicating which points were selected as seed points
-                for region growing. The second contains the updated instance IDs for each tree points. For trees whose
-                segmentation is to be refined the instance IDs of the crown points is set to -1.
+            :Tuple of two arrays:
+                - A boolean mask indicating which points were selected as seed points for region growing.
+                - Updated instance IDs for each tree points. For trees whose segmentation is to be refined the instance
+                  IDs of the crown points is set to :code:`-1`.
 
         Shape:
-            - :code:`tree_coords`: :math:`(N, 3)`
+            - :code:`tree_xyz`: :math:`(N, 3)`
             - :code:`classification`: :math:`(N)`
             - :code:`instance_ids`: :math:`(N)`
             - :code:`unique_instance_ids`: :math:`(I)`
             - :code:`canopy_height_model`: :math:`(W, H)`
             - :code:`watershed_labels_with_border`: :math:`(W, H)`
-            - Output: Tuple of two arrays. Both have shape :math:`(N)`.
+            - Output: :math:`(N)`, :math:`(N)`.
 
             | where
             |
@@ -983,9 +986,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             mask_background_erosion = np.logical_and(foreground_mask, eroded_watershed_labels == 1)
             eroded_watershed_labels[mask_background_erosion] = watershed_labels_for_erosion[mask_background_erosion]
 
-            kd_tree = KDTree(tree_coords)
+            kd_tree = KDTree(tree_xyz)
 
-            neighbor_distances = cast(np.ndarray, kd_tree.query(tree_coords, k=2)[0])
+            neighbor_distances = cast(np.ndarray, kd_tree.query(tree_xyz, k=2)[0])
             neighbor_distances = cast(np.ndarray, neighbor_distances)
             neighbor_distances = neighbor_distances[:, 1].flatten()
 
@@ -1015,7 +1018,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                     average_point_spacings.append(average_point_spacing)
                     instance_seed_masks.append(instance_trunk_mask)
 
-            seed_mask = np.zeros(len(tree_coords), dtype=bool)
+            seed_mask = np.zeros(len(tree_xyz), dtype=bool)
 
             for instance_id, average_point_spacing, instance_seed_mask in zip(
                 instances_to_refine, average_point_spacings, instance_seed_masks
@@ -1047,8 +1050,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         return seed_mask, instance_ids
 
     def compute_crown_distance_fields(
-        self, watershed_labels_without_border: np.ndarray, tree_positions_grid: np.ndarray
-    ) -> np.ndarray:
+        self, watershed_labels_without_border: LongArray, tree_positions_grid: LongArray
+    ) -> FloatArray:
         r"""
         Calculates signed distance fields from the 2D segmentation mask of each tree. The distance values specify the 2D
         distance to the boundary of the segmentation mask. The distance value is negative for pixels that belong to the
@@ -1078,7 +1081,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             self._logger.info("Compute crown distance fields...")
             crown_distance_fields = np.empty((len(tree_positions_grid), *watershed_labels_without_border.shape))
             for idx, tree_position in enumerate(tree_positions_grid):
-                instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]
+                instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]  # type: ignore[index]
                 mask = watershed_labels_without_border == instance_id
                 inverse_mask = np.logical_not(mask)
                 distance_mask = -cast(  # pylint: disable=invalid-unary-operand-type
@@ -1091,13 +1094,13 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def grow_trees(  # pylint: disable=too-many-locals
         self,
-        tree_xyz: np.ndarray,
-        instance_ids: np.ndarray,
-        unique_instances_ids: np.ndarray,
-        grid_origin: np.ndarray,
-        crown_distance_fields,
-        seed_mask: np.ndarray,
-    ) -> np.ndarray:
+        tree_xyz: FloatArray,
+        instance_ids: LongArray,
+        unique_instances_ids: LongArray,
+        grid_origin: FloatArray,
+        crown_distance_fields: FloatArray,
+        seed_mask: BoolArray,
+    ) -> LongArray:
         r"""
         Region growing segmentation.
 
@@ -1152,18 +1155,18 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
     def __call__(  # pylint: disable=too-many-locals
         self,
-        xyz: np.ndarray,
-        classification: np.ndarray,
+        xyz: FloatArray,
+        classification: LongArray,
         point_cloud_id: Optional[str] = None,
-    ) -> np.ndarray:
+    ) -> LongArray:
         r"""
         Segments tree instances in a point cloud.
 
         Args:
             xyz: 3D coordinates of the point cloud to be segmented.
             classification: Semantic segmentation class IDs
-            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. Defaults to
-                `None`, which means that no visualizations are created.
+            point_cloud_id: ID of the point cloud to be used in the file names of the visualization results. If set to
+                :code:`None`, no visualizations are created.
 
         Returns:
             Instance IDs of each point. Points that do not belong to any instance are assigned the ID :math:`-1`.

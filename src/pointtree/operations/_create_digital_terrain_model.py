@@ -5,19 +5,20 @@ __all__ = ["create_digital_terrain_model"]
 from typing import Optional, Tuple, cast
 
 import numpy as np
-import numpy.typing as npt
 from pointtorch.operations.numpy import voxel_downsampling
 from scipy.spatial import KDTree
 
+from pointtree.type_aliases import FloatArray
+
 
 def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too-many-locals
-    terrain_coords: npt.NDArray,
+    terrain_xyz: FloatArray,
     grid_resolution: float,
     k: int,
     p: float,
     voxel_size: Optional[float] = None,
     num_workers: int = 1,
-) -> Tuple[npt.NDArray, npt.NDArray]:
+) -> Tuple[FloatArray, FloatArray]:
     r"""
     Constructs a rasterized digital terrain model (DTM) from a set of terrain points. The DTM is constructed by
     creating a grid of regularly arranged DTM points and interpolating the height of the :math:`k` closest terrain
@@ -28,23 +29,24 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     Before constructing the DTM, the terrain points can optionally be downsampled using voxel-based subsampling.
 
     Args:
-        terrain_coords: Coordinates of the terrain points from which to construct the DTM.
+        terrain_xyz: Coordinates of the terrain points from which to construct the DTM.
         grid_resolution: Resolution of the DTM grid (in meter).
         k: Number of terrain points between which interpolation is performed to obtain the terrain height of a DTM
             point.
         p: Power :math:`p` for inverse-distance weighting in the interpolation of terrain points.
         voxel_size: Voxel size with which the terrain points are downsampled before the DTM is
-            created. If set to :code:`None`, no downsampling is performed. Defaults to :code:`None`.
+            created. If set to :code:`None`, no downsampling is performed.
         num_workers: Number of workers to use for parallel processing. If :code:`workers` is set to -1, all CPU threads
-            are used. Defaults to :code:`1`.
+            are used.
 
     Returns:
-        Tuple of two arrays. The first is the DTM. The second contains the x- and y-coordinate of the top left
-        corner of the DTM grid.
+        :Tuple of two arrays:
+            - DTM
+            - X- and y-coordinate of the top left corner of the DTM grid
 
     Shape:
-        - :code:`terrain_coords`: :math:`(N, 3)`
-        - Output: Tuple of two arrays. The first has shape :math:`(H, W)` and second has shape :math:`(2)`.
+        - :code:`terrain_xyz`: :math:`(N, 3)`
+        - Output: :math:`(H, W)`, :math:`(2)`
 
         | where
         |
@@ -54,10 +56,10 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     """
 
     if voxel_size is not None:
-        terrain_coords, _, _ = voxel_downsampling(terrain_coords, voxel_size=voxel_size)
+        terrain_xyz, _, _ = voxel_downsampling(terrain_xyz, voxel_size=voxel_size)
 
-    min_coords = terrain_coords[:, :2].min(axis=0)
-    max_coords = terrain_coords[:, :2].max(axis=0)
+    min_coords = terrain_xyz[:, :2].min(axis=0)
+    max_coords = terrain_xyz[:, :2].max(axis=0)
 
     dtm_grid_offset = np.floor(min_coords / grid_resolution)
     dtm_size = np.floor(max_coords / grid_resolution) - dtm_grid_offset + 1
@@ -68,11 +70,11 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
 
     dtm_points = (dtm_grid_offset + np.concatenate([dtm_points_x, dtm_points_y], axis=-1)) * grid_resolution
 
-    kd_tree = KDTree(terrain_coords[:, :2])
-    neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=min(k, len(terrain_coords)), workers=num_workers)
+    kd_tree = KDTree(terrain_xyz[:, :2])
+    neighbor_distances, neighbor_indices = kd_tree.query(dtm_points, k=min(k, len(terrain_xyz)), workers=num_workers)
     neighbor_distances = cast(np.ndarray, neighbor_distances)
     neighbor_indices = cast(np.ndarray, neighbor_indices)
-    neighbor_distances = neighbor_distances.astype(terrain_coords.dtype)
+    neighbor_distances = neighbor_distances.astype(terrain_xyz.dtype)
 
     # ignore divide by zero warnings for this operation since those values are replaced afterwards
     with np.errstate(divide="ignore"):
@@ -84,6 +86,6 @@ def create_digital_terrain_model(  # pylint: disable=too-few-public-methods, too
     neighbor_weights[is_exact_match] = 1
     neighbor_weights /= neighbor_weights.sum(axis=-1, keepdims=True)
 
-    dtm = (terrain_coords[neighbor_indices, 2] * neighbor_weights).sum(axis=-1)
+    dtm = (terrain_xyz[neighbor_indices, 2] * neighbor_weights).sum(axis=-1)
 
     return dtm, dtm_grid_offset * grid_resolution

@@ -2,13 +2,11 @@
 
 __all__ = ["points_in_ellipse"]
 
-import numpy as np
-import numpy.typing as npt
-
+from pointtree.type_aliases import BoolArray, FloatArray
 from pointtree._operations_cpp import points_in_ellipse as points_in_ellipse_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
 
 
-def points_in_ellipse(xy: npt.NDArray, ellipse: npt.NDArray) -> npt.NDArray[np.bool_]:
+def points_in_ellipse(xy: FloatArray, ellipse: FloatArray) -> BoolArray:
     r"""
     Tests whether 2D points are within the boundaries of an ellipse.
 

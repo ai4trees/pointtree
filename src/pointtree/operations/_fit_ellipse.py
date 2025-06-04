@@ -2,12 +2,11 @@
 
 __all__ = ["fit_ellipse"]
 
-import numpy.typing as npt
-
+from pointtree.type_aliases import FloatArray, LongArray
 from pointtree._operations_cpp import fit_ellipse as fit_ellipse_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
 
 
-def fit_ellipse(xy: npt.NDArray, batch_lengths: npt.NDArray, num_workers: int = 1) -> npt.NDArray:
+def fit_ellipse(xy: FloatArray, batch_lengths: LongArray, num_workers: int = 1) -> FloatArray:
     r"""
     Fits an ellipse to a set of 2D points using the least-squares method described in `Halir, Radim, and Jan Flusser. \
     "Numerically Stable Direct Least Squares Fitting of Ellipses." Proc. 6th International Conference in Central \
@@ -26,9 +25,8 @@ def fit_ellipse(xy: npt.NDArray, batch_lengths: npt.NDArray, num_workers: int = 
             points, then :code:`batch_lengths` should be set to :code:`[N_1, N_2]` and :code:`xy[:N_1]`
             should contain the points of the first batch item and :code:`xy[N_1:]` the points of the second batch
             item. If :code:`batch_lengths` is set to :code:`None`, it is assumed that the input points
-            belong to a single batch item and batch processing is disabled. Defaults to :code:`None`.
+            belong to a single batch item and batch processing is disabled.
         num_workers: Number of workers threads to use for parallel processing. If set to -1, all CPU threads are used.
-            Defaults to 1.
 
     Returns:
         :Parameters of the fitted ellipses in the following order: X- and y-coordinates of the center, radius along the

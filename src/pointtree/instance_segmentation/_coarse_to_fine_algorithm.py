@@ -243,10 +243,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         )
 
         # convert tree coordinates to grid indices for height map
-        tree_positions_grid = np.copy(tree_positions)
-        tree_positions_grid -= grid_origin
-        tree_positions_grid /= self._grid_size_canopy_height_model
-        tree_positions_grid = tree_positions_grid.astype(int)
+        tree_positions_grid = ((tree_positions - grid_origin) / self._grid_size_canopy_height_model).astype(np.int64)
 
         if self._visualization_folder is not None and point_cloud_id is not None:
             save_tree_map(
@@ -429,8 +426,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
         xyz = xyz.copy()
         xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
-        xyz[:, :2] -= bounding_box[0]
-        xyz[:, 2] -= xyz[:, 2].min(axis=0)
+        xyz[:, :2] -= bounding_box[0]  # type: ignore[misc]
+        xyz[:, 2] -= xyz[:, 2].min(axis=0)  # type: ignore[misc]
 
         device = torch.device("cpu")
 
@@ -527,7 +524,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             footprint = disk(footprint_size)
 
             if self._smooth_canopy_height_model:
-                smoothed_canopy_height_model = ndi.gaussian_filter(canopy_height_model, sigma=self._smooth_sigma)
+                smoothed_canopy_height_model = cast(
+                    FloatArray, ndi.gaussian_filter(canopy_height_model, sigma=self._smooth_sigma)
+                )
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
                 smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(

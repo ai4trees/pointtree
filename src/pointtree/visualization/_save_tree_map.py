@@ -8,6 +8,7 @@ from typing import Optional
 import numpy as np
 from PIL import Image
 
+from pointtree.type_aliases import BoolArray, LongArray
 from ._color_palette import acm_red, color_palette
 
 
@@ -16,13 +17,13 @@ def save_tree_map(  # pylint: disable=too-many-branches
     output_path: str,
     *,
     is_label_image: bool = False,
-    crown_borders: Optional[np.ndarray] = None,
-    border_mask: Optional[np.ndarray] = None,
-    seed_mask: Optional[np.ndarray] = None,
-    core_mask: Optional[np.ndarray] = None,
-    tree_positions: Optional[np.ndarray] = None,
-    crown_positions: Optional[np.ndarray] = None,
-    trunk_positions: Optional[np.ndarray] = None,
+    crown_borders: Optional[BoolArray] = None,
+    border_mask: Optional[BoolArray] = None,
+    seed_mask: Optional[BoolArray] = None,
+    core_mask: Optional[BoolArray] = None,
+    tree_positions: Optional[LongArray] = None,
+    crown_positions: Optional[LongArray] = None,
+    trunk_positions: Optional[LongArray] = None,
 ) -> None:
     """
     Saves a 2D map showing canopy height models, tree positions etc. as image file.

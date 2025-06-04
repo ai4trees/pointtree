@@ -426,8 +426,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
         xyz = xyz.copy()
         xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
-        xyz[:, :2] -= bounding_box[0]  # type: ignore[misc]
-        xyz[:, 2] -= xyz[:, 2].min(axis=0)  # type: ignore[misc]
+        xyz[:, :2] -= bounding_box[0]
+        xyz[:, 2] -= xyz[:, 2].min(axis=0)
 
         device = torch.device("cpu")
 
@@ -1081,7 +1081,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             self._logger.info("Compute crown distance fields...")
             crown_distance_fields = np.empty((len(tree_positions_grid), *watershed_labels_without_border.shape))
             for idx, tree_position in enumerate(tree_positions_grid):
-                instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]
+                instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]  # type: ignore[index]
                 mask = watershed_labels_without_border == instance_id
                 inverse_mask = np.logical_not(mask)
                 distance_mask = -cast(  # pylint: disable=invalid-unary-operand-type

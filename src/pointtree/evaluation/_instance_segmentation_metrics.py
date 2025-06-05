@@ -278,11 +278,18 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
     matched_instances_mask = matched_predicted_ids != invalid_instance_id
 
-    average_metrics = {
-        "MeanIoU": iou[matched_instances_mask].mean(),
-        "MeanPrecision": precision[matched_instances_mask].mean(),
-        "MeanRecall": recall[matched_instances_mask].mean(),
-    }
+    if matched_instances_mask.sum() > 0:
+        average_metrics = {
+            "MeanIoU": iou[matched_instances_mask].mean(),
+            "MeanPrecision": precision[matched_instances_mask].mean(),
+            "MeanRecall": recall[matched_instances_mask].mean(),
+        }
+    else:
+        average_metrics = {
+            "MeanIoU": np.nan,
+            "MeanPrecision": np.nan,
+            "MeanRecall": np.nan,
+        }
 
     target_ids = np.arange(num_target_ids, dtype=np.int64)
     per_instance_metrics = pd.DataFrame(

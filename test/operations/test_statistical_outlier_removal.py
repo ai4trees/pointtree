@@ -1,8 +1,9 @@
 """Tests for pointtree.operations.statistical_outlier_removal"""
 
 import numpy as np
-from pointtree.operations import statistical_outlier_removal
 import pytest
+
+from pointtree.operations import statistical_outlier_removal
 
 
 class TestStatisticalOutlierRemoval:

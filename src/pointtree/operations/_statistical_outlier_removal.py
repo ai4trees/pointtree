@@ -46,7 +46,7 @@ def statistical_outlier_removal(xyz: FloatArray, k: int, std_multiplier: float) 
     neighbor_dists, neighbor_indices = kd_tree.query(xyz, k=k + 1)
 
     neighbor_dists = neighbor_dists[:, 1:]  # type: ignore[index]
-    neighbor_indices = neighbor_indices[:, 1:]  # tpye: ignore[index]
+    neighbor_indices = neighbor_indices[:, 1:]  # type: ignore[index]
 
     average_dist_to_neighbors = neighbor_dists.mean(axis=1)
     dist_to_neighbors_mean = average_dist_to_neighbors.mean()

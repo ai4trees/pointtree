@@ -63,10 +63,8 @@ ArrayXl grow_trees(
   ArrayXl growing_instance_ids = instance_ids(growing_indices);
 
   ArrayXl point_indices = ArrayXl::LinSpaced(num_points, 0, num_points - 1);
-  ArrayXl growing_point_indices = point_indices(growing_indices);
 
   ArrayXl instance_id_mapping = ArrayXl::Constant(num_instances, -1);
-  ArrayXl inverse_instance_id_mapping = ArrayXl::Constant(num_instances_region_growing, -1);
 
   int64_t remapped_id = 0;
   for (int64_t i = 0; i < num_instances; ++i) {
@@ -74,7 +72,6 @@ ArrayXl grow_trees(
     auto search = region_growing_instance_ids.find(instance_id);
     if (search != region_growing_instance_ids.end()) {
       instance_id_mapping(instance_id) = remapped_id;
-      inverse_instance_id_mapping(remapped_id) = instance_id;
       remapped_id += 1;
     }
   }
@@ -104,9 +101,9 @@ ArrayXl grow_trees(
   std::priority_queue<QueueElementType<scalar_T>, std::vector<QueueElementType<scalar_T>>, decltype(cmp)>
       priority_queue(cmp);
 
-  for (int64_t i = 0; i < growing_instance_ids.rows(); ++i) {
+  for (int64_t i = 0; i < growing_indices.size(); ++i) {
     if (growing_instance_ids(i) != -1) {
-      priority_queue.push(std::make_tuple(growing_point_indices(i), growing_instance_ids(i), -1));
+      priority_queue.push(std::make_tuple(i, growing_instance_ids(i), -1));
     }
   }
 

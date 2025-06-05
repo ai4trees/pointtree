@@ -232,6 +232,23 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert (per_instance_metrics["Precision"] == 1).all()
         assert (per_instance_metrics["Recall"] == 1).all()
 
+    def test_instance_segmentation_metrics_no_matches(self):
+        target = np.array([1, 1, -1, 0, 0], dtype=np.int64)
+        prediction = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
+
+        matched_predicted_ids = np.array([-1, -1], dtype=np.int64)
+
+        metrics, per_instance_metrics = instance_segmentation_metrics(
+            target, prediction, matched_predicted_ids, invalid_instance_id=-1
+        )
+
+        assert np.isnan(metrics["MeanIoU"])
+        assert np.isnan(metrics["MeanRecall"])
+        assert np.isnan(metrics["MeanPrecision"])
+        assert len(per_instance_metrics) == 0
+        assert "TargetID" in per_instance_metrics
+        assert "PredictionID" in per_instance_metrics
+
     def test_instance_segmentation_metrics_invalid_prediction(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(4, dtype=np.int64)

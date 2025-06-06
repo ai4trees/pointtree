@@ -24,6 +24,7 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     prediction: LongArray,
     matched_predicted_ids: LongArray,
     matched_target_ids: LongArray,
+    *,
     invalid_instance_id: int = -1,
     min_tree_height_fp: float = 0.0,
     min_precision_fp: float = 0.0,
@@ -593,7 +594,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
     return pd.DataFrame(average_metrics), pd.DataFrame(per_instance_metrics)
 
 
-def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-many-locals
+def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-many-locals, too-many-arguments
     xyz: FloatArray,
     target: LongArray,
     prediction: LongArray,

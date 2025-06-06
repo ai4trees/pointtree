@@ -18,11 +18,13 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics(self, min_precision_fp: float):
         target = np.array([1, 1, 1, 0, 0, 2, -1], dtype=np.int64)
         prediction = np.array([0, -1, 2, 2, 2, 1, 1], dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64)
         matched_target_ids = np.array([-1, -1, 0], dtype=np.int64)
 
         metrics = instance_detection_metrics(
+            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -44,11 +46,13 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         target = np.array([1, 1, 1, 0, 0, 2, -1, -1, -1, -1, -1], dtype=np.int64)
         prediction = np.array([0, -1, 2, 2, 2, 1, 1, -1, 3, 3, 3], dtype=np.int64)
         labeled_mask = np.array([True] * 7 + [False] * 4, dtype=bool)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64)
         matched_target_ids = np.array([-1, -1, 0, -1], dtype=np.int64)
 
         metrics = instance_detection_metrics(
+            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -71,11 +75,13 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_all_correct(self, min_precision_fp: float):
         target = np.array([1, 1, 1, 0, 0, 2, -1, 2], dtype=np.int64)
         prediction = np.array([0, 0, 0, 2, 2, 1, -1, 1], dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, 0, 1], dtype=np.int64)
         matched_target_ids = np.array([1, 2, 0], dtype=np.int64)
 
         metrics = instance_detection_metrics(
+            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -93,15 +99,53 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["OmissionError"] == 0
         assert metrics["F1Score"] == 1
 
+    @pytest.mark.parametrize("min_tree_height_fp", [0.0, 2.0])
+    def test_instance_detection_metrics_min_tree_height_fp(self, min_tree_height_fp: float):
+        target = np.array([0, 0, 0, -1, -1, -1], dtype=np.int64)
+        prediction = np.array([0, 0, 0, 1, 1, 1], dtype=np.int64)
+        xyz = np.array(
+            [
+                # tree 1
+                [0, 0, 0],
+                [0, 0, 1],
+                [0, 0, 4.5],
+                # tree 2
+                [1, 1, 0],
+                [1, 1, 1],
+                [1, 1, 1.5],
+            ]
+        )
+
+        matched_predicted_ids = np.array([0], dtype=np.int64)
+        matched_target_ids = np.array([0, -1], dtype=np.int64)
+
+        metrics = instance_detection_metrics(
+            xyz,
+            target,
+            prediction,
+            matched_predicted_ids,
+            matched_target_ids,
+            invalid_instance_id=-1,
+            min_tree_height_fp=min_tree_height_fp,
+        )
+
+        assert metrics["TP"] == 1
+        if min_tree_height_fp > 1.5:
+            assert metrics["FP"] == 0
+        else:
+            assert metrics["FP"] == 1
+
     def test_instance_detection_metrics_invalid_prediction(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(4, dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([0], dtype=np.int64)
         matched_target_ids = np.array([0], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
+                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -112,12 +156,14 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_invalid_matched_predicted_ids(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(5, dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([0, 1], dtype=np.int64)
         matched_target_ids = np.array([0], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
+                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -128,12 +174,14 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_invalid_matched_target_ids(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(5, dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([0], dtype=np.int64)
         matched_target_ids = np.array([0, 1], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
+                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -144,11 +192,13 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_all_false_negatives(self):
         target = np.array([1, 1, 1, 0, 0], dtype=np.int64)
         prediction = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([-1, -1], dtype=np.int64)
         matched_target_ids = np.array([], dtype=np.int64)
 
         metrics = instance_detection_metrics(
+            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -168,12 +218,19 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_all_false_positives(self):
         target = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
         prediction = np.array([1, 1, 1, 0, 0], dtype=np.int64)
+        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([], dtype=np.int64)
         matched_target_ids = np.array([-1, -1], dtype=np.int64)
 
         metrics = instance_detection_metrics(
-            target, prediction, matched_predicted_ids, matched_target_ids, invalid_instance_id=-1, min_precision_fp=0
+            xyz,
+            target,
+            prediction,
+            matched_predicted_ids,
+            matched_target_ids,
+            invalid_instance_id=-1,
+            min_precision_fp=0,
         )
 
         assert metrics["TP"] == 0

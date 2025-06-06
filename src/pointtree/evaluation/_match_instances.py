@@ -334,13 +334,11 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
     ):
         target_id = unique_target_ids[i]
         predicted_instances_intersecting_with_target = prediction[target == target_id]
-        predicted_instances_intersecting_with_target = predicted_instances_intersecting_with_target[
-            predicted_instances_intersecting_with_target != invalid_instance_id
-        ]
-
-        if len(predicted_instances_intersecting_with_target) == 0:
-            continue
         values = np.unique(predicted_instances_intersecting_with_target)
+        values = values[values != invalid_instance_id]
+
+        if len(values) == 0:
+            continue
 
         if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5):
             available_for_matching = matched_target_ids[values] == invalid_instance_id
@@ -507,14 +505,13 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     for i in prange(len(unique_target_ids)):  # pylint: disable=not-an-iterable
         target_id = unique_target_ids[i]
 
-        predicted_instances_intersecting_with_target = np.unique(prediction[target == target_id])
-        predicted_instances_intersecting_with_target = predicted_instances_intersecting_with_target[
-            predicted_instances_intersecting_with_target != invalid_instance_id
-        ]
-        if len(predicted_instances_intersecting_with_target) == 0:
-            continue
+        predicted_instances_intersecting_with_target = prediction[target == target_id]
 
         values = np.unique(predicted_instances_intersecting_with_target)
+        values = values[values != invalid_instance_id]
+        if len(values) == 0:
+            continue
+
         counts = np.array([(predicted_instances_intersecting_with_target == x).sum() for x in values])
         predicted_id = values[np.argmax(counts)]
 
@@ -533,16 +530,19 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5):
         for i in prange(len(unique_prediction_ids)):  # pylint: disable=not-an-iterable
             predicted_id = unique_prediction_ids[i]
-            target_instances_intersecting_with_prediction = np.unique(target[prediction == predicted_id])
-            target_instances_intersecting_with_prediction = target_instances_intersecting_with_prediction[
-                target_instances_intersecting_with_prediction != invalid_instance_id
-            ]
-            if len(target_instances_intersecting_with_prediction) == 0:
+            target_instances_matched_with_prediction = np.flatnonzero(matched_predicted_ids == predicted_id)
+            target_instances_intersecting_with_prediction = target[prediction == predicted_id]
+
+            if len(target_instances_matched_with_prediction) == 0:
                 continue
 
-            values = np.unique(target_instances_intersecting_with_prediction)
-            counts = np.array([(target_instances_intersecting_with_prediction == x).sum() for x in values])
-            target_id = values[np.argmax(counts)]
+            counts = np.array(
+                [
+                    (target_instances_intersecting_with_prediction == x).sum()
+                    for x in target_instances_matched_with_prediction
+                ]
+            )
+            target_id = target_instances_matched_with_prediction[np.argmax(counts)]
             matched_target_ids[predicted_id] = target_id
 
     return matched_target_ids, matched_predicted_ids

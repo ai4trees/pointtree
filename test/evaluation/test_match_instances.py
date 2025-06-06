@@ -289,19 +289,19 @@ class TestMetrics:
     @pytest.mark.parametrize("min_iou_treshold", [None, 0.2, 0.4, 0.5])
     @pytest.mark.parametrize("accept_equal_iou", [True, False])
     def test_match_instances_for_ai_net_coverage(self, min_iou_treshold: float, accept_equal_iou: bool):
-        target = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3], dtype=np.int64)
-        prediction = np.array([0, 0, 0, 0, -1, 1, -1, -1, -1], dtype=np.int64)
+        target = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 4], dtype=np.int64)
+        prediction = np.array([0, 0, 0, 0, -1, 1, -1, -1, -1, 2, 3, 3, 3], dtype=np.int64)
 
-        unique_target_id = np.array([0, 1, 2, 3], dtype=np.int64)
-        unique_prediction_id = np.array([0, 1], dtype=np.int64)
+        unique_target_ids = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+        unique_prediction_ids = np.array([0, 1, 2, 3], dtype=np.int64)
 
         xyz = np.zeros((len(target), 3), dtype=np.float64)
 
         matched_target_ids, matched_predicted_ids = match_instances_for_ai_net_coverage(
             target,
-            unique_target_id,
+            unique_target_ids,
             prediction,
-            unique_prediction_id,
+            unique_prediction_ids,
             min_iou_treshold=min_iou_treshold,
             accept_equal_iou=accept_equal_iou,
         )
@@ -309,14 +309,14 @@ class TestMetrics:
         expected_matched_target_ids = np.array([], dtype=np.int64)
         expected_matched_predicted_ids = np.array([], dtype=np.int64)
         if min_iou_treshold is None or min_iou_treshold == 0.2 or (min_iou_treshold == 0.4 and accept_equal_iou):
-            expected_matched_target_ids = np.array([0, 2], dtype=np.int64)
-            expected_matched_predicted_ids = np.array([0, 0, 1, -1], dtype=np.int64)
+            expected_matched_target_ids = np.array([0, 2, -1, 4], dtype=np.int64)
+            expected_matched_predicted_ids = np.array([0, 0, 1, -1, 3], dtype=np.int64)
         elif (min_iou_treshold == 0.4 and not accept_equal_iou) or (min_iou_treshold == 0.5 and accept_equal_iou):
-            expected_matched_target_ids = np.array([0, 2], dtype=np.int64)
-            expected_matched_predicted_ids = np.array([0, -1, 1, -1], dtype=np.int64)
+            expected_matched_target_ids = np.array([0, 2, -1, 4], dtype=np.int64)
+            expected_matched_predicted_ids = np.array([0, -1, 1, -1, 3], dtype=np.int64)
         elif min_iou_treshold == 0.5 and not accept_equal_iou:
-            expected_matched_target_ids = np.array([-1, -1], dtype=np.int64)
-            expected_matched_predicted_ids = np.array([-1, -1, -1, -1], dtype=np.int64)
+            expected_matched_target_ids = np.array([-1, -1, -1, 4], dtype=np.int64)
+            expected_matched_predicted_ids = np.array([-1, -1, -1, -1, 3], dtype=np.int64)
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)

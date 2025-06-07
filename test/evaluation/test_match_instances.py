@@ -15,15 +15,20 @@ from pointtree.evaluation import (
 class TestMetrics:
     """Tests for pointtree.evaluation.match_instances."""
 
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
     @pytest.mark.parametrize(
         "method",
         ["panoptic_segmentation", "point2tree", "for_instance", "for_ai_net", "segment_any_tree", "tree_learn"],
     )
-    def test_match_instances(self, method: str):
-        target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3], dtype=np.int64)
-        prediction = np.array([2, 2, 2, 2, -1, 3, 1, 0, 0, 1, 2, -1, -1, -1, -1], dtype=np.int64)
+    def test_match_instances(self, invalid_instance_id: int, method: str):
+        target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3, -1], dtype=np.int64)
+        prediction = np.array([2, 2, 2, 2, -1, 3, 1, 0, 0, 1, 2, -1, -1, -1, -1, -1], dtype=np.int64)
+
+        target += invalid_instance_id + 1
+        prediction += invalid_instance_id + 1
+
         xyz = np.zeros((len(target), 3), dtype=np.float64)
-        xyz[:, 2] = [0, 1, 10, 0, 1, 2, 5, 1, 2, 3, 4, 0, 0, 0, 15]
+        xyz[:, 2] = [0, 1, 10, 0, 1, 2, 5, 1, 2, 3, 4, 0, 0, 0, 15, 0]
 
         if method == "point2tree":
             expected_matched_target_ids = np.array([0, 2, 1, -1], dtype=np.int64)
@@ -31,8 +36,12 @@ class TestMetrics:
         else:
             expected_matched_target_ids = np.array([0, -1, 1, -1], dtype=np.int64)
             expected_matched_predicted_ids = np.array([0, 2, -1, -1], dtype=np.int64)
+        expected_matched_target_ids += invalid_instance_id + 1
+        expected_matched_predicted_ids += invalid_instance_id + 1
 
-        matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method=method)
+        matched_target_ids, matched_predicted_ids = match_instances(
+            xyz, target, prediction, method=method, invalid_instance_id=invalid_instance_id
+        )
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
@@ -148,6 +157,26 @@ class TestMetrics:
     def test_match_instances_non_continuous_prediction_ids(self, method: str):
         prediction = np.array([0, 2], dtype=np.int64)
         target = np.zeros_like(prediction)
+        xyz = np.zeros((len(target), 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            match_instances(xyz, target, prediction, method=method)
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "panoptic_segmentation",
+            "point2tree",
+            "for_instance",
+            "for_ai_net",
+            "for_ai_net_coverage",
+            "segment_any_tree",
+            "tree_learn",
+        ],
+    )
+    def test_match_instances_different_start_ids(self, method: str):
+        target = np.array([3, 4], dtype=np.int64)
+        prediction = np.array([5, 6], dtype=np.int64)
         xyz = np.zeros((len(target), 3), dtype=np.float64)
 
         with pytest.raises(ValueError):

@@ -529,7 +529,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 )
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
-                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(
+                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(  # type:ignore[assignment]
                     smoothed_canopy_height_model.dtype
                 )
                 smoothed_canopy_height_model[canopy_height_model == 0] = 0
@@ -732,13 +732,13 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             )
             grid_indices = grid_indices[mask]
             instance_ids[mask] = watershed_labels_without_border[grid_indices[:, 0], grid_indices[:, 1]] - 1
-            instance_ids, unique_instance_ids = make_labels_consecutive(
+            instance_ids, unique_instance_ids = make_labels_consecutive(  # type: ignore[assignment]
                 instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 
         return (
             instance_ids,
-            unique_instance_ids,
+            cast(LongArray, unique_instance_ids),
             watershed_labels_with_border,
             watershed_labels_without_border,
         )

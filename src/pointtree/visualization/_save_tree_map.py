@@ -71,15 +71,15 @@ def save_tree_map(  # pylint: disable=too-many-branches
 
     if trunk_positions is not None:
         for coord in trunk_positions:
-            pil_image.putpixel((coord[1], coord[0]), acm_red)
+            pil_image.putpixel((coord[1], coord[0]), acm_red)  # type: ignore[index]
 
     if crown_positions is not None:
         for coord in crown_positions:
-            pil_image.putpixel((coord[1], coord[0]), acm_red)
+            pil_image.putpixel((coord[1], coord[0]), acm_red)  # type: ignore[index]
 
     if tree_positions is not None:
         for coord in tree_positions:
-            pil_image.putpixel((coord[1], coord[0]), acm_red)
+            pil_image.putpixel((coord[1], coord[0]), acm_red)  # type: ignore[index]
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 

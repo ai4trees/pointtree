@@ -5,7 +5,7 @@ __all__ = ["plot_fitted_shape"]
 import gc
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
 
 import matplotlib
@@ -85,7 +85,14 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
         width, height, angle = ellipse[2:]
         angle = angle / (2 * np.pi) * 365
         ellipse_patch = matplotlib.patches.Ellipse(
-            (center[0], center[1]), width * 2, height * 2, angle=angle, color="red", linewidth=3, fill=False, zorder=2
+            (center[0], center[1]),
+            cast(float, width * 2),
+            cast(float, height * 2),
+            angle=cast(float, angle),
+            color="red",
+            linewidth=3,
+            fill=False,
+            zorder=2,
         )
         axis.add_patch(ellipse_patch)
 

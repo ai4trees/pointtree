@@ -162,6 +162,26 @@ class TestMetrics:
         with pytest.raises(ValueError):
             match_instances(xyz, target, prediction, method=method)
 
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "panoptic_segmentation",
+            "point2tree",
+            "for_instance",
+            "for_ai_net",
+            "for_ai_net_coverage",
+            "segment_any_tree",
+            "tree_learn",
+        ],
+    )
+    def test_match_instances_different_start_ids(self, method: str):
+        target = np.array([3, 4], dtype=np.int64)
+        prediction = np.array([5, 6], dtype=np.int64)
+        xyz = np.zeros((len(target), 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            match_instances(xyz, target, prediction, method=method)
+
     def test_match_instances_invalid_method(self):
         xyz = np.random.randn(5, 3)
         target = np.zeros(5, dtype=np.int64)

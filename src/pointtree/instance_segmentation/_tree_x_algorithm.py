@@ -637,7 +637,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 del cluster_indices
                 del new_cluster_labels
 
-            cluster_labels, unique_cluster_labels = make_labels_consecutive(
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(  # type: ignore[assignment]
                 cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 
@@ -758,7 +758,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             layer_ellipses = layer_ellipses[filter_mask]
 
             cluster_labels[~np.isin(cluster_labels, unique_cluster_labels[filter_mask], assume_unique=True)] = -1
-            cluster_labels, unique_cluster_labels = make_labels_consecutive(
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(  # type: ignore[assignment]
                 cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 

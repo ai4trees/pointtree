@@ -451,8 +451,8 @@ def match_instances_tree_learn(  # pylint: disable=too-many-locals
             mask_satisfies_match_condition = iou_matrix[matched_preds, matched_gts] >= min_iou_treshold
         else:
             mask_satisfies_match_condition = iou_matrix[matched_preds, matched_gts] > min_iou_treshold
-        matched_preds = matched_preds[mask_satisfies_match_condition]  # type: ignore[assignment]
-        matched_gts = matched_gts[mask_satisfies_match_condition]  # type: ignore[assignment]
+        matched_preds = matched_preds[mask_satisfies_match_condition]
+        matched_gts = matched_gts[mask_satisfies_match_condition]
 
     matched_target_ids[matched_preds] = matched_gts + start_instance_id
     matched_predicted_ids[matched_gts] = matched_preds + start_instance_id

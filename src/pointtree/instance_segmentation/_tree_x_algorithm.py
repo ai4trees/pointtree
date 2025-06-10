@@ -419,8 +419,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         tree_seg_min_tree_assignment_ratio: float = 0.3,
         tree_seg_max_search_radius: float = 0.5,
         tree_seg_decrease_search_radius_after_num_iter: int = 10,
-        tree_seg_max_iterations: int = 1000,
-        tree_seg_cum_search_dist_include_terrain: float = 0.9,
+        tree_seg_max_iterations: int = 500,
+        tree_seg_cum_search_dist_include_terrain: float = 0.8,
     ):
         super().__init__()
 
@@ -2104,7 +2104,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 stem_diameters,
             )
 
-        with Profiler("Segmentation of entire trees", self._performance_tracker):
+        with Profiler("Segmentation of entire trees (region growing)", self._performance_tracker):
             self._logger.info("Segment tree crowns...")
             instance_ids = self.segment_crowns(
                 xyz,

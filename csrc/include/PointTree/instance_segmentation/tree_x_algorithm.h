@@ -415,20 +415,20 @@ ArrayXl segment_tree_crowns(
     ArrayXb becomes_new_seed = ArrayXb::Constant(unassigned_indices.size(), 0);
     ArrayXb tree_was_grown = ArrayXb::Constant(num_trees, 0);
 
+    std::vector<int64_t> knn_index(unassigned_indices.size());
+    std::vector<scalar_T> knn_dist(unassigned_indices.size());
+
 #pragma omp parallel for num_threads(num_workers)
     for (int64_t j = 0; j < unassigned_indices.size(); ++j) {
-      std::vector<int64_t> knn_index(1);
-      std::vector<scalar_T> knn_dist(1);
-
       ArrayX3<scalar_T> query_xyz = xyz(unassigned_indices[j], Eigen::all);
 
-      auto num_results = kd_tree_seeds_3d.index_->knnSearch(query_xyz.data(), 1, &knn_index[0], &knn_dist[0]);
+      auto num_results = kd_tree_seeds_3d.index_->knnSearch(query_xyz.data(), 1, &knn_index[j], &knn_dist[j]);
 
-      if (knn_dist[0] > search_radius_squared) {
+      if (knn_dist[j] > search_radius_squared) {
         continue;
       }
 
-      auto instance_id = instance_ids(seed_indices[knn_index[0]]);
+      auto instance_id = instance_ids(seed_indices[knn_index[j]]);
       assert(instance_id != -1);
       instance_ids[unassigned_indices[j]] = instance_id;
       becomes_new_seed[j] = true;
@@ -441,11 +441,12 @@ ArrayXl segment_tree_crowns(
     std::cout << "newly_assigned_points_ratio: " << newly_assigned_points_ratio
               << ", tree_assignment_ratio: " << tree_assignment_ratio << "." << std::endl;
 
+    seed_indices.clear();
     if (newly_assigned_points_ratio < region_growing_min_total_assignment_ratio ||
         tree_assignment_ratio < region_growing_min_tree_assignment_ratio) {
       search_radius += region_growing_voxel_size;
+      search_radius_squared = search_radius * search_radius;
 
-      seed_indices.clear();
       for (int64_t j = 0; j < num_points; ++j) {
         if (instance_ids[j] != -1) {
           seed_indices.push_back(j);
@@ -454,7 +455,6 @@ ArrayXl segment_tree_crowns(
 
       iterations_without_radius_increase = 0;
     } else {
-      seed_indices.clear();
       for (int64_t j = 0; j < unassigned_indices.size(); ++j) {
         if (becomes_new_seed[j]) {
           seed_indices.push_back(unassigned_indices[j]);
@@ -464,12 +464,13 @@ ArrayXl segment_tree_crowns(
       iterations_without_radius_increase += 1;
     }
 
-    if (iterations_without_radius_increase == region_growing_decrease_search_radius_after_num_iter) {
+    if (search_radius > region_growing_voxel_size &&
+        iterations_without_radius_increase == region_growing_decrease_search_radius_after_num_iter) {
       search_radius -= region_growing_voxel_size;
+      search_radius_squared = search_radius * search_radius;
       iterations_without_radius_increase = 0;
     }
 
-    search_radius_squared = search_radius * search_radius;
     cumulative_search_dist += search_radius;
   }
 

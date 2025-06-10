@@ -99,7 +99,8 @@ def match_instances(
             - IDs of the matched predicted instances for each ground-truth instance.
 
     Raises:
-        ValueError: If the unique instance IDs are not continuous, starting with zero.
+        ValueError: If the unique instance IDs are not continuous.
+        ValueError: If the unique target and predicted instance IDs don't start with the same number.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
@@ -142,8 +143,8 @@ def match_instances(
             unique_target_ids,
             prediction,
             unique_prediction_ids,
-            start_instance_id=start_instance_id_target,
-            invalid_instance_id=invalid_instance_id,
+            start_instance_id_target,
+            invalid_instance_id,
             min_iou_treshold=0.5,
             accept_equal_iou=False,
             sort_by_target_height=False,
@@ -155,8 +156,8 @@ def match_instances(
             unique_target_ids,
             prediction,
             unique_prediction_ids,
-            start_instance_id=start_instance_id_target,
-            invalid_instance_id=invalid_instance_id,
+            start_instance_id_target,
+            invalid_instance_id,
             min_iou_treshold=None,
             sort_by_target_height=True,
         )
@@ -167,8 +168,8 @@ def match_instances(
             unique_target_ids,
             prediction,
             unique_prediction_ids,
-            start_instance_id=start_instance_id_target,
-            invalid_instance_id=invalid_instance_id,
+            start_instance_id_target,
+            invalid_instance_id,
             min_iou_treshold=0.5,
             accept_equal_iou=True,
             sort_by_target_height=True,
@@ -180,8 +181,8 @@ def match_instances(
             unique_target_ids,
             prediction,
             unique_prediction_ids,
-            start_instance_id=start_instance_id_target,
-            invalid_instance_id=invalid_instance_id,
+            start_instance_id_target,
+            invalid_instance_id,
             min_iou_treshold=0.5,
             accept_equal_iou=True,
             sort_by_target_height=False,
@@ -192,8 +193,8 @@ def match_instances(
             unique_target_ids,
             prediction,
             unique_prediction_ids,
-            start_instance_id=start_instance_id_target,
-            invalid_instance_id=invalid_instance_id,
+            start_instance_id_target,
+            invalid_instance_id,
             min_iou_treshold=None,
         )
     elif method == "tree_learn":
@@ -202,8 +203,8 @@ def match_instances(
             unique_target_ids,
             prediction,
             unique_prediction_ids,
-            start_instance_id=start_instance_id_target,
-            invalid_instance_id=invalid_instance_id,
+            start_instance_id_target,
+            invalid_instance_id,
             min_iou_treshold=0.5,
         )
     else:
@@ -221,8 +222,8 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
     unique_target_ids: LongArray,
     prediction: LongArray,
     unique_prediction_ids: LongArray,
-    start_instance_id: int = 0,
-    invalid_instance_id: int = -1,
+    start_instance_id: int,
+    invalid_instance_id: int,
     min_iou_treshold: Optional[float] = 0.5,
     accept_equal_iou: bool = False,
     sort_by_target_height: bool = False,
@@ -343,7 +344,7 @@ def match_instances_iou(  # pylint: disable=too-many-locals, too-many-positional
     for i in (
         range(len(unique_target_ids))
         if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5)
-        else range(len(unique_target_ids))
+        else prange(len(unique_target_ids))
     ):
         target_id = unique_target_ids[i]
         predicted_instances_intersecting_with_target = prediction[target == target_id]
@@ -379,8 +380,8 @@ def match_instances_tree_learn(  # pylint: disable=too-many-locals
     unique_target_ids: LongArray,
     prediction: LongArray,
     unique_prediction_ids: LongArray,
-    start_instance_id: int = 0,
-    invalid_instance_id: int = -1,
+    start_instance_id: int,
+    invalid_instance_id: int,
     min_iou_treshold: Optional[float] = 0.5,
     accept_equal_iou: bool = False,
 ) -> Tuple[LongArray, LongArray]:
@@ -466,8 +467,8 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     unique_target_ids: LongArray,
     prediction: LongArray,
     unique_prediction_ids: LongArray,
-    start_instance_id: int = 0,
-    invalid_instance_id: int = -1,
+    start_instance_id: int,
+    invalid_instance_id: int,
     min_iou_treshold: Optional[float] = None,
     accept_equal_iou: bool = False,
 ) -> Tuple[LongArray, LongArray]:
@@ -547,7 +548,7 @@ def match_instances_for_ai_net_coverage(  # pylint: disable=too-many-locals
     if (accept_equal_iou and min_iou_treshold <= 0.5) or (min_iou_treshold < 0.5):
         for i in prange(len(unique_prediction_ids)):  # pylint: disable=not-an-iterable
             predicted_id = unique_prediction_ids[i]
-            target_instances_matched_with_prediction = np.flatnonzero(matched_predicted_ids == predicted_id)
+            target_instances_matched_with_prediction = unique_target_ids[matched_predicted_ids == predicted_id]
             target_instances_intersecting_with_prediction = target[prediction == predicted_id]
 
             if len(target_instances_matched_with_prediction) == 0:

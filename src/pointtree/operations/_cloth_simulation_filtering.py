@@ -6,6 +6,7 @@ import CSF
 import numpy as np
 
 from pointtree.type_aliases import FloatArray, LongArray
+from ._no_stdout import no_stdout
 
 
 def cloth_simulation_filtering(  # pylint: disable=too-few-public-methods
@@ -61,7 +62,8 @@ def cloth_simulation_filtering(  # pylint: disable=too-few-public-methods
     csf.setPointCloud(coords)
     ground_indices = CSF.VecInt()
     non_ground_indices = CSF.VecInt()
-    csf.do_filtering(ground_indices, non_ground_indices, exportCloth=False)
+    with no_stdout():
+        csf.do_filtering(ground_indices, non_ground_indices, exportCloth=False)
 
     classification = np.full(len(coords), dtype=np.int64, fill_value=-1)
     classification[ground_indices] = 0

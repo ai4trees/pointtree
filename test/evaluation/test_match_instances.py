@@ -15,17 +15,18 @@ from pointtree.evaluation import (
 class TestMetrics:
     """Tests for pointtree.evaluation.match_instances."""
 
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
     @pytest.mark.parametrize(
         "method",
         ["panoptic_segmentation", "point2tree", "for_instance", "for_ai_net", "segment_any_tree", "tree_learn"],
     )
-    def test_match_instances(self, invalid_instance_id: int, method: str):
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    def test_match_instances(self, method: str, invalid_instance_id: int):
+        start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3, -1], dtype=np.int64)
         prediction = np.array([2, 2, 2, 2, -1, 3, 1, 0, 0, 1, 2, -1, -1, -1, -1, -1], dtype=np.int64)
 
-        target += invalid_instance_id + 1
-        prediction += invalid_instance_id + 1
+        target += start_instance_id
+        prediction += start_instance_id
 
         xyz = np.zeros((len(target), 3), dtype=np.float64)
         xyz[:, 2] = [0, 1, 10, 0, 1, 2, 5, 1, 2, 3, 4, 0, 0, 0, 15, 0]
@@ -36,8 +37,8 @@ class TestMetrics:
         else:
             expected_matched_target_ids = np.array([0, -1, 1, -1], dtype=np.int64)
             expected_matched_predicted_ids = np.array([0, 2, -1, -1], dtype=np.int64)
-        expected_matched_target_ids += invalid_instance_id + 1
-        expected_matched_predicted_ids += invalid_instance_id + 1
+        expected_matched_target_ids += start_instance_id
+        expected_matched_predicted_ids += start_instance_id
 
         matched_target_ids, matched_predicted_ids = match_instances(
             xyz, target, prediction, method=method, invalid_instance_id=invalid_instance_id
@@ -58,7 +59,9 @@ class TestMetrics:
             "tree_learn",
         ],
     )
-    def test_match_instances_all_correct(self, method: str):
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    def test_match_instances_all_correct(self, method: str, invalid_instance_id):
+        start_instance_id = invalid_instance_id + 1
         xyz = np.array(
             [
                 [0, 0, 0],
@@ -70,13 +73,18 @@ class TestMetrics:
             ],
             dtype=np.float64,
         )
-        target = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64)
-        prediction = np.array([1, 1, 0, 0, 2, 2], dtype=np.int64)
+        target = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64) + start_instance_id
+        prediction = np.array([1, 1, 0, 0, 2, 2], dtype=np.int64) + start_instance_id
 
-        matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method=method)
+        matched_target_ids, matched_predicted_ids = match_instances(
+            xyz, target, prediction, method=method, invalid_instance_id=invalid_instance_id
+        )
 
-        np.testing.assert_array_equal(np.array([1, 0, 2], dtype=np.int64), matched_target_ids)
-        np.testing.assert_array_equal(np.array([1, 0, 2], dtype=np.int64), matched_predicted_ids)
+        expected_matched_target_ids = np.array([1, 0, 2], dtype=np.int64) + start_instance_id
+        expected_matched_predicted_ids = np.array([1, 0, 2], dtype=np.int64) + start_instance_id
+
+        np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
+        np.testing.assert_array_equal(expected_matched_predicted_ids, matched_predicted_ids)
 
     @pytest.mark.parametrize(
         "method",
@@ -90,15 +98,21 @@ class TestMetrics:
             "tree_learn",
         ],
     )
-    def test_match_instances_all_false_negatives(self, method: str):
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    def test_match_instances_all_false_negatives(self, method: str, invalid_instance_id: int):
+        start_instance_id = invalid_instance_id + 1
         xyz = np.random.randn(6, 3)
-        target = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64)
-        prediction = np.full(len(target), fill_value=-1, dtype=np.int64)
+        target = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64) + start_instance_id
+        prediction = np.full(len(target), fill_value=invalid_instance_id, dtype=np.int64)
 
-        matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method=method)
+        matched_target_ids, matched_predicted_ids = match_instances(
+            xyz, target, prediction, method=method, invalid_instance_id=invalid_instance_id
+        )
 
         np.testing.assert_array_equal(np.array([], dtype=np.int64), matched_target_ids)
-        np.testing.assert_array_equal(np.array([-1, -1, -1], dtype=np.int64), matched_predicted_ids)
+        np.testing.assert_array_equal(
+            np.full((3,), fill_value=invalid_instance_id, dtype=np.int64), matched_predicted_ids
+        )
 
     @pytest.mark.parametrize(
         "method",
@@ -112,14 +126,18 @@ class TestMetrics:
             "tree_learn",
         ],
     )
-    def test_match_instances_all_false_positives(self, method: str):
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    def test_match_instances_all_false_positives(self, method: str, invalid_instance_id: int):
+        start_instance_id = invalid_instance_id + 1
         xyz = np.random.randn(6, 3)
-        prediction = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64)
-        target = np.full(len(prediction), fill_value=-1, dtype=np.int64)
+        prediction = np.array([0, 0, 1, 1, 2, 2], dtype=np.int64) + start_instance_id
+        target = np.full(len(prediction), fill_value=-1, dtype=np.int64) + start_instance_id
 
-        matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method=method)
+        matched_target_ids, matched_predicted_ids = match_instances(
+            xyz, target, prediction, method=method, invalid_instance_id=invalid_instance_id
+        )
 
-        np.testing.assert_array_equal(np.array([-1, -1, -1], dtype=np.int64), matched_target_ids)
+        np.testing.assert_array_equal(np.full((3,), fill_value=invalid_instance_id, dtype=np.int64), matched_target_ids)
         np.testing.assert_array_equal(np.array([], dtype=np.int64), matched_predicted_ids)
 
     @pytest.mark.parametrize(
@@ -193,9 +211,11 @@ class TestMetrics:
     @pytest.mark.parametrize("min_iou_treshold", [None, 0.2, 0.5])
     @pytest.mark.parametrize("accept_equal_iou", [True, False])
     @pytest.mark.parametrize("sort_by_target_height", [True, False])
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
     def test_match_instance_iou_sort_target_by_height(
-        self, min_iou_treshold: float, accept_equal_iou: bool, sort_by_target_height: bool
+        self, min_iou_treshold: float, accept_equal_iou: bool, sort_by_target_height: bool, invalid_instance_id: int
     ):
+        start_instance_id = invalid_instance_id + 1
         xyz = np.array(
             [
                 [0, 0, 0],
@@ -208,11 +228,11 @@ class TestMetrics:
             ],
             dtype=np.float64,
         )
-        target = np.array([0, 0, 1, 1, 1, 2, 2], dtype=np.int64)
-        prediction = np.array([0, 0, 0, 0, -1, 1, -1], dtype=np.int64)
+        target = np.array([0, 0, 1, 1, 1, 2, 2], dtype=np.int64) + start_instance_id
+        prediction = np.array([0, 0, 0, 0, -1, 1, -1], dtype=np.int64) + start_instance_id
 
-        unique_target_ids = np.array([0, 1, 2], dtype=np.int64)
-        unique_prediction_ids = np.array([0, 1], dtype=np.int64)
+        unique_target_ids = np.array([0, 1, 2], dtype=np.int64) + start_instance_id
+        unique_prediction_ids = np.array([0, 1], dtype=np.int64) + start_instance_id
 
         matched_target_ids, matched_predicted_ids = match_instances_iou(
             xyz,
@@ -220,6 +240,8 @@ class TestMetrics:
             unique_target_ids,
             prediction,
             unique_prediction_ids,
+            start_instance_id,
+            invalid_instance_id,
             min_iou_treshold=min_iou_treshold,
             accept_equal_iou=accept_equal_iou,
             sort_by_target_height=sort_by_target_height,
@@ -239,38 +261,46 @@ class TestMetrics:
             else:
                 expected_matched_target_ids = np.array([0, 2], dtype=np.int64)
                 expected_matched_predicted_ids = np.array([0, -1, 1], dtype=np.int64)
+        expected_matched_target_ids = expected_matched_target_ids + start_instance_id
+        expected_matched_predicted_ids = expected_matched_predicted_ids + start_instance_id
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
         if min_iou_treshold == 0.5 and accept_equal_iou and sort_by_target_height:
-            matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method="for_instance")
+            matched_target_ids, matched_predicted_ids = match_instances(
+                xyz, target, prediction, method="for_instance", invalid_instance_id=invalid_instance_id
+            )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
             np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
         if min_iou_treshold is None and sort_by_target_height:
-            matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method="point2tree")
+            matched_target_ids, matched_predicted_ids = match_instances(
+                xyz, target, prediction, method="point2tree", invalid_instance_id=invalid_instance_id
+            )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
             np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
         if min_iou_treshold == 0.5 and accept_equal_iou and not sort_by_target_height:
-            matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method="for_ai_net")
+            matched_target_ids, matched_predicted_ids = match_instances(
+                xyz, target, prediction, method="for_ai_net", invalid_instance_id=invalid_instance_id
+            )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
             np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
         if min_iou_treshold == 0.5 and not accept_equal_iou and not sort_by_target_height:
             matched_target_ids, matched_predicted_ids = match_instances(
-                xyz, target, prediction, method="panoptic_segmentation"
+                xyz, target, prediction, method="panoptic_segmentation", invalid_instance_id=invalid_instance_id
             )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
             np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
             matched_target_ids, matched_predicted_ids = match_instances(
-                xyz, target, prediction, method="segment_any_tree"
+                xyz, target, prediction, method="segment_any_tree", invalid_instance_id=invalid_instance_id
             )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
@@ -278,12 +308,16 @@ class TestMetrics:
 
     @pytest.mark.parametrize("min_iou_treshold", [None, 0.2, 0.5])
     @pytest.mark.parametrize("accept_equal_iou", [True, False])
-    def test_match_instances_tree_learn(self, min_iou_treshold: float, accept_equal_iou: bool):
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    def test_match_instances_tree_learn(
+        self, min_iou_treshold: float, accept_equal_iou: bool, invalid_instance_id: int
+    ):
+        start_instance_id = invalid_instance_id + 1
         # test that Hungarian matching works as expected
-        target = np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2], dtype=np.int64)
-        unique_target_ids = np.array([0, 1, 2], dtype=np.int64)
-        prediction = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 2, -1], dtype=np.int64)
-        unique_prediction_ids = np.array([0, 1, 2], dtype=np.int64)
+        target = np.array([0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2], dtype=np.int64) + start_instance_id
+        unique_target_ids = np.array([0, 1, 2], dtype=np.int64) + start_instance_id
+        prediction = np.array([1, 1, 0, 0, 0, 0, 0, 0, 0, 2, -1], dtype=np.int64) + start_instance_id
+        unique_prediction_ids = np.array([0, 1, 2], dtype=np.int64) + start_instance_id
         xyz = np.zeros((len(target), 3), dtype=np.float64)
 
         if min_iou_treshold is not None and min_iou_treshold == 0.5:
@@ -296,12 +330,16 @@ class TestMetrics:
         else:
             expected_matched_target_ids = np.array([1, 0, 2], dtype=np.int64)
             expected_matched_predicted_ids = np.array([1, 0, 2], dtype=np.int64)
+        expected_matched_target_ids = expected_matched_target_ids + start_instance_id
+        expected_matched_predicted_ids = expected_matched_predicted_ids + start_instance_id
 
         matched_target_ids, matched_predicted_ids = match_instances_tree_learn(
             target,
             unique_target_ids,
             prediction,
             unique_prediction_ids,
+            start_instance_id,
+            invalid_instance_id,
             min_iou_treshold=min_iou_treshold,
             accept_equal_iou=accept_equal_iou,
         )
@@ -310,19 +348,26 @@ class TestMetrics:
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
         if min_iou_treshold == 0.5 and not accept_equal_iou:
-            matched_target_ids, matched_predicted_ids = match_instances(xyz, target, prediction, method="tree_learn")
+            matched_target_ids, matched_predicted_ids = match_instances(
+                xyz, target, prediction, method="tree_learn", invalid_instance_id=invalid_instance_id
+            )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
             np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
     @pytest.mark.parametrize("min_iou_treshold", [None, 0.2, 0.4, 0.5])
     @pytest.mark.parametrize("accept_equal_iou", [True, False])
-    def test_match_instances_for_ai_net_coverage(self, min_iou_treshold: float, accept_equal_iou: bool):
-        target = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 4], dtype=np.int64)
-        prediction = np.array([0, 0, 0, 0, -1, 1, -1, -1, -1, 2, 3, 3, 3], dtype=np.int64)
+    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    def test_match_instances_for_ai_net_coverage(
+        self, min_iou_treshold: float, accept_equal_iou: bool, invalid_instance_id: int
+    ):
+        start_instance_id = invalid_instance_id + 1
 
-        unique_target_ids = np.array([0, 1, 2, 3, 4], dtype=np.int64)
-        unique_prediction_ids = np.array([0, 1, 2, 3], dtype=np.int64)
+        target = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 4, 4], dtype=np.int64) + start_instance_id
+        prediction = np.array([0, 0, 0, 0, -1, 1, -1, -1, -1, 2, 3, 3, 3], dtype=np.int64) + start_instance_id
+
+        unique_target_ids = np.array([0, 1, 2, 3, 4], dtype=np.int64) + start_instance_id
+        unique_prediction_ids = np.array([0, 1, 2, 3], dtype=np.int64) + start_instance_id
 
         xyz = np.zeros((len(target), 3), dtype=np.float64)
 
@@ -331,6 +376,8 @@ class TestMetrics:
             unique_target_ids,
             prediction,
             unique_prediction_ids,
+            start_instance_id,
+            invalid_instance_id,
             min_iou_treshold=min_iou_treshold,
             accept_equal_iou=accept_equal_iou,
         )
@@ -346,13 +393,15 @@ class TestMetrics:
         elif min_iou_treshold == 0.5 and not accept_equal_iou:
             expected_matched_target_ids = np.array([-1, -1, -1, 4], dtype=np.int64)
             expected_matched_predicted_ids = np.array([-1, -1, -1, -1, 3], dtype=np.int64)
+        expected_matched_target_ids = expected_matched_target_ids + start_instance_id
+        expected_matched_predicted_ids = expected_matched_predicted_ids + start_instance_id
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
 
         if min_iou_treshold is None:
             matched_target_ids, matched_predicted_ids = match_instances(
-                xyz, target, prediction, method="for_ai_net_coverage"
+                xyz, target, prediction, method="for_ai_net_coverage", invalid_instance_id=invalid_instance_id
             )
 
             np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)

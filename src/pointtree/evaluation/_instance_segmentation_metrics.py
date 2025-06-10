@@ -284,7 +284,8 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
     Raises:
         - ValueError: if :code:`target` and :code:`prediction` have different lengths
-        - ValueError: if the length of :code:`matched_predicted_ids` is not equal to the number of ground-truth instances.
+        - ValueError: if the length of :code:`matched_predicted_ids` is not equal to the number of ground-truth
+          instances.
         - ValueError: If the unique target and predicted instance IDs don't start with the same number.
 
     Returns:

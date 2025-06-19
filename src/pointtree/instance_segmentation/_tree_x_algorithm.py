@@ -211,6 +211,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             bandwidth of the kernel is set to the specified value (in meters).
         stem_search_circle_fitting_min_points: Minimum number of points that a horizontal layer must contain in order to
             perform circle / ellipse fitting on it.
+        stem_search_circle_fitting_min_fitting_score: Minimum fitting score that circles must achieve in the circle
+            fitting procedure.
         stem_search_circle_fitting_min_stem_diameter: Minimum circle / ellipse diameter to be considered a valid fit.
         stem_search_circle_fitting_max_stem_diameter: Maximum circle / ellipse diameter to be considered a valid fit.
         stem_search_circle_fitting_min_completeness_idx: Minimum circumferential completeness index that circles must
@@ -397,6 +399,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_search_circle_fitting_layer_overlap: float = 0.025,
         stem_search_circle_fitting_bandwidth: float = 0.01,
         stem_search_circle_fitting_min_points: int = 15,
+        stem_search_circle_fitting_min_fitting_score: float = 100.0,
         stem_search_circle_fitting_min_stem_diameter: float = 0.02,
         stem_search_circle_fitting_max_stem_diameter: float = 1.0,
         stem_search_circle_fitting_min_completeness_idx: Optional[float] = 0.3,
@@ -481,6 +484,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._stem_search_circle_fitting_layer_overlap = stem_search_circle_fitting_layer_overlap
         self._stem_search_circle_fitting_bandwidth = stem_search_circle_fitting_bandwidth
         self._stem_search_circle_fitting_min_points = stem_search_circle_fitting_min_points
+        self._stem_search_circle_fitting_min_fitting_score = stem_search_circle_fitting_min_fitting_score
         self._stem_search_circle_fitting_min_stem_diameter = stem_search_circle_fitting_min_stem_diameter
         self._stem_search_circle_fitting_max_stem_diameter = stem_search_circle_fitting_max_stem_diameter
         self._stem_search_circle_fitting_min_completeness_idx = stem_search_circle_fitting_min_completeness_idx
@@ -974,7 +978,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     num_workers=self._num_workers,
                 )
             else:
-                circle_detector = Ransac(bandwidth=self._stem_search_circle_fitting_bandwidth)
+                circle_detector = Ransac(
+                    bandwidth=self._stem_search_circle_fitting_bandwidth,
+                    min_fitting_score=self._stem_search_circle_fitting_min_fitting_score,
+                )
                 circle_detector.detect(
                     stem_layer_xy,
                     batch_lengths=batch_lengths_xy,
@@ -1246,7 +1253,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         num_workers=self._num_workers,
                     )
                 else:
-                    circle_detector = Ransac(bandwidth=self._stem_search_circle_fitting_bandwidth)
+                    circle_detector = Ransac(
+                        bandwidth=self._stem_search_circle_fitting_bandwidth,
+                        min_fitting_score=self._stem_search_circle_fitting_min_fitting_score,
+                    )
                     circle_detector.detect(
                         stem_layers_xy,
                         batch_lengths=batch_lengths_xy,

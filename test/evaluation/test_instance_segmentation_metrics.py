@@ -1,4 +1,4 @@
-"""Tests for pointtree.evaluation.instance_segmentation_metrics."""
+"""Tests for pointtree.evaluation.instance_segmentation_metrics."""  # pylint: disable = too-many-lines
 
 import numpy as np
 import pytest
@@ -806,7 +806,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
 
     @pytest.mark.parametrize("include_unmatched_instances", [True, False])
     @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_segmentation_metrics_per_z_partition_all_correct(
+    def test_instance_segmentation_metrics_per_z_partition_include_unmatched_instances(
         self, include_unmatched_instances: bool, invalid_instance_id: int
     ):
         start_instance_id = invalid_instance_id + 1

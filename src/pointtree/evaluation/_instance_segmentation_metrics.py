@@ -334,7 +334,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
     start_instance_id_target = target_ids.min()
 
-    if len(prediction_ids) > 0  and start_instance_id_target != prediction_ids.min():
+    if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
 
     num_target_ids = len(matched_predicted_ids)

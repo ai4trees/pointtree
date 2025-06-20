@@ -246,6 +246,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     target: LongArray,
     prediction: LongArray,
     matched_predicted_ids: LongArray,
+    *,
     invalid_instance_id: int = -1,
     include_unmatched_instances: bool = True,
 ) -> Tuple[Dict[str, float], pd.DataFrame]:
@@ -363,7 +364,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     average_metrics = {
         "MeanIoU": iou.mean(),
         # precision may be nan if include_unmatched_instances is True and there are unmatched ground-truth trees
-        "MeanPrecision": np.nanmean(precision),
+        "MeanPrecision": cast(float, np.nanmean(precision)),
         "MeanRecall": recall.mean(),
     }
 

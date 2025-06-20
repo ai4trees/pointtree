@@ -649,7 +649,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
         start_instance_id_target,
         include_unmatched_instances,
         invalid_instance_id,
-        num_partitions,
+        num_partitions=num_partitions,
     )
 
     average_metrics = []

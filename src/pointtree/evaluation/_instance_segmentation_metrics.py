@@ -364,7 +364,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     average_metrics = {
         "MeanIoU": iou.mean(),
         # precision may be nan if include_unmatched_instances is True and there are unmatched ground-truth trees
-        "MeanPrecision": cast(float, np.nanmean(precision)),
+        "MeanPrecision": cast(float, np.nanmean(precision)) if ~np.isnan(precision).sum() > 0 else np.nan,
         "MeanRecall": recall.mean(),
     }
 
@@ -388,6 +388,7 @@ def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too
     start_instance_id: int,
     include_unmatched_instances: bool,
     invalid_instance_id: int,
+    *,
     num_partitions: int = 10,
 ):
     r"""

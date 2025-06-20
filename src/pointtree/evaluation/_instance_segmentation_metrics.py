@@ -364,7 +364,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     average_metrics = {
         "MeanIoU": iou.mean(),
         # precision may be nan if include_unmatched_instances is True and there are unmatched ground-truth trees
-        "MeanPrecision": cast(float, np.nanmean(precision)) if ~np.isnan(precision).sum() > 0 else np.nan,
+        "MeanPrecision": cast(float, np.nanmean(precision)) if np.isfinite(precision).sum() > 0 else np.nan,
         "MeanRecall": recall.mean(),
     }
 

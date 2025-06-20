@@ -272,7 +272,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert np.isnan(metrics["OmissionError"])
         assert metrics["F1Score"] == 0
 
-    @pytest.mark.parametrize("include_unmatched_instances", [-1, 0])
+    @pytest.mark.parametrize("include_unmatched_instances", [True, False])
     @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
     def test_instance_segmentation_metrics(self, include_unmatched_instances: bool, invalid_instance_id: int):
         start_instance_id = invalid_instance_id + 1

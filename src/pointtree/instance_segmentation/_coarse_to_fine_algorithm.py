@@ -732,7 +732,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             )
             grid_indices = grid_indices[mask]
             instance_ids[mask] = watershed_labels_without_border[grid_indices[:, 0], grid_indices[:, 1]] - 1
-            instance_ids, unique_instance_ids = make_labels_consecutive(  # type: ignore[assignment]
+            instance_ids, unique_instance_ids = make_labels_consecutive(
                 instance_ids, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 
@@ -1081,7 +1081,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             self._logger.info("Compute crown distance fields...")
             crown_distance_fields = np.empty((len(tree_positions_grid), *watershed_labels_without_border.shape))
             for idx, tree_position in enumerate(tree_positions_grid):
-                instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]  # type: ignore[index]
+                instance_id = watershed_labels_without_border[tree_position[0], tree_position[1]]
                 mask = watershed_labels_without_border == instance_id
                 inverse_mask = np.logical_not(mask)
                 distance_mask = -cast(  # pylint: disable=invalid-unary-operand-type

@@ -41,6 +41,69 @@ double quantile(const ArrayX<scalar_T> data, double q) {
 }
 
 template <typename scalar_T>
+std::tuple<ArrayX<scalar_T>, ArrayX<scalar_T>, ArrayX<scalar_T>> compute_instance_segmentation_metrics(
+    const RefArrayXl target,
+    const RefArrayXl prediction,
+    const RefArrayXl matched_predicted_ids,
+    int64_t start_instance_id,
+    int64_t invalid_instance_id,
+    int num_workers = -1) {
+  int64_t num_target_ids = matched_predicted_ids.size();
+  int64_t num_points = target.size();
+
+  ArrayX<scalar_T> iou = ArrayX<scalar_T>::Zero(num_target_ids);
+  ArrayX<scalar_T> precision = ArrayX<scalar_T>::Zero(num_target_ids);
+  ArrayX<scalar_T> recall = ArrayX<scalar_T>::Zero(num_target_ids);
+
+  if (num_workers <= 0) {
+    num_workers = omp_get_max_threads();
+  }
+
+#pragma omp parallel for num_threads(num_workers)
+  for (int64_t target_idx = 0; target_idx < num_target_ids; ++target_idx) {
+    int64_t target_id = start_instance_id + target_idx;
+    int64_t predicted_id = matched_predicted_ids(target_idx);
+
+    if (predicted_id == invalid_instance_id) {
+      continue;
+    }
+
+    scalar_T intersection_count = 0.0;
+    scalar_T prediction_count = 0.0;
+    scalar_T target_count = 0.0;
+
+    for (int64_t i = 0; i < num_points; ++i) {
+      bool is_valid_target = (target(i) == target_id);
+      bool is_valid_prediction = (prediction(i) == predicted_id);
+
+      if (is_valid_target && is_valid_prediction) {
+        intersection_count++;
+      }
+      if (is_valid_prediction) {
+        prediction_count++;
+      }
+      if (is_valid_target) {
+        target_count++;
+      }
+    }
+
+    scalar_T union_count = target_count + prediction_count - intersection_count;
+
+    if (union_count > 0) {
+      iou(target_idx) = intersection_count / union_count;
+    }
+    if (prediction_count > 0) {
+      precision(target_idx) = intersection_count / prediction_count;
+    }
+    if (target_count > 0) {
+      recall(target_idx) = intersection_count / target_count;
+    }
+  }
+
+  return {iou, precision, recall};
+}
+
+template <typename scalar_T>
 std::tuple<ArrayXX<scalar_T>, ArrayXX<scalar_T>, ArrayXX<scalar_T>> compute_instance_segmentation_metrics_per_partition(
     const RefArrayX3<scalar_T> xyz,
     const RefArrayXl target,
@@ -78,7 +141,7 @@ std::tuple<ArrayXX<scalar_T>, ArrayXX<scalar_T>, ArrayXX<scalar_T>> compute_inst
   MatrixX2<scalar_T> xy = xyz(Eigen::all, {0, 1}).matrix();
   KDTree2<scalar_T>* kd_tree = new KDTree2<scalar_T>(2, std::cref(xy), 10 /* max leaf size */);
 
-  // #pragma omp parallel for num_threads(num_workers)
+#pragma omp parallel for num_threads(num_workers)
   for (int64_t target_idx = 0; target_idx < num_target_ids; ++target_idx) {
     int target_id = start_instance_id + target_idx;
     int predicted_id = matched_predicted_ids[target_idx];

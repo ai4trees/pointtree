@@ -11,6 +11,15 @@ PYBIND11_MODULE(_evaluation_cpp, m) {
   )pbdoc";
 
   m.def(
+      "compute_instance_segmentation_metrics", &PointTree::compute_instance_segmentation_metrics<float>,
+      pybind11::return_value_policy::reference_internal, "");
+
+  m.def(
+      "compute_instance_segmentation_metrics", &PointTree::compute_instance_segmentation_metrics<double>,
+      pybind11::return_value_policy::reference_internal,
+      R"pbdoc(Computes metrics to measure the quality of the point-wise segmentation.)pbdoc");
+
+  m.def(
       "compute_instance_segmentation_metrics_per_partition",
       &PointTree::compute_instance_segmentation_metrics_per_partition<float>,
       pybind11::return_value_policy::reference_internal, "");

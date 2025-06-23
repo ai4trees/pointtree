@@ -290,12 +290,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         )
 
         if include_unmatched_instances:
-            assert metrics["MeanIoU"] == (3 / 5 + 3 / 4) / 3
-            assert metrics["MeanRecall"] == (3 / 4 + 3 / 4) / 3
+            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 3)
+            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 3)
         else:
-            assert metrics["MeanIoU"] == (3 / 5 + 3 / 4) / 2
-            assert metrics["MeanRecall"] == (3 / 4 + 3 / 4) / 2
-        assert metrics["MeanPrecision"] == (3 / 4 + 3 / 3) / 2
+            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 2)
+            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 2)
+        assert metrics["MeanPrecision"] == pytest.approx((3 / 4 + 3 / 3) / 2)
 
         if include_unmatched_instances:
             assert len(per_instance_metrics) == 3
@@ -415,8 +415,8 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         target_2_metrics = per_instance_metrics.loc[per_instance_metrics["TargetID"] == target_2]
 
         if include_unmatched_instances:
-            assert metrics["MeanIoU"] == 2 / 3
-            assert metrics["MeanRecall"] == 2 / 3
+            assert metrics["MeanIoU"] == pytest.approx(2 / 3)
+            assert metrics["MeanRecall"] == pytest.approx(2 / 3)
             assert metrics["MeanPrecision"] == 1
 
             assert len(per_instance_metrics) == 3

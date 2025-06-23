@@ -10,11 +10,13 @@ __all__ = [
 from typing import Dict, Literal, Optional, Tuple, cast
 
 import numpy as np
+from numba import njit, prange
 import pandas as pd
 
 from pointtree.operations import cloth_simulation_filtering, create_digital_terrain_model, distance_to_dtm
 from pointtree.type_aliases import FloatArray, LongArray
 from ._match_instances import match_instances
+from pointtree._evaluation_cpp import compute_instance_segmentation_metrics_per_partition as compute_instance_segmentation_metrics_per_partition_cpp  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
 
 
 def instance_detection_metrics(  # pylint: disable=too-many-locals
@@ -180,6 +182,7 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     return metrics
 
 
+@njit(parallel=True)
 def _compute_instance_segmentation_metrics(
     target: LongArray,
     prediction: LongArray,
@@ -225,19 +228,22 @@ def _compute_instance_segmentation_metrics(
     precision = np.zeros(num_target_ids, dtype=np.float64)
     recall = np.zeros(num_target_ids, dtype=np.float64)
 
-    for target_idx in range(num_target_ids):  # pylint: disable=not-an-iterable
+    for target_idx in prange(num_target_ids):  # pylint: disable=not-an-iterable
         target_id = start_instance_id + target_idx
         predicted_id = matched_predicted_ids[target_idx]
 
         if predicted_id == invalid_instance_id:
             continue
 
-        intersection = np.logical_and(target == target_id, prediction == predicted_id).sum()
-        union = np.logical_or(target == target_id, prediction == predicted_id).sum()
+        target_mask = target == target_id
+        prediction_mask = prediction == predicted_id
+
+        intersection = np.logical_and(target_mask, prediction_mask).sum()
+        union = np.logical_or(target_mask, prediction_mask).sum()
 
         iou[target_idx] = intersection / union
-        precision[target_idx] = intersection / (prediction == predicted_id).sum()
-        recall[target_idx] = intersection / (target == target_id).sum()
+        precision[target_idx] = intersection / (prediction_mask).sum()
+        recall[target_idx] = intersection / (target_mask).sum()
 
     return iou, precision, recall
 
@@ -379,137 +385,6 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     return average_metrics, per_instance_metrics
 
 
-def _compute_instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals
-    xyz: FloatArray,
-    target: LongArray,
-    prediction: LongArray,
-    matched_predicted_ids: LongArray,
-    partition: Literal["xy", "z"],
-    start_instance_id: int,
-    include_unmatched_instances: bool,
-    invalid_instance_id: int,
-    *,
-    num_partitions: int = 10,
-):
-    r"""
-    Calculates instance segmentation metrics for different spatial partitions of a tree instance.
-
-    Args:
-        xyz: Coordinates of all points.
-        target: Ground truth instance ID for each point.
-        prediction: Predicted instance ID for each point.
-        matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
-        partition: Partioning schme to be used: `"xy"` | `"z"`.
-        start_instance_id: Smallest valid instance ID. All instance IDs are expected to be consecutive.
-        include_unmatched_instances: Whether ground-truth instances that were not matched with a predicted instance
-            should be included in the computation of the of the instance segmentation metrics.
-        invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched.
-        num_partitions: Number of partitions.
-
-    Raises:
-        - ValueError: if :code:`partition` is set to an invalid value.
-        - ValueError: if :code:`xyz` and :code:`target` have different lengths.
-        - ValueError: if :code:`target` and :code:`prediction` have different lengths.
-        - ValueError: if the length of :code:`matched_predicted_ids` is not equal to the number of ground-truth
-          instances.
-
-    Returns:
-        :A tuple of three arrays containing the metrics for each instance pair:
-            - IoU
-            - Precision
-            - Recall
-
-            For ground-truth instances that have not been matched to any predicted instance, the metrics are set to
-            zero.
-
-    Shape:
-        - :code:`xyz`: :math:`(N, 3)`
-        - :code:`target`: :math:`(N)`
-        - :code:`prediction`: :math:`(N)`
-        - :code:`matched_predicted_ids`: :math:`(G)`
-        - Output: Three arrays of shape :math:(G, P)
-
-        | where
-        |
-        | :math:`N = \text{ number of points}`
-        | :math:`G = \text{ number of ground-truth instances}`
-        | :math:`P = \text{ number of partitions}`
-    """
-    intervals = np.linspace(0, 1, num_partitions + 1)
-
-    num_target_ids = len(matched_predicted_ids)
-
-    iou = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
-    precision = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
-    recall = np.full((num_target_ids, num_partitions), fill_value=np.nan, dtype=np.float64)
-
-    for target_idx in range(num_target_ids):  # pylint: disable=not-an-iterable
-        target_id = start_instance_id + target_idx
-        predicted_id = matched_predicted_ids[target_idx]
-
-        if (predicted_id == invalid_instance_id) and not include_unmatched_instances:
-            continue
-
-        target_mask = target == target_id
-
-        tree_xyz = xyz[target_mask]
-        min_z = np.min(tree_xyz[:, 2])
-
-        distance = np.zeros(len(tree_xyz), dtype=tree_xyz.dtype)
-
-        if partition == "xy":
-            # calculate tree position and center xy-coordinates according to it
-            z_threshold = min_z + 0.30
-            lowest_points = tree_xyz[tree_xyz[:, 2] <= z_threshold]
-
-            position = np.zeros(2, dtype=lowest_points.dtype)
-            position[0] = np.mean(lowest_points[:, 0])
-            position[1] = np.mean(lowest_points[:, 1])
-            xy_centered = xyz[:, :2] - position
-
-            # relative distance to tree center (0=seedpoint, 1=most distant point)
-            distance = xy_centered**2
-            distance = np.sqrt(distance[:, 0] + distance[:, 1])
-            distance_target = distance[target_mask]
-            regularized_max = np.quantile(distance_target, 0.95)
-            distance = distance / regularized_max
-
-        elif partition == "z":
-            # get relative distance to lowest point (0=lowest point, 1=highest point)
-            distance = xyz[:, 2] - min_z
-
-            regularized_max = np.quantile(tree_xyz[:, 2], 0.95)
-            distance = distance / (regularized_max - min_z)
-
-        for i in range(num_partitions):
-            partition_mask = np.logical_and(distance >= intervals[i], distance < intervals[i + 1])
-
-            if partition_mask.sum() == 0:
-                continue
-
-            partition_target = target[partition_mask]
-            partition_prediction = prediction[partition_mask]
-
-            if predicted_id == invalid_instance_id:
-                fn = (partition_target == target_id).sum()
-                if fn > 0:
-                    iou[target_idx, i] = 0
-                    recall[target_idx, i] = 0
-            else:
-                intersection = np.logical_and(partition_target == target_id, partition_prediction == predicted_id).sum()
-                union = np.logical_or(partition_target == target_id, partition_prediction == predicted_id).sum()
-
-                if union > 0:
-                    iou[target_idx, i] = intersection / union
-                if (partition_prediction == predicted_id).sum() > 0:
-                    precision[target_idx, i] = intersection / (partition_prediction == predicted_id).sum()
-                if (partition_target == target_id).sum() > 0:
-                    recall[target_idx, i] = intersection / (partition_target == target_id).sum()
-
-    return iou, precision, recall
-
-
 def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     xyz: FloatArray,
     target: LongArray,
@@ -640,7 +515,10 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
 
-    iou, precision, recall = _compute_instance_segmentation_metrics_per_partition(
+    if not xyz.flags.f_contiguous:
+        xyz = xyz.copy(order="F")
+
+    iou, precision, recall = compute_instance_segmentation_metrics_per_partition_cpp(
         xyz,
         target,
         prediction,
@@ -649,7 +527,8 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
         start_instance_id_target,
         include_unmatched_instances,
         invalid_instance_id,
-        num_partitions=num_partitions,
+        num_partitions,
+        -1,
     )
 
     average_metrics = []

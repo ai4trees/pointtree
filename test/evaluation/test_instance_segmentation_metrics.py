@@ -290,12 +290,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         )
 
         if include_unmatched_instances:
-            assert metrics["MeanIoU"] == (3 / 5 + 3 / 4) / 3
-            assert metrics["MeanRecall"] == (3 / 4 + 3 / 4) / 3
+            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 3)
+            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 3)
         else:
-            assert metrics["MeanIoU"] == (3 / 5 + 3 / 4) / 2
-            assert metrics["MeanRecall"] == (3 / 4 + 3 / 4) / 2
-        assert metrics["MeanPrecision"] == (3 / 4 + 3 / 3) / 2
+            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 2)
+            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 2)
+        assert metrics["MeanPrecision"] == pytest.approx((3 / 4 + 3 / 3) / 2)
 
         if include_unmatched_instances:
             assert len(per_instance_metrics) == 3
@@ -415,8 +415,8 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         target_2_metrics = per_instance_metrics.loc[per_instance_metrics["TargetID"] == target_2]
 
         if include_unmatched_instances:
-            assert metrics["MeanIoU"] == 2 / 3
-            assert metrics["MeanRecall"] == 2 / 3
+            assert metrics["MeanIoU"] == pytest.approx(2 / 3)
+            assert metrics["MeanRecall"] == pytest.approx(2 / 3)
             assert metrics["MeanPrecision"] == 1
 
             assert len(per_instance_metrics) == 3
@@ -774,9 +774,20 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         self, partition: str, include_unmatched_instances: bool, invalid_instance_id: int
     ):
         start_instance_id = invalid_instance_id + 1
-        target = np.array([1, 1, -1, 0, 0], dtype=np.int64) + start_instance_id
-        prediction = np.full((5,), fill_value=invalid_instance_id, dtype=np.int64)
-        xyz = np.random.randn(len(target), 3)
+        target = np.array([1] * 11 + [-1] + [0] * 11, dtype=np.int64) + start_instance_id
+        prediction = np.full((23,), fill_value=invalid_instance_id, dtype=np.int64)
+        xyz = np.zeros((23, 3), dtype=np.float64)
+        xyz[11:, 1] = 5
+        if partition == "xy":
+            xyz[:10, 0] = np.arange(10)
+            xyz[10, 0] = 10
+            xyz[12:22, 0] = np.arange(10) + 3
+            xyz[22, 0] = 10
+        elif partition == "z":
+            xyz[:10, 2] = np.arange(10)
+            xyz[10, 2] = 10
+            xyz[12:22, 2] = np.arange(10)
+            xyz[22, 2] = 10
 
         matched_predicted_ids = np.full((2,), fill_value=invalid_instance_id, dtype=np.int64)
 
@@ -791,8 +802,8 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         )
 
         if include_unmatched_instances:
-            assert ~np.isnan(metrics["MeanIoU"]).all()
-            assert ~np.isnan(metrics["MeanRecall"]).all()
+            assert (~np.isnan(metrics["MeanIoU"])).all()
+            assert (~np.isnan(metrics["MeanRecall"])).all()
             assert np.isnan(metrics["MeanPrecision"]).all()
             assert len(per_instance_metrics) == 20
         else:

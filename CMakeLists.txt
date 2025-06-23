@@ -61,10 +61,15 @@ pybind11_add_module(_coarse_to_fine_algorithm_cpp MODULE
                     csrc/pybind/instance_segmentation/coarse_to_fine_algorithm_pybind.cpp)
 target_link_libraries(_coarse_to_fine_algorithm_cpp PUBLIC OpenMP::OpenMP_CXX)
 
+pybind11_add_module(_evaluation_cpp MODULE
+                    csrc/pybind/evaluation_pybind.cpp)
+target_link_libraries(_evaluation_cpp PUBLIC OpenMP::OpenMP_CXX)
+
 pybind11_add_module(_operations_cpp MODULE
                     csrc/pybind/operations_pybind.cpp)
 target_link_libraries(_operations_cpp PUBLIC OpenMP::OpenMP_CXX)
 
 install(TARGETS _coarse_to_fine_algorithm_cpp DESTINATION "${SKBUILD_PROJECT_NAME}")
 install(TARGETS _tree_x_algorithm_cpp DESTINATION "${SKBUILD_PROJECT_NAME}")
+install(TARGETS _evaluation_cpp DESTINATION "${SKBUILD_PROJECT_NAME}")
 install(TARGETS _operations_cpp DESTINATION "${SKBUILD_PROJECT_NAME}")

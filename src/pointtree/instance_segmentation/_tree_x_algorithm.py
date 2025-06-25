@@ -381,8 +381,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_search_min_z: float = 1.0,
         stem_search_max_z: float = 4.0,
         stem_search_voxel_size: float = 0.015,
-        stem_search_dbscan_2d_eps: float = 0.025,
-        stem_search_dbscan_2d_min_points: int = 90,
+        stem_search_dbscan_2d_eps: float = 0.03,
+        stem_search_dbscan_2d_min_points: int = 80,
         stem_search_dbscan_3d_eps: float = 0.1,
         stem_search_dbscan_3d_min_points: int = 15,
         stem_search_min_cluster_points: Optional[int] = 300,
@@ -2066,6 +2066,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 del terrain_classification
 
                 if self._visualization_folder is not None and point_cloud_id is not None:
+                    print("export DTM")
                     self.export_dtm(dtm, dtm_offset, point_cloud_id, crs=crs)
 
         with Profiler("Computation of point heights above terrain", self._performance_tracker):

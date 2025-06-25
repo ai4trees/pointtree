@@ -2066,7 +2066,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 del terrain_classification
 
                 if self._visualization_folder is not None and point_cloud_id is not None:
-                    print("export DTM")
                     self.export_dtm(dtm, dtm_offset, point_cloud_id, crs=crs)
 
         with Profiler("Computation of point heights above terrain", self._performance_tracker):

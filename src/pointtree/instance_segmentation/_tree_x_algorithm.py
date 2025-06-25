@@ -519,7 +519,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_layer_xyz: FloatArray,
         dtm: FloatArray,
         dtm_offset: FloatArray,
-        intensities: Union[FloatArray, None] = None,
+        intensities: Union[npt.NDArray, None] = None,
         point_cloud_id: Optional[str] = None,
         crs: Optional[str] = None,
     ) -> Tuple[FloatArray, FloatArray, LongArray]:

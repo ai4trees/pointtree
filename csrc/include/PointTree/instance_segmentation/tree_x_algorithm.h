@@ -146,7 +146,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_stem_layers_refined_fittin
       stem_search_circle_fitting_layer_height, stem_search_circle_fitting_layer_overlap);
 
   MatrixX2<scalar_T> stem_layer_xy = stem_layer_xyz(Eigen::all, {0, 1}).matrix();
-  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(stem_layer_xy), 10 /* max leaf size */);
+  KDTree2<scalar_T>* kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(stem_layer_xy), 10 /* max leaf size */);
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t label = 0; label < num_labels; ++label) {
@@ -291,7 +291,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
   }
 
   MatrixX2<scalar_T> seed_layer_xy = xyz(seed_layer_indices, {0, 1}).matrix();
-  KDTree2<scalar_T> *kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(seed_layer_xy), 10 /* max leaf size */);
+  KDTree2<scalar_T>* kd_tree_2d = new KDTree2<scalar_T>(2, std::cref(seed_layer_xy), 10 /* max leaf size */);
 
   std::vector<int64_t> seed_indices = {};
 
@@ -314,7 +314,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
     std::transform(
         search_result.begin(), search_result.end(), current_seed_indices.begin(),
-        [seed_layer_indices](const nanoflann::ResultItem<int64_t, scalar_T> &x) {
+        [seed_layer_indices](const nanoflann::ResultItem<int64_t, scalar_T>& x) {
           return seed_layer_indices[x.first];
         });
 

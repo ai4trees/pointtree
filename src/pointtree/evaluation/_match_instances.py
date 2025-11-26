@@ -275,7 +275,7 @@ def match_instances(
             predicted_id = start_instance_id_prediction + predicted_idx
             if min_precision_fp > 0:
                 # count percentage of points belonging to labeled ground-truth instances
-                intersection = np.logical_and(labeled_mask, prediction == predicted_id).sum()
+                intersection = np.logical_and(labeled_mask, prediction == predicted_id).sum()  # type: ignore[arg-type]
                 precision = intersection / (prediction == predicted_id).sum()
             else:
                 precision = 1.0

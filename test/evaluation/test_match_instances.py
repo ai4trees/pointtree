@@ -142,7 +142,9 @@ class TestMetrics:
 
     @pytest.mark.parametrize("pass_labeled_mask", [True, False])
     @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
-    def test_match_instances_labeled_mask(self, pass_labeled_mask: bool, invalid_instance_id: int, uncertain_instance_id: int):
+    def test_match_instances_labeled_mask(
+        self, pass_labeled_mask: bool, invalid_instance_id: int, uncertain_instance_id: int
+    ):
         start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 0, 0, 2, -1, -1, -1, -1, -1, -1], dtype=np.int64) + start_instance_id
         prediction = np.array([0, -1, 2, 2, 2, 1, 1, 1, -1, 3, 3, 3], dtype=np.int64) + start_instance_id

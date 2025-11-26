@@ -19,13 +19,11 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 0, 0, 2, -1, -1, -1], dtype=np.int64) + start_instance_id
         prediction = np.array([0, -1, 2, 2, 2, 1, 1, 3, 3], dtype=np.int64) + start_instance_id
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64) + start_instance_id
         matched_target_ids = np.array([-1, -1, 0, -2], dtype=np.int64) + start_instance_id
 
         metrics = instance_detection_metrics(
-            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -48,13 +46,11 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 0, 0, 2, -1, 2, -1, -1], dtype=np.int64) + start_instance_id
         prediction = np.array([0, 0, 0, 2, 2, 1, -1, 1, 3, 3], dtype=np.int64) + start_instance_id
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, 0, 1], dtype=np.int64) + start_instance_id
         matched_target_ids = np.array([1, 2, 0, -2], dtype=np.int64) + start_instance_id
 
         metrics = instance_detection_metrics(
-            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -73,7 +69,6 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["F1Score"] == 1
 
     def test_match_instances_invalid_uncertain_instance_id(self):
-        xyz = np.random.randn(5, 3)
         target = np.array([1, 2, 3], dtype=np.int64)
         prediction = np.array([1, 2, 3], dtype=np.int64)
 
@@ -82,7 +77,6 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
-                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -94,14 +88,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_invalid_prediction(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(4, dtype=np.int64)
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([0], dtype=np.int64)
         matched_target_ids = np.array([0], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
-                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -112,14 +104,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_invalid_matched_predicted_ids(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(5, dtype=np.int64)
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([0, 1], dtype=np.int64)
         matched_target_ids = np.array([0], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
-                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -130,14 +120,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_invalid_matched_target_ids(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.zeros(5, dtype=np.int64)
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([0], dtype=np.int64)
         matched_target_ids = np.array([0, 1], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
-                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -148,14 +136,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
     def test_instance_detection_metrics_different_start_ids(self):
         target = np.zeros(5, dtype=np.int64)
         prediction = np.ones(5, dtype=np.int64)
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([1], dtype=np.int64)
         matched_target_ids = np.array([0], dtype=np.int64)
 
         with pytest.raises(ValueError):
             instance_detection_metrics(
-                xyz,
                 target,
                 prediction,
                 matched_predicted_ids,
@@ -168,13 +154,11 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 0, 0, -1, -1], dtype=np.int64) + start_instance_id
         prediction = np.array([-1, -1, -1, -1, -1, 0, 0], dtype=np.int64) + start_instance_id
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([-1, -1], dtype=np.int64) + start_instance_id
         matched_target_ids = np.array([-2], dtype=np.int64) + start_instance_id
 
         metrics = instance_detection_metrics(
-            xyz,
             target,
             prediction,
             matched_predicted_ids,
@@ -197,13 +181,11 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         start_instance_id = invalid_instance_id + 1
         target = np.array([-1, -1, -1, -1, -1, -1, -1], dtype=np.int64) + start_instance_id
         prediction = np.array([1, 1, 1, 0, 0, 2, 2], dtype=np.int64) + start_instance_id
-        xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([], dtype=np.int64)
         matched_target_ids = np.array([invalid_instance_id, invalid_instance_id, uncertain_instance_id], dtype=np.int64)
 
         metrics = instance_detection_metrics(
-            xyz,
             target,
             prediction,
             matched_predicted_ids,

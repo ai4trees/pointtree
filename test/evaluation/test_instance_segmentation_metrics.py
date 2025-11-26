@@ -14,16 +14,15 @@ from pointtree.evaluation import (
 class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-methods
     """Tests for pointtree.evaluation.instance_segmentation_metrics."""
 
-    @pytest.mark.parametrize("min_precision_fp", [0.5, 0.6])
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_detection_metrics(self, min_precision_fp: float, invalid_instance_id: int):
+    @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
+    def test_instance_detection_metrics(self, invalid_instance_id: int, uncertain_instance_id: int):
         start_instance_id = invalid_instance_id + 1
-        target = np.array([1, 1, 1, 0, 0, 2, -1], dtype=np.int64) + start_instance_id
-        prediction = np.array([0, -1, 2, 2, 2, 1, 1], dtype=np.int64) + start_instance_id
+        target = np.array([1, 1, 1, 0, 0, 2, -1, -1, -1], dtype=np.int64) + start_instance_id
+        prediction = np.array([0, -1, 2, 2, 2, 1, 1, 3, 3], dtype=np.int64) + start_instance_id
         xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64) + start_instance_id
-        matched_target_ids = np.array([-1, -1, 0], dtype=np.int64) + start_instance_id
+        matched_target_ids = np.array([-1, -1, 0, -2], dtype=np.int64) + start_instance_id
 
         metrics = instance_detection_metrics(
             xyz,
@@ -32,38 +31,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             matched_predicted_ids,
             matched_target_ids,
             invalid_instance_id=invalid_instance_id,
-            min_precision_fp=min_precision_fp,
-        )
-
-        assert metrics["TP"] == 1
-        assert metrics["FP"] == 2 if min_precision_fp <= 0.5 else 1
-        assert metrics["FN"] == 2
-        assert metrics["Precision"] == metrics["TP"] / (metrics["TP"] + metrics["FP"])
-        assert metrics["CommissionError"] == metrics["FP"] / (metrics["TP"] + metrics["FP"])
-        assert metrics["Recall"] == metrics["TP"] / (metrics["TP"] + metrics["FN"])
-        assert metrics["OmissionError"] == metrics["FN"] / (metrics["TP"] + metrics["FN"])
-        assert metrics["F1Score"] == 2 * metrics["TP"] / (2 * metrics["TP"] + metrics["FP"] + metrics["FN"])
-
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_detection_metrics_labeled_mask(self, invalid_instance_id: int):
-        start_instance_id = invalid_instance_id + 1
-        target = np.array([1, 1, 1, 0, 0, 2, -1, -1, -1, -1, -1], dtype=np.int64) + start_instance_id
-        prediction = np.array([0, -1, 2, 2, 2, 1, 1, -1, 3, 3, 3], dtype=np.int64) + start_instance_id
-        labeled_mask = np.array([True] * 7 + [False] * 4, dtype=bool)
-        xyz = np.random.randn(len(target), 3)
-
-        matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64) + start_instance_id
-        matched_target_ids = np.array([-1, -1, 0, -1], dtype=np.int64) + start_instance_id
-
-        metrics = instance_detection_metrics(
-            xyz,
-            target,
-            prediction,
-            matched_predicted_ids,
-            matched_target_ids,
-            invalid_instance_id=invalid_instance_id,
-            min_precision_fp=0.5,
-            labeled_mask=labeled_mask,
+            uncertain_instance_id=uncertain_instance_id,
         )
 
         assert metrics["TP"] == 1
@@ -75,16 +43,15 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["OmissionError"] == metrics["FN"] / (metrics["TP"] + metrics["FN"])
         assert metrics["F1Score"] == 2 * metrics["TP"] / (2 * metrics["TP"] + metrics["FP"] + metrics["FN"])
 
-    @pytest.mark.parametrize("min_precision_fp", [0, 0.5])
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_detection_metrics_all_correct(self, min_precision_fp: float, invalid_instance_id: int):
+    @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
+    def test_instance_detection_metrics_all_correct(self, invalid_instance_id: int, uncertain_instance_id: int):
         start_instance_id = invalid_instance_id + 1
-        target = np.array([1, 1, 1, 0, 0, 2, -1, 2], dtype=np.int64) + start_instance_id
-        prediction = np.array([0, 0, 0, 2, 2, 1, -1, 1], dtype=np.int64) + start_instance_id
+        target = np.array([1, 1, 1, 0, 0, 2, -1, 2, -1, -1], dtype=np.int64) + start_instance_id
+        prediction = np.array([0, 0, 0, 2, 2, 1, -1, 1, 3, 3], dtype=np.int64) + start_instance_id
         xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([2, 0, 1], dtype=np.int64) + start_instance_id
-        matched_target_ids = np.array([1, 2, 0], dtype=np.int64) + start_instance_id
+        matched_target_ids = np.array([1, 2, 0, -2], dtype=np.int64) + start_instance_id
 
         metrics = instance_detection_metrics(
             xyz,
@@ -93,7 +60,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             matched_predicted_ids,
             matched_target_ids,
             invalid_instance_id=invalid_instance_id,
-            min_precision_fp=min_precision_fp,
+            uncertain_instance_id=uncertain_instance_id,
         )
 
         assert metrics["TP"] == 3
@@ -105,43 +72,24 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["OmissionError"] == 0
         assert metrics["F1Score"] == 1
 
-    @pytest.mark.parametrize("min_tree_height_fp", [0.0, 2.0])
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_detection_metrics_min_tree_height_fp(self, min_tree_height_fp: float, invalid_instance_id: int):
-        start_instance_id = invalid_instance_id + 1
-        target = np.array([0, 0, 0, -1, -1, -1], dtype=np.int64) + start_instance_id
-        prediction = np.array([0, 0, 0, 1, 1, 1], dtype=np.int64) + start_instance_id
-        xyz = np.array(
-            [
-                # tree 1
-                [0, 0, 0],
-                [0, 0, 1],
-                [0, 0, 4.5],
-                # tree 2
-                [1, 1, 0],
-                [1, 1, 1],
-                [1, 1, 1.5],
-            ]
-        )
+    def test_match_instances_invalid_uncertain_instance_id(self):
+        xyz = np.random.randn(5, 3)
+        target = np.array([1, 2, 3], dtype=np.int64)
+        prediction = np.array([1, 2, 3], dtype=np.int64)
 
-        matched_predicted_ids = np.array([0], dtype=np.int64) + start_instance_id
-        matched_target_ids = np.array([0, -1], dtype=np.int64) + start_instance_id
+        matched_predicted_ids = np.array([1, 2, 3], dtype=np.int64)
+        matched_target_ids = np.array([1, 2, 3], dtype=np.int64)
 
-        metrics = instance_detection_metrics(
-            xyz,
-            target,
-            prediction,
-            matched_predicted_ids,
-            matched_target_ids,
-            invalid_instance_id=invalid_instance_id,
-            min_tree_height_fp=min_tree_height_fp,
-        )
-
-        assert metrics["TP"] == 1
-        if min_tree_height_fp > 1.5:
-            assert metrics["FP"] == 0
-        else:
-            assert metrics["FP"] == 1
+        with pytest.raises(ValueError):
+            instance_detection_metrics(
+                xyz,
+                target,
+                prediction,
+                matched_predicted_ids,
+                matched_target_ids,
+                invalid_instance_id=-1,
+                uncertain_instance_id=0,
+            )
 
     def test_instance_detection_metrics_invalid_prediction(self):
         target = np.zeros(5, dtype=np.int64)
@@ -215,15 +163,15 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
                 invalid_instance_id=-1,
             )
 
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_detection_metrics_all_false_negatives(self, invalid_instance_id: int):
+    @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
+    def test_instance_detection_metrics_all_false_negatives(self, invalid_instance_id: int, uncertain_instance_id: int):
         start_instance_id = invalid_instance_id + 1
-        target = np.array([1, 1, 1, 0, 0], dtype=np.int64) + start_instance_id
-        prediction = np.array([-1, -1, -1, -1, -1], dtype=np.int64) + start_instance_id
+        target = np.array([1, 1, 1, 0, 0, -1, -1], dtype=np.int64) + start_instance_id
+        prediction = np.array([-1, -1, -1, -1, -1, 0, 0], dtype=np.int64) + start_instance_id
         xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([-1, -1], dtype=np.int64) + start_instance_id
-        matched_target_ids = np.array([], dtype=np.int64) + start_instance_id
+        matched_target_ids = np.array([-2], dtype=np.int64) + start_instance_id
 
         metrics = instance_detection_metrics(
             xyz,
@@ -232,6 +180,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             matched_predicted_ids,
             matched_target_ids,
             invalid_instance_id=invalid_instance_id,
+            uncertain_instance_id=uncertain_instance_id,
         )
 
         assert metrics["TP"] == 0
@@ -243,15 +192,15 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["OmissionError"] == 1
         assert metrics["F1Score"] == 0
 
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_instance_detection_metrics_all_false_positives(self, invalid_instance_id: int):
+    @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
+    def test_instance_detection_metrics_all_false_positives(self, invalid_instance_id: int, uncertain_instance_id: int):
         start_instance_id = invalid_instance_id + 1
-        target = np.array([-1, -1, -1, -1, -1], dtype=np.int64) + start_instance_id
-        prediction = np.array([1, 1, 1, 0, 0], dtype=np.int64) + start_instance_id
+        target = np.array([-1, -1, -1, -1, -1, -1, -1], dtype=np.int64) + start_instance_id
+        prediction = np.array([1, 1, 1, 0, 0, 2, 2], dtype=np.int64) + start_instance_id
         xyz = np.random.randn(len(target), 3)
 
         matched_predicted_ids = np.array([], dtype=np.int64)
-        matched_target_ids = np.full((2,), fill_value=invalid_instance_id, dtype=np.int64)
+        matched_target_ids = np.array([invalid_instance_id, invalid_instance_id, uncertain_instance_id], dtype=np.int64)
 
         metrics = instance_detection_metrics(
             xyz,
@@ -260,7 +209,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             matched_predicted_ids,
             matched_target_ids,
             invalid_instance_id=invalid_instance_id,
-            min_precision_fp=0,
+            uncertain_instance_id=uncertain_instance_id,
         )
 
         assert metrics["TP"] == 0
@@ -793,13 +742,14 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             "tree_learn",
         ],
     )
-    @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
+    @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
     def test_evaluate_instance_segmentation(
         self,
         num_partitions: int,
         detection_metrics_matching_method: str,
         segmentation_metrics_matching_method: str,
         invalid_instance_id: int,
+        uncertain_instance_id: int,
     ):
         start_instance_id = invalid_instance_id + 1
 
@@ -850,6 +800,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             detection_metrics_matching_method=detection_metrics_matching_method,
             segmentation_metrics_matching_method=segmentation_metrics_matching_method,
             invalid_instance_id=invalid_instance_id,
+            uncertain_instance_id=uncertain_instance_id,
             num_partitions=num_partitions,
         )
 

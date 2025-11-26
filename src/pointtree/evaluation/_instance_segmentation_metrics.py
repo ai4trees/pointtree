@@ -13,7 +13,6 @@ from numba import njit, prange
 import numpy as np
 import pandas as pd
 
-from pointtree.operations import cloth_simulation_filtering, create_digital_terrain_model, distance_to_dtm
 from pointtree.type_aliases import FloatArray, LongArray
 from ._match_instances import match_instances
 
@@ -26,9 +25,7 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     matched_target_ids: LongArray,
     *,
     invalid_instance_id: int = -1,
-    min_tree_height_fp: float = 0.0,
-    min_precision_fp: float = 0.0,
-    labeled_mask: Optional[np.ndarray] = None,
+    uncertain_instance_id: int = -2,
 ):
     r"""
     Computes metrics to measure the instance detection quality. Based on a given matching of ground-truth
@@ -65,23 +62,17 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
         matched_target_ids: ID of the matched ground-truth instance for each predicted instance.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched.
-        min_tree_height_fp: Minimum height an unmatched predicted tree instance must have in order to be counted as a
-            false positive. The height of a tree is defined as the maximum distance between its points and a digital
-            terrain model.
-        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled
-            in order to count the predicted instance as false positive in the computation of instance detection metrics.
-            If :code:`labeled_mask` is not :code:`None`, the points for which the mask is :code:`True` are considered as
-            labeled points. If :code:`labeled_mask` is :code:`None`, all points which are labeled as tree instances are
-            considered as labeled points.
-        labeled_mask: Boolean mask indicating which points are labeled. This mask is used to exclude false positive
-            instances that mainly consist of unlabeled points.
+            matched and are considered to be false negative or false positive instances.
+        uncertain_instance_id: ID that is assigned to predicted instances that could not be matched to any target
+            instance but still should not be counted as false positive instances. Must be equal to or smaller than
+            :code:`invalid_instance_id`.
 
     Raises:
-        - ValueError: if :code:`target` and :code:`prediction` have different lengths
-        - ValueError: if the length of :code:`matched_predicted_ids` is not equal to the number of ground-truth
+        - ValueError: If :code:`uncertain_instance_id` is larger than :code:`invalid_instance_id`.
+        - ValueError: If :code:`target` and :code:`prediction` have different lengths.
+        - ValueError: If the length of :code:`matched_predicted_ids` is not equal to the number of ground-truth.
           instances
-        - ValueError: if the length of :code:`matched_target_ids` is not equal to the number of predicted instances
+        - ValueError: If the length of :code:`matched_target_ids` is not equal to the number of predicted instances.
         - ValueError: If the unique target and predicted instance IDs don't start with the same number.
 
     Returns:
@@ -101,11 +92,11 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         | :math:`P = \text{ number of predicted instances}`
     """
 
+    if uncertain_instance_id > invalid_instance_id:
+        raise ValueError("uncertain_instance_id must be smaller or equal to invalid_instance_id.")
+
     if len(target) != len(prediction):
         raise ValueError("Target and prediction must have the same length.")
-
-    if labeled_mask is None:
-        labeled_mask = target != invalid_instance_id
 
     target_ids = np.unique(target)
     target_ids = target_ids[target_ids != invalid_instance_id]
@@ -129,43 +120,9 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     if len(matched_target_ids) != len(prediction_ids):
         raise ValueError("The length of matched_target_ids must be equal to the number of predicted instances.")
 
-    dists_to_dtm = None
-    if min_tree_height_fp > 0:
-        terrain_classification = cloth_simulation_filtering(
-            xyz, classification_threshold=0.5, resolution=0.5, rigidness=2
-        )
-        dtm_resolution = 0.25
-        dtm, dtm_offset = create_digital_terrain_model(
-            xyz[terrain_classification == 0],
-            grid_resolution=dtm_resolution,
-            k=400,
-            p=1,
-            voxel_size=0.05,
-            num_workers=-1,
-        )
-        dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, dtm_resolution=dtm_resolution)
-
-    tp = (matched_predicted_ids != invalid_instance_id).sum()
+    tp = (np.logical_not(np.isin(matched_predicted_ids, (invalid_instance_id, uncertain_instance_id)))).sum()
     fn = (matched_predicted_ids == invalid_instance_id).sum()
-
-    if min_precision_fp > 0 or min_tree_height_fp > 0:
-        fp = 0
-
-        for predicted_idx, matched_target_id in enumerate(matched_target_ids):
-            if matched_target_id == invalid_instance_id:
-                predicted_id = cast(int, start_instance_id_prediction) + predicted_idx
-                # count percentage of points belonging to labeled ground-truth instances
-                intersection = np.logical_and(labeled_mask, prediction == predicted_id).sum()
-                precision = intersection / (prediction == predicted_id).sum()
-
-                tree_height = np.inf
-                if dists_to_dtm is not None:
-                    tree_height = dists_to_dtm[prediction == predicted_id].max()
-
-                if precision >= min_precision_fp and tree_height >= min_tree_height_fp:
-                    fp += 1
-    else:
-        fp = (matched_target_ids == invalid_instance_id).sum()
+    fp = (matched_target_ids == invalid_instance_id).sum()
 
     metrics = {
         "TP": tp,
@@ -686,9 +643,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         "tree_learn",
     ] = "for_ai_net_coverage",
     invalid_instance_id: int = -1,
-    min_tree_height_fp: float = 0.0,
-    min_precision_fp: float = 0.5,
-    labeled_mask: Optional[np.ndarray] = None,
+    uncertain_instance_id: int = -2,
     compute_partition_metrics: bool = True,
     num_partitions: int = 10,
 ) -> Tuple[
@@ -728,17 +683,10 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         segmentation_metrics_matching_method: Method to be used for matching ground-truth and predicted instances for
             computing the instance segmentation metrics.
         invalid_instance_id: ID that is assigned to points not assigned to any instance / to instances that could not be
-            matched.
-        min_tree_height_fp: Minimum height an unmatched predicted tree instance must have in order to be counted as a
-            false positive. The height of a tree is defined as the maximum distance between its points and a digital
-            terrain model.
-        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled
-            in order to count the predicted instance as false positive in the computation of instance detection metrics.
-            If :code:`labeled_mask` is not :code:`None`, the points for which the mask is :code:`True` are considered as
-            labeled points. If :code:`labeled_mask` is :code:`None`, all points which are labeled as tree insgtances are
-            considered as labeled points.
-        labeled_mask: Boolean mask indicating which points are labeled. This mask is used to exclude false positive
-            instances that mainly consist of unlabeled points.
+            matched and are considered to be false negative or false positive instances.
+        uncertain_instance_id: ID that is assigned to predicted instances that could not be matched to any target
+            instance but still should not be counted as false positive instances.  Must be equal to or smaller than
+            :code:`invalid_instance_id`.
         compute_partition_metrics: Whether the metrics per partition should be computed.
         num_partitions: Number of partitions for the computation of instance segmentation metrics per partition.
 
@@ -774,9 +722,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         matched_predicted_ids,
         matched_target_ids,
         invalid_instance_id=invalid_instance_id,
-        min_tree_height_fp=min_tree_height_fp,
-        min_precision_fp=min_precision_fp,
-        labeled_mask=labeled_mask,
+        uncertain_instance_id=uncertain_instance_id,
     )
 
     matched_target_ids, matched_predicted_ids = match_instances(

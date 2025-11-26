@@ -17,7 +17,7 @@ from pointtree.operations import cloth_simulation_filtering, create_digital_terr
 from pointtree.type_aliases import FloatArray, LongArray
 
 
-def match_instances(
+def match_instances(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     xyz: FloatArray,
     target: LongArray,
     prediction: LongArray,
@@ -30,6 +30,7 @@ def match_instances(
         "segment_any_tree",
         "tree_learn",
     ],
+    *,
     invalid_instance_id: int = -1,
     uncertain_instance_id: int = -2,
     min_tree_height_fp: float = 0.0,

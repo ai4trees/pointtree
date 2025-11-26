@@ -18,7 +18,6 @@ from ._match_instances import match_instances
 
 
 def instance_detection_metrics(  # pylint: disable=too-many-locals
-    xyz: FloatArray,
     target: LongArray,
     prediction: LongArray,
     matched_predicted_ids: LongArray,
@@ -56,7 +55,6 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         \text{F$_1$-Score} = \frac{2 \cdot TP}{2 \cdot TP + FP + FN}
 
     Args:
-        xyz: Coordinates of all points. Only used if :code:`min_tree_height_fp` is not :code:`None`.
         target: Ground truth instance ID for each point.
         prediction: Predicted instance ID for each point.
         matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
@@ -716,7 +714,6 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     )
 
     instance_detect_metrics = instance_detection_metrics(
-        xyz,
         target,
         prediction,
         matched_predicted_ids,

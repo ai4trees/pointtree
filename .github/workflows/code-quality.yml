@@ -78,7 +78,9 @@ jobs:
           pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade .'[dev, docs]'
+          echo "install circle detection"
           pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
+          echo "installed circle detection"
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:

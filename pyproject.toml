@@ -57,17 +57,17 @@ dev = [
     "types-psutil",
 ]
 docs = [
-    "sphinx",
-    "sphinx-autodoc-typehints",
-    "sphinx-copybutton",
-    "sphinx-design",
-    "sphinx-docsearch",
-    "sphinxawesome-theme",
-    "sphinx-sitemap",
-    "sphinxcontrib-jsmath",
-    "sphinxcontrib-katex",
-    "sphinxcontrib-napoleon",
-    "sphinx_mdinclude",
+    "sphinx>=7.0.0, <9.0.0",
+    "sphinx-autodoc-typehints>=2.0.0, <4.0.0",
+    "sphinx-copybutton<1.0.0",
+    "sphinx-design<1.0.0",
+    "sphinx-docsearch<1.0.0",
+    "sphinx-mdinclude<1.0.0",
+    "sphinx-sitemap>=2.0.0, <3.0.0",
+    "sphinxawesome-theme>=5.0.0, <6.0.0",
+    "sphinxcontrib-jsmath<2.0.0",
+    "sphinxcontrib-katex<1.0.0",
+    "sphinxcontrib-napoleon<1.0.0",
 ]
 
 [project.urls]

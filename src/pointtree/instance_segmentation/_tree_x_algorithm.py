@@ -211,6 +211,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             bandwidth of the kernel is set to the specified value (in meters).
         stem_search_circle_fitting_min_points: Minimum number of points that a horizontal layer must contain in order to
             perform circle / ellipse fitting on it.
+        stem_search_circle_fitting_min_fitting_score: Minimum fitting score that circles must achieve in the circle
+            fitting procedure.
         stem_search_circle_fitting_min_stem_diameter: Minimum circle / ellipse diameter to be considered a valid fit.
         stem_search_circle_fitting_max_stem_diameter: Maximum circle / ellipse diameter to be considered a valid fit.
         stem_search_circle_fitting_min_completeness_idx: Minimum circumferential completeness index that circles must
@@ -380,14 +382,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_search_max_z: float = 4.0,
         stem_search_voxel_size: float = 0.015,
         stem_search_dbscan_2d_eps: float = 0.025,
-        stem_search_dbscan_2d_min_points: int = 100,
+        stem_search_dbscan_2d_min_points: int = 90,
         stem_search_dbscan_3d_eps: float = 0.1,
         stem_search_dbscan_3d_min_points: int = 15,
         stem_search_min_cluster_points: Optional[int] = 300,
         stem_search_min_cluster_height: Optional[float] = 1.5,
         stem_search_min_cluster_intensity: Optional[float] = 6000,
-        stem_search_pc1_min_explained_variance: Optional[float] = 0.5,
-        stem_search_max_inclination: Optional[float] = 45,
+        stem_search_pc1_min_explained_variance: Optional[float] = None,
+        stem_search_max_inclination: Optional[float] = None,
         stem_search_refined_circle_fitting: bool = False,
         stem_search_ellipse_fitting: bool = False,
         stem_search_circle_fitting_method: Literal["m-estimator", "ransac"] = "ransac",
@@ -397,6 +399,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_search_circle_fitting_layer_overlap: float = 0.025,
         stem_search_circle_fitting_bandwidth: float = 0.01,
         stem_search_circle_fitting_min_points: int = 15,
+        stem_search_circle_fitting_min_fitting_score: float = 100.0,
         stem_search_circle_fitting_min_stem_diameter: float = 0.02,
         stem_search_circle_fitting_max_stem_diameter: float = 1.0,
         stem_search_circle_fitting_min_completeness_idx: Optional[float] = 0.3,
@@ -404,7 +407,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_search_circle_fitting_large_buffer_width: float = 0.09,
         stem_search_circle_fitting_switch_buffer_threshold: float = 0.3,
         stem_search_ellipse_filter_threshold: float = 0.6,
-        stem_search_circle_fitting_max_std_diameter: float = 0.02,
+        stem_search_circle_fitting_max_std_diameter: float = 0.04,
         stem_search_circle_fitting_max_std_position: Optional[float] = None,
         stem_search_circle_fitting_std_num_layers: int = 6,
         stem_search_gam_buffer_width: float = 0.03,
@@ -481,6 +484,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         self._stem_search_circle_fitting_layer_overlap = stem_search_circle_fitting_layer_overlap
         self._stem_search_circle_fitting_bandwidth = stem_search_circle_fitting_bandwidth
         self._stem_search_circle_fitting_min_points = stem_search_circle_fitting_min_points
+        self._stem_search_circle_fitting_min_fitting_score = stem_search_circle_fitting_min_fitting_score
         self._stem_search_circle_fitting_min_stem_diameter = stem_search_circle_fitting_min_stem_diameter
         self._stem_search_circle_fitting_max_stem_diameter = stem_search_circle_fitting_max_stem_diameter
         self._stem_search_circle_fitting_min_completeness_idx = stem_search_circle_fitting_min_completeness_idx
@@ -515,7 +519,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         stem_layer_xyz: FloatArray,
         dtm: FloatArray,
         dtm_offset: FloatArray,
-        intensities: Union[FloatArray, None] = None,
+        intensities: Union[npt.NDArray, None] = None,
         point_cloud_id: Optional[str] = None,
         crs: Optional[str] = None,
     ) -> Tuple[FloatArray, FloatArray, LongArray]:
@@ -637,7 +641,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 del cluster_indices
                 del new_cluster_labels
 
-            cluster_labels, unique_cluster_labels = make_labels_consecutive(  # type: ignore[assignment]
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(
                 cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 
@@ -758,7 +762,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             layer_ellipses = layer_ellipses[filter_mask]
 
             cluster_labels[~np.isin(cluster_labels, unique_cluster_labels[filter_mask], assume_unique=True)] = -1
-            cluster_labels, unique_cluster_labels = make_labels_consecutive(  # type: ignore[assignment]
+            cluster_labels, unique_cluster_labels = make_labels_consecutive(
                 cluster_labels, ignore_id=-1, inplace=True, return_unique_labels=True
             )
 
@@ -974,7 +978,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     num_workers=self._num_workers,
                 )
             else:
-                circle_detector = Ransac(bandwidth=self._stem_search_circle_fitting_bandwidth)
+                circle_detector = Ransac(
+                    bandwidth=self._stem_search_circle_fitting_bandwidth,
+                    min_fitting_score=self._stem_search_circle_fitting_min_fitting_score,
+                )
                 circle_detector.detect(
                     stem_layer_xy,
                     batch_lengths=batch_lengths_xy,
@@ -1246,7 +1253,10 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         num_workers=self._num_workers,
                     )
                 else:
-                    circle_detector = Ransac(bandwidth=self._stem_search_circle_fitting_bandwidth)
+                    circle_detector = Ransac(
+                        bandwidth=self._stem_search_circle_fitting_bandwidth,
+                        min_fitting_score=self._stem_search_circle_fitting_min_fitting_score,
+                    )
                     circle_detector.detect(
                         stem_layers_xy,
                         batch_lengths=batch_lengths_xy,

@@ -918,7 +918,7 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         ],
     )
     @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
-    def test_evaluate_instance_segmentation(
+    def test_evaluate_instance_segmentation(  # pylint: disable=too-many-locals
         self,
         num_partitions: int,
         detection_metrics_matching_method: str,

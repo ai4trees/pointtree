@@ -13,10 +13,11 @@ from numba import njit, prange
 import numpy as np
 import scipy
 
+from pointtree.operations import cloth_simulation_filtering, create_digital_terrain_model, distance_to_dtm
 from pointtree.type_aliases import FloatArray, LongArray
 
 
-def match_instances(
+def match_instances(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     xyz: FloatArray,
     target: LongArray,
     prediction: LongArray,
@@ -29,7 +30,12 @@ def match_instances(
         "segment_any_tree",
         "tree_learn",
     ],
+    *,
     invalid_instance_id: int = -1,
+    uncertain_instance_id: int = -2,
+    min_tree_height_fp: float = 0.0,
+    min_precision_fp: float = 0.0,
+    labeled_mask: Optional[np.ndarray] = None,
 ) -> Tuple[LongArray, LongArray]:
     r"""
     This method implements the instance matching methods proposed in the following works:
@@ -37,8 +43,8 @@ def match_instances(
     - :code:`panoptic_segmentation`: `Kirillov, Alexander, et al. "Panoptic segmentation." Proceedings of the IEEE/CVF \
       Conference on Computer Vision and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
       
-      This method matches predicted and ground-truth instances if their IoU is striclty greater than 0.5, which results
-      in an unambigous matching.
+      This method matches predicted and ground-truth instances if their IoU is strictly greater than :math:`0.5`, which
+      results in an unambiguous matching.
 
     - :code:`point2tree`: `Wielgosz, Maciej, et al. "Point2Tree (P2T)—Framework for Parameter Tuning of Semantic and \
       Instance Segmentation Used with Mobile Laser Scanning Data in Coniferous Forest." Remote Sensing 15.15 (2023): \
@@ -46,61 +52,89 @@ def match_instances(
 
       This method processes the ground-truth instances sorted according to their height. Starting with the highest
       ground-truth instance, each ground-truth instance is matched with the predicted instance with which it has the
-      highest IoU. Predicted instances that were already matched to a ground-truth instance before, are excluded from
-      the matching.
+      highest IoU. Predicted instances that were already matched to a ground-truth instance before are excluded from the
+      matching.
 
     - :code:`for_instance`: `Puliti, Stefano, et al. "For-Instance: a UAV Laser Scanning Benchmark Dataset for \
       Semantic and Instance Segmentation of Individual Trees." arXiv preprint arXiv:2309.01279 (2023). \
       <https://arxiv.org/pdf/2309.01279>`__
 
       This method is based on the method proposed by Wielgosz et al. (2023) but additionally introduces the criterion
-      that ground-truth and predicted instances must have an IoU of a least 0.5 to be matched.
+      that ground-truth and predicted instances must have an IoU of at least :math:`0.5` to be matched.
 
     - :code:`for_ai_net`: `Xiang, Binbin, et al. "Automated Forest Inventory: Analysis of High-Density Airborne LiDAR \
       Point Clouds with 3D Deep Learning." Remote Sensing of Environment 305 (2024): 114078. \
       <https://doi.org/10.1016/j.rse.2024.114078>`__
 
-      This method is similar to the method proposed by Kirillov et al., with the difference that ground-truth and
-      predicted instances are also matched if their IoU is equal to 0.5.
+      This method is similar to the method proposed by Kirillov et al. (2019), with the difference that ground-truth and
+      predicted instances are also matched if their IoU is equal to :math:`0.5`.
 
     - :code:`for_ai_net_coverage`: `Xiang, Binbin, et al. "Automated Forest Inventory: Analysis of High-Density \
       Airborne LiDAR Point Clouds with 3D Deep Learning." Remote Sensing of Environment 305 (2024): 114078. \
       <https://doi.org/10.1016/j.rse.2024.114078>`__
 
-      This method matches each ground truth instance with the predicted instance with which it has the highest IoU. This
-      means that predicted instances can be matched with multiple ground-truth instances. Such a matching approach is
-      useful for the calculation of segmentation metrics (e.g., coverage) that should be independent from the instance
+      This method matches each ground-truth instance with the predicted instance with which it has the highest IoU. This
+      means that a predicted instance can be matched to multiple ground-truth instances. Such a matching approach is
+      useful for the calculation of segmentation metrics (e.g., coverage) that should be independent of the instance
       detection rate.
-  
+
     - :code:`segment_any_tree`: `Wielgosz, Maciej, et al. "SegmentAnyTree: A Sensor and Platform Agnostic Deep \
       Learning Model for Tree Segmentation Using Laser Scanning Data." Remote Sensing of Environment 313 (2024): \
       114367. <https://doi.org/10.1016/j.rse.2024.114367>`__
       
-      This method is the same as the method proposed by Kirillov et al.
+      This method is the same as the method proposed by Kirillov et al. (2019), i.e., predicted and ground-truth
+      instances are matched if their IoU is strictly greater than :math:`0.5`.
 
     - :code:`tree_learn`: `Henrich, Jonathan, et al. "TreeLearn: A Deep Learning Method for Segmenting Individual Trees
       from Ground-Based LiDAR Forest Point Clouds." Ecological Informatics 84 (2024): 102888.
       <https://doi.org/10.1016/j.ecoinf.2024.102888>`__
 
-      This method uses Hungarian matching to match predicted and ground truth instances in such a way that the sum of
+      This method uses Hungarian matching to match predicted and ground-truth instances in such a way that the sum of
       the IoU scores of all matched instance pairs is maximized. Subsequently, matches with an IoU score less than or
-      equal to 0.5 are discarded.
+      equal to :math:`0.5` are discarded.
 
     Args:
         xyz: Coordinates of all points.
-        target: Ground truth instance ID for each point.
-        prediction: Predicted instance ID for each point.
+        target: Ground-truth instance ID for each point. Instance IDs must be integers forming a continuous range. The
+            smallest instance ID in :code:`target` must be equal to the smallest instance ID in :code:`prediction`.
+        prediction: Predicted instance ID for each point. Instance IDs must be integers forming a continuous range. The
+            smallest instance ID in :code:`prediction` must be equal to the smallest instance ID in :code:`target`.
         method: Instance matching method to be used.
-        invalid_instance_id: ID that is assigned to points not assigned to any instance.
+        invalid_instance_id: ID that is used as label for points not assigned to any instance in :code:`target` and
+            :code:`prediction`. In the returned instance matchings, the matched instance ID is set to
+            :code:`invalid_instance_id` for target instances that were not matched with any predicted instance and for
+            predicted instances that were not matched with any target instance and are considered as false positives
+            according to :code:`min_tree_height_fp` and :code:`min_precision_fp`.
+        uncertain_instance_id: ID that is used to mark predicted instances that were not matched with any target
+            instance but are not counted as false positives according to :code:`min_tree_height_fp` or
+            :code:`min_precision_fp`. Must be equal to or smaller than :code:`invalid_instance_id`.
+        min_tree_height_fp: Minimum height an unmatched predicted tree instance must have in order to be counted as a
+            false positive. The height of a tree is defined as the maximum distance between its points and a digital
+            terrain model. If a predicted tree instance could not be matched with any target instance but its height is
+            below :code:`min_tree_height_fp`, its matched instance ID is set to :code:`uncertain_instance_id`.
+        min_precision_fp: Minimum percentage of points of an unmatched predicted instance that must be labeled in order
+            to count the predicted instance as a false positive. If :code:`labeled_mask` is not :code:`None`, the points
+            for which the mask is :code:`True` are considered as labeled points. If :code:`labeled_mask` is
+            :code:`None`, all points that are labeled as instances are considered as labeled points (i.e., points
+            labeled with :code:`invalid_instance_id` are considered unlabeled). If a predicted instance could not be
+            matched with any target instance but its percentage of labeled points is below :code:`min_precision_fp`, its
+            matched instance ID is set to :code:`uncertain_instance_id`.
+        labeled_mask: Boolean mask indicating which points are labeled. This mask is used to mark false positive
+            instances that mainly consist of unlabeled points.
 
     Returns:
         :Tuple of two arrays:
-            - IDs of the matched ground-truth instances for each predicted instance.
-            - IDs of the matched predicted instances for each ground-truth instance.
+            - IDs of the matched ground-truth instances for each predicted instance. If the predicted instance is not
+              matched to any ground-truth instance, its entry is set to either :code:`invalid_instance_id` (false
+              positive) or :code:`uncertain_instance_id` (uncertain predicted instance).
+            - IDs of the matched predicted instances for each ground-truth instance. If the ground-truth instance is not
+              matched to any predicted instance, its entry is set to :code:`invalid_instance_id`.
 
     Raises:
-        ValueError: If the unique instance IDs are not continuous.
-        ValueError: If the unique target and predicted instance IDs don't start with the same number.
+        ValueError: If :code:`uncertain_instance_id` is larger than :code:`invalid_instance_id`.
+        ValueError: If the unique instance IDs in :code:`target` or :code:`prediction` are not continuous.
+        ValueError: If the unique instance IDs in :code:`target` and :code:`prediction` do not start with the same
+            number.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
@@ -126,6 +160,9 @@ def match_instances(
 
     start_instance_id_target = unique_target_ids.min()
     start_instance_id_prediction = unique_prediction_ids.min()
+
+    if uncertain_instance_id > invalid_instance_id:
+        raise ValueError("uncertain_instance_id must be smaller or equal to invalid_instance_id.")
 
     if start_instance_id_target != start_instance_id_prediction:
         raise ValueError("Start instance IDs for target and prediction must be identical.")
@@ -211,6 +248,45 @@ def match_instances(
         raise ValueError(f"Invalid matching method: {method}.")
 
     matched_target_ids, matched_predicted_ids = matching_result
+
+    dists_to_dtm = None
+    if min_tree_height_fp > 0:
+        terrain_classification = cloth_simulation_filtering(
+            xyz, classification_threshold=0.5, resolution=0.5, rigidness=2
+        )
+        dtm_resolution = 0.25
+        dtm, dtm_offset = create_digital_terrain_model(
+            xyz[terrain_classification == 0],
+            grid_resolution=dtm_resolution,
+            k=400,
+            p=1,
+            voxel_size=0.05,
+            num_workers=-1,
+        )
+        dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, dtm_resolution=dtm_resolution)
+
+    if min_precision_fp <= 0 and min_tree_height_fp <= 0:
+        return matched_target_ids, matched_predicted_ids
+
+    if min_precision_fp > 0 and labeled_mask is None:
+        labeled_mask = target != invalid_instance_id
+
+    for predicted_idx, matched_target_id in enumerate(matched_target_ids):
+        if matched_target_id == invalid_instance_id:
+            predicted_id = start_instance_id_prediction + predicted_idx
+            if min_precision_fp > 0:
+                # count percentage of points belonging to labeled ground-truth instances
+                intersection = np.logical_and(labeled_mask, prediction == predicted_id).sum()  # type: ignore[arg-type]
+                precision = intersection / (prediction == predicted_id).sum()
+            else:
+                precision = 1.0
+
+            tree_height = np.inf
+            if dists_to_dtm is not None:
+                tree_height = max(0, dists_to_dtm[prediction == predicted_id].max())
+
+            if precision < min_precision_fp or tree_height < min_tree_height_fp:
+                matched_target_ids[predicted_idx] = uncertain_instance_id
 
     return matched_target_ids, matched_predicted_ids
 

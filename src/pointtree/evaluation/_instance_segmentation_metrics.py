@@ -231,7 +231,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     prediction_ids = np.unique(prediction)
     prediction_ids = prediction_ids[prediction_ids != invalid_instance_id]
 
-    start_instance_id_target = target_ids.min()
+    start_instance_id_target = cast(int, target_ids.min())
 
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
@@ -247,7 +247,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
         -1,
     )
 
-    target_ids = np.arange(
+    target_ids = np.arange(  # type: ignore[call-overload]
         start=start_instance_id_target, stop=start_instance_id_target + num_target_ids, dtype=np.int64
     )
 
@@ -403,7 +403,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
         return pd.DataFrame(average_metrics), per_instance_metrics
 
-    start_instance_id_target = target_ids.min()
+    start_instance_id_target = cast(int, target_ids.min())
 
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
@@ -437,7 +437,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
     matched_instances_mask = matched_predicted_ids != invalid_instance_id
 
-    target_ids = np.arange(
+    target_ids = np.arange(  # type: ignore[call-overload]
         start=start_instance_id_target, stop=start_instance_id_target + len(target_ids), dtype=np.int64
     )
 

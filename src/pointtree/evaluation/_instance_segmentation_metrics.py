@@ -247,7 +247,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
         -1,
     )
 
-    target_ids = np.arange(
+    target_ids = np.arange(  # type: ignore[call-overload]
         start=start_instance_id_target, stop=start_instance_id_target + num_target_ids, dtype=np.int64
     )
 
@@ -437,7 +437,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
     matched_instances_mask = matched_predicted_ids != invalid_instance_id
 
-    target_ids = np.arange(
+    target_ids = np.arange(  # type: ignore[call-overload]
         start=start_instance_id_target, stop=start_instance_id_target + len(target_ids), dtype=np.int64
     )
 

@@ -231,7 +231,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     prediction_ids = np.unique(prediction)
     prediction_ids = prediction_ids[prediction_ids != invalid_instance_id]
 
-    start_instance_id_target = target_ids.min()
+    start_instance_id_target = cast(int, target_ids.min())
 
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
@@ -403,7 +403,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
         return pd.DataFrame(average_metrics), per_instance_metrics
 
-    start_instance_id_target = target_ids.min()
+    start_instance_id_target = cast(int, target_ids.min())
 
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")

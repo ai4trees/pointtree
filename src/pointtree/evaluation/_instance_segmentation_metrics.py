@@ -7,14 +7,14 @@ __all__ = [
     "evaluate_instance_segmentation",
 ]
 
-from typing import Dict, Literal, Optional, Tuple, Union, cast
+from typing import Dict, Literal, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
 from pointtorch.metrics.instance_segmentation import match_instances
 import torch
 
-from pointtree.type_aliases import BoolArray, FloatArray, LongArray
+from pointtree.type_aliases import FloatArray, LongArray
 from pointtree._evaluation_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     compute_instance_segmentation_metrics_per_partition as compute_instance_segmentation_metrics_per_partition_cpp,
     compute_instance_segmentation_metrics as compute_instance_segmentation_metrics_cpp,

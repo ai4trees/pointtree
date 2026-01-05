@@ -1,6 +1,7 @@
 """Tests for pointtree.evaluation.instance_segmentation_metrics."""  # pylint: disable = too-many-lines
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from pointtree.evaluation import (
@@ -221,12 +222,12 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         )
 
         if include_unmatched_instances:
-            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 3)
-            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 3)
+            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 3, abs=1e-5)
+            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 3, abs=1e-5)
         else:
-            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 2)
-            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 2)
-        assert metrics["MeanPrecision"] == pytest.approx((3 / 4 + 3 / 3) / 2)
+            assert metrics["MeanIoU"] == pytest.approx((3 / 5 + 3 / 4) / 2, abs=1e-5)
+            assert metrics["MeanRecall"] == pytest.approx((3 / 4 + 3 / 4) / 2, abs=1e-5)
+        assert metrics["MeanPrecision"] == pytest.approx((3 / 4 + 3 / 3) / 2, abs=1e-5)
 
         if include_unmatched_instances:
             assert len(per_instance_metrics) == 3
@@ -892,7 +893,6 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
                 xyz, target, prediction, matched_predicted_ids, partition=partition
             )
 
-    @pytest.mark.parametrize("num_partitions", [5, 10])
     @pytest.mark.parametrize(
         "detection_metrics_matching_method",
         [
@@ -901,7 +901,6 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             "for_instance",
             "for_ai_net",
             "for_ai_net_coverage",
-            "segment_any_tree",
             "tree_learn",
         ],
     )
@@ -913,16 +912,16 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             "for_instance",
             "for_ai_net",
             "for_ai_net_coverage",
-            "segment_any_tree",
             "tree_learn",
         ],
     )
+    @pytest.mark.parametrize("include_unmatched_instances", (True, False))
     @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
     def test_evaluate_instance_segmentation(  # pylint: disable=too-many-locals
         self,
-        num_partitions: int,
         detection_metrics_matching_method: str,
         segmentation_metrics_matching_method: str,
+        include_unmatched_instances: bool,
         invalid_instance_id: int,
         uncertain_instance_id: int,
     ):
@@ -953,13 +952,23 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
                 [10, 3, 7],
                 [11, 3, 8],
                 [12, 3, 9],
+                [12.1, 3, 9.1],
                 [13, 3, 10],
+                # other
+                [14, 3, 11],
+                [15, 3, 12],
+                [12.2, 3, 9.2],
+                [12.3, 3, 9.3],
+                [12.4, 3, 9.4],
+                [16, 3, 13],
+                [17, 3, 14],
             ],
             dtype=np.float64,
         )
 
-        target = np.array([0] * 11 + [1] * 11, dtype=np.int64) + start_instance_id
-        prediction = np.array([1] * 11 + [0] * 11, dtype=np.int64) + start_instance_id
+        target = np.array([0] * 11 + [1] * 12 + [-1] * 5 + [2] * 2, dtype=np.int64) + start_instance_id
+        prediction = np.array([1] * 11 + [0] * 10 + [-1] * 4 + [0] * 3 + [-1] * 2, dtype=np.int64) + start_instance_id
+        num_partitions = 10
 
         (
             metrics,
@@ -974,49 +983,116 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
             prediction,
             detection_metrics_matching_method=detection_metrics_matching_method,
             segmentation_metrics_matching_method=segmentation_metrics_matching_method,
+            include_unmatched_instances_in_seg_metrics=include_unmatched_instances,
             invalid_instance_id=invalid_instance_id,
             uncertain_instance_id=uncertain_instance_id,
             num_partitions=num_partitions,
         )
 
+        expected_metrics_per_instance = {
+            "TargetID": np.arange(3, dtype=np.int64) + start_instance_id,
+            "PredictionID": np.array([1, 0, -1], dtype=np.int64) + start_instance_id,
+            "IoU": np.array([1, 10 / 15, 0], dtype=np.float64),
+            "Precision": np.array([1, 10 / 13, np.nan], dtype=np.float64),
+            "Recall": np.array([1, 10 / 12, 0], dtype=np.float64),
+        }
+        if not include_unmatched_instances:
+            for key, metric in expected_metrics_per_instance.items():
+                expected_metrics_per_instance[key] = metric[:2]
+
         assert metrics["DetectionTP"].iloc[0] == 2
         assert metrics["DetectionFP"].iloc[0] == 0
-        assert metrics["DetectionFN"].iloc[0] == 0
+        assert metrics["DetectionFN"].iloc[0] == 1
         assert metrics["DetectionPrecision"].iloc[0] == 1.0
-        assert metrics["DetectionRecall"].iloc[0] == 1.0
-        assert metrics["DetectionF1Score"].iloc[0] == 1.0
-        assert metrics["SegmentationMeanIoU"].iloc[0] == 1.0
-        assert metrics["SegmentationMeanPrecision"].iloc[0] == 1.0
-        assert metrics["SegmentationMeanRecall"].iloc[0] == 1.0
+        assert metrics["DetectionRecall"].iloc[0] == 2 / 3
+        assert metrics["DetectionF1Score"].iloc[0] == 4 / 5
+        assert metrics["SegmentationMeanIoU"].iloc[0] == pytest.approx(np.nanmean(expected_metrics_per_instance["IoU"]))
+        assert metrics["SegmentationMeanPrecision"].iloc[0] == pytest.approx(
+            np.nanmean(expected_metrics_per_instance["Precision"])
+        )
+        assert metrics["SegmentationMeanRecall"].iloc[0] == pytest.approx(
+            np.nanmean(expected_metrics_per_instance["Recall"])
+        )
 
-        assert len(metrics_per_instance) == 2
-        assert (metrics_per_instance["IoU"] == 1.0).all()
-        assert (metrics_per_instance["Precision"] == 1.0).all()
-        assert (metrics_per_instance["Recall"] == 1.0).all()
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_instance["TargetID"], metrics_per_instance["TargetID"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_instance["PredictionID"], metrics_per_instance["PredictionID"]
+        )
+        np.testing.assert_array_almost_equal(expected_metrics_per_instance["IoU"], metrics_per_instance["IoU"])
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_instance["Precision"], metrics_per_instance["Precision"]
+        )
+        np.testing.assert_array_almost_equal(expected_metrics_per_instance["Recall"], metrics_per_instance["Recall"])
 
-        assert (metrics_per_instance["IoU"] == 1.0).all()
-        assert (metrics_per_instance["Precision"] == 1.0).all()
-        assert (metrics_per_instance["Recall"] == 1.0).all()
+        expected_metrics_per_partition_per_instance = pd.DataFrame(
+            {
+                "TargetID": np.array([0] * 10 + [1] * 10 + [2] * 10, dtype=np.int64) + start_instance_id,
+                "PredictionID": np.array([1] * 10 + [0] * 10 + [-1] * 10, dtype=np.int64) + start_instance_id,
+                "Partition": np.tile(np.arange(10), 3),
+                "IoU": np.array([1] * 19 + [1 / 5] + [0] + [np.nan] * 9, dtype=np.float64),
+                "Precision": np.array([1] * 19 + [1 / 4] + [np.nan] * 10, dtype=np.float64),
+                "Recall": np.array([1] * 19 + [1 / 2] + [0] + [np.nan] * 9, dtype=np.float64),
+            }
+        )
+        if not include_unmatched_instances:
+            expected_metrics_per_partition_per_instance = expected_metrics_per_partition_per_instance.iloc[:20]
 
-        assert len(metrics_per_xy_partition) == num_partitions
-        assert (metrics_per_xy_partition["MeanIoU"] == 1.0).all()
-        assert (metrics_per_xy_partition["MeanPrecision"] == 1.0).all()
-        assert (metrics_per_xy_partition["MeanRecall"] == 1.0).all()
+        expected_metrics_per_partition = expected_metrics_per_partition_per_instance.groupby(by=["Partition"]).mean()
 
-        assert len(metrics_per_xy_partition_per_instance) == num_partitions * 2
-        assert (metrics_per_xy_partition_per_instance["IoU"] == 1.0).all()
-        assert (metrics_per_xy_partition_per_instance["Precision"] == 1.0).all()
-        assert (metrics_per_xy_partition_per_instance["Recall"] == 1.0).all()
+        np.testing.assert_array_almost_equal(expected_metrics_per_partition["IoU"], metrics_per_xy_partition["MeanIoU"])
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition["Precision"], metrics_per_xy_partition["MeanPrecision"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition["Recall"], metrics_per_xy_partition["MeanRecall"]
+        )
 
-        assert len(metrics_per_z_partition) == num_partitions
-        assert (metrics_per_z_partition["MeanIoU"] == 1.0).all()
-        assert (metrics_per_z_partition["MeanPrecision"] == 1.0).all()
-        assert (metrics_per_z_partition["MeanRecall"] == 1.0).all()
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["TargetID"], metrics_per_xy_partition_per_instance["TargetID"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["PredictionID"],
+            metrics_per_xy_partition_per_instance["PredictionID"],
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["IoU"], metrics_per_xy_partition_per_instance["IoU"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["IoU"], metrics_per_xy_partition_per_instance["IoU"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["Precision"], metrics_per_xy_partition_per_instance["Precision"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["Recall"], metrics_per_xy_partition_per_instance["Recall"]
+        )
 
-        assert len(metrics_per_z_partition_per_instance) == num_partitions * 2
-        assert (metrics_per_z_partition_per_instance["IoU"] == 1.0).all()
-        assert (metrics_per_z_partition_per_instance["Precision"] == 1.0).all()
-        assert (metrics_per_z_partition_per_instance["Recall"] == 1.0).all()
+        np.testing.assert_array_almost_equal(expected_metrics_per_partition["IoU"], metrics_per_z_partition["MeanIoU"])
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition["Precision"], metrics_per_z_partition["MeanPrecision"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition["Recall"], metrics_per_z_partition["MeanRecall"]
+        )
+
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["TargetID"], metrics_per_z_partition_per_instance["TargetID"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["PredictionID"],
+            metrics_per_z_partition_per_instance["PredictionID"],
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["IoU"], metrics_per_z_partition_per_instance["IoU"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["Precision"], metrics_per_z_partition_per_instance["Precision"]
+        )
+        np.testing.assert_array_almost_equal(
+            expected_metrics_per_partition_per_instance["Recall"], metrics_per_z_partition_per_instance["Recall"]
+        )
 
     def test_evaluate_instance_segmentation_without_partitions(self):
         xyz = np.array(

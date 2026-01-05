@@ -7,18 +7,18 @@ __all__ = [
     "evaluate_instance_segmentation",
 ]
 
-from typing import Dict, Literal, Optional, Tuple, cast
+from typing import Dict, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
+from pointtorch.metrics.instance_segmentation import match_instances
+import torch
 
-from pointtree.type_aliases import FloatArray, LongArray
+from pointtree.type_aliases import BoolArray, FloatArray, LongArray
 from pointtree._evaluation_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     compute_instance_segmentation_metrics_per_partition as compute_instance_segmentation_metrics_per_partition_cpp,
     compute_instance_segmentation_metrics as compute_instance_segmentation_metrics_cpp,
 )
-
-from ._match_instances import match_instances
 
 
 def instance_detection_metrics(  # pylint: disable=too-many-locals
@@ -231,7 +231,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     prediction_ids = np.unique(prediction)
     prediction_ids = prediction_ids[prediction_ids != invalid_instance_id]
 
-    start_instance_id_target = target_ids.min()
+    start_instance_id_target = cast(int, target_ids.min())
 
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
@@ -247,7 +247,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
         -1,
     )
 
-    target_ids = np.arange(
+    target_ids = np.arange(  # type: ignore[call-overload]
         start=start_instance_id_target, stop=start_instance_id_target + num_target_ids, dtype=np.int64
     )
 
@@ -403,7 +403,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
         return pd.DataFrame(average_metrics), per_instance_metrics
 
-    start_instance_id_target = target_ids.min()
+    start_instance_id_target = cast(int, target_ids.min())
 
     if len(prediction_ids) > 0 and start_instance_id_target != prediction_ids.min():
         raise ValueError("Start instance IDs for target and prediction must be identical.")
@@ -437,7 +437,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
 
     matched_instances_mask = matched_predicted_ids != invalid_instance_id
 
-    target_ids = np.arange(
+    target_ids = np.arange(  # type: ignore[call-overload]
         start=start_instance_id_target, stop=start_instance_id_target + len(target_ids), dtype=np.int64
     )
 
@@ -477,7 +477,6 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         "for_instance",
         "for_ai_net",
         "for_ai_net_coverage",
-        "segment_any_tree",
         "tree_learn",
     ] = "panoptic_segmentation",
     segmentation_metrics_matching_method: Literal[
@@ -486,7 +485,6 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         "for_instance",
         "for_ai_net",
         "for_ai_net_coverage",
-        "segment_any_tree",
         "tree_learn",
     ] = "for_ai_net_coverage",
     include_unmatched_instances_in_seg_metrics: bool = True,
@@ -519,8 +517,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
     :code:`pointtorch.evaluation.instance_detection_metrics`,
     :code:`pointtorch.evaluation.instance_segmentation_metrics`, and
     :code:`pointtorch.evaluation.instance_segmentation_metrics_per_partition`. The metric calculations are based on a
-    matching of ground-truth instances and predicted instances. More details on this matching are provided in the
-    documentation of :code:`pointtorch.evaluation.match_instances`.
+    matching of ground-truth instances and predicted instances.
 
     Args:
         xyz: Coordinates of all points.
@@ -557,13 +554,15 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
             set to :code:`False`.
     """
 
-    matched_target_ids, matched_predicted_ids = match_instances(
-        xyz,
-        target,
-        prediction,
+    matched_target_ids_torch, matched_predicted_ids_torch, _ = match_instances(
+        torch.from_numpy(target),
+        torch.from_numpy(prediction),
+        torch.from_numpy(xyz),
         method=detection_metrics_matching_method,
         invalid_instance_id=invalid_instance_id,
     )
+    matched_target_ids = matched_target_ids_torch.numpy()
+    matched_predicted_ids = matched_predicted_ids_torch.numpy()
 
     instance_detect_metrics = instance_detection_metrics(
         target,
@@ -574,20 +573,40 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
         uncertain_instance_id=uncertain_instance_id,
     )
 
-    matched_target_ids, matched_predicted_ids = match_instances(
-        xyz,
-        target,
-        prediction,
+    matched_target_ids_torch, matched_predicted_ids_torch, segmentation_metrics_torch = match_instances(
+        torch.from_numpy(target),
+        torch.from_numpy(prediction),
+        torch.from_numpy(xyz),
         method=segmentation_metrics_matching_method,
         invalid_instance_id=invalid_instance_id,
     )
+    matched_target_ids = matched_target_ids_torch.numpy()
+    matched_predicted_ids = matched_predicted_ids_torch.numpy()
+    segmentation_metrics = {key: metric.numpy() for key, metric in segmentation_metrics_torch.items()}
 
-    avg_segmentation_metrics, per_instance_segmentation_metrics = instance_segmentation_metrics(
-        target,
-        prediction,
-        matched_predicted_ids,
-        include_unmatched_instances=include_unmatched_instances_in_seg_metrics,
-        invalid_instance_id=invalid_instance_id,
+    start_instance_id = target[target != invalid_instance_id].min()
+
+    valid_mask: Union[BoolArray, slice]
+    if include_unmatched_instances_in_seg_metrics:
+        segmentation_metrics["precision"][matched_predicted_ids == invalid_instance_id] = np.nan
+        valid_mask = slice(0, len(matched_predicted_ids), 1)
+    else:
+        valid_mask = matched_predicted_ids != invalid_instance_id
+
+    avg_segmentation_metrics = {
+        "MeanIoU": np.nanmean(segmentation_metrics["iou"][valid_mask]),
+        "MeanPrecision": np.nanmean(segmentation_metrics["precision"][valid_mask]),
+        "MeanRecall": np.nanmean(segmentation_metrics["recall"][valid_mask]),
+    }
+
+    per_instance_segmentation_metrics = pd.DataFrame(
+        {
+            "TargetID": np.arange(len(matched_predicted_ids), dtype=np.int64)[valid_mask] + start_instance_id,
+            "PredictionID": matched_predicted_ids[valid_mask],
+            "IoU": segmentation_metrics["iou"][valid_mask],
+            "Precision": segmentation_metrics["precision"][valid_mask],
+            "Recall": segmentation_metrics["recall"][valid_mask],
+        }
     )
 
     avg_segmentation_metrics_per_xy_partition = None

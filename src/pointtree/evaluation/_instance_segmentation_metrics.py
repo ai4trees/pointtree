@@ -7,14 +7,14 @@ __all__ = [
     "evaluate_instance_segmentation",
 ]
 
-from typing import Dict, Literal, Optional, Tuple, cast
+from typing import Dict, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
 from pointtorch.metrics.instance_segmentation import match_instances
 import torch
 
-from pointtree.type_aliases import FloatArray, LongArray
+from pointtree.type_aliases import BoolArray, FloatArray, LongArray
 from pointtree._evaluation_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     compute_instance_segmentation_metrics_per_partition as compute_instance_segmentation_metrics_per_partition_cpp,
     compute_instance_segmentation_metrics as compute_instance_segmentation_metrics_cpp,
@@ -554,34 +554,39 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
             set to :code:`False`.
     """
 
-    matched_target_ids, matched_predicted_ids, _ = match_instances(
+    matched_target_ids_torch, matched_predicted_ids_torch, _ = match_instances(
         torch.from_numpy(target),
         torch.from_numpy(prediction),
         torch.from_numpy(xyz),
         method=detection_metrics_matching_method,
         invalid_instance_id=invalid_instance_id,
     )
+    matched_target_ids = matched_target_ids_torch.numpy()
+    matched_predicted_ids = matched_predicted_ids_torch.numpy()
 
     instance_detect_metrics = instance_detection_metrics(
         target,
         prediction,
-        matched_predicted_ids.numpy(),
-        matched_target_ids.numpy(),
+        matched_predicted_ids,
+        matched_target_ids,
         invalid_instance_id=invalid_instance_id,
         uncertain_instance_id=uncertain_instance_id,
     )
 
-    matched_target_ids, matched_predicted_ids, segmentation_metrics_torch = match_instances(
+    matched_target_ids_torch, matched_predicted_ids_torch, segmentation_metrics_torch = match_instances(
         torch.from_numpy(target),
         torch.from_numpy(prediction),
         torch.from_numpy(xyz),
         method=segmentation_metrics_matching_method,
         invalid_instance_id=invalid_instance_id,
     )
+    matched_target_ids = matched_target_ids_torch.numpy()
+    matched_predicted_ids = matched_predicted_ids_torch.numpy()
     segmentation_metrics = {key: metric.numpy() for key, metric in segmentation_metrics_torch.items()}
 
     start_instance_id = target[target != invalid_instance_id].min()
 
+    valid_mask: Union[BoolArray, slice]
     if include_unmatched_instances_in_seg_metrics:
         segmentation_metrics["precision"][matched_predicted_ids == invalid_instance_id] = np.nan
         valid_mask = slice(0, len(matched_predicted_ids), 1)
@@ -615,7 +620,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
                 xyz,
                 target,
                 prediction,
-                matched_predicted_ids.numpy(),
+                matched_predicted_ids,
                 partition="xy",
                 include_unmatched_instances=include_unmatched_instances_in_seg_metrics,
                 invalid_instance_id=invalid_instance_id,
@@ -628,7 +633,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
                 xyz,
                 target,
                 prediction,
-                matched_predicted_ids.numpy(),
+                matched_predicted_ids,
                 partition="z",
                 include_unmatched_instances=include_unmatched_instances_in_seg_metrics,
                 invalid_instance_id=invalid_instance_id,

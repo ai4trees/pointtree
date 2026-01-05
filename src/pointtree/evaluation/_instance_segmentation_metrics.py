@@ -7,14 +7,14 @@ __all__ = [
     "evaluate_instance_segmentation",
 ]
 
-from typing import Dict, Literal, Optional, Tuple, Union, cast
+from typing import Dict, Literal, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
 from pointtorch.metrics.instance_segmentation import match_instances
 import torch
 
-from pointtree.type_aliases import BoolArray, FloatArray, LongArray
+from pointtree.type_aliases import FloatArray, LongArray
 from pointtree._evaluation_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     compute_instance_segmentation_metrics_per_partition as compute_instance_segmentation_metrics_per_partition_cpp,
     compute_instance_segmentation_metrics as compute_instance_segmentation_metrics_cpp,
@@ -466,7 +466,7 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
     return pd.DataFrame(average_metrics), pd.DataFrame(per_instance_metrics)
 
 
-def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-many-locals, too-many-arguments
+def evaluate_instance_segmentation(  # pylint: disable=too-many-branches, too-many-locals, too-many-arguments
     xyz: FloatArray,
     target: LongArray,
     prediction: LongArray,
@@ -586,28 +586,32 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches,too-man
 
     start_instance_id = target[target != invalid_instance_id].min()
 
-    valid_mask: Union[BoolArray, slice]
     if include_unmatched_instances_in_seg_metrics:
-        segmentation_metrics["precision"][matched_predicted_ids == invalid_instance_id] = np.nan
         valid_mask = slice(0, len(matched_predicted_ids), 1)
     else:
         valid_mask = matched_predicted_ids != invalid_instance_id
+        for key, metric in segmentation_metrics.items():
+            segmentation_metrics[key] = metric[valid_mask]
 
-    avg_segmentation_metrics = {
-        "MeanIoU": np.nanmean(segmentation_metrics["iou"][valid_mask]),
-        "MeanPrecision": np.nanmean(segmentation_metrics["precision"][valid_mask]),
-        "MeanRecall": np.nanmean(segmentation_metrics["recall"][valid_mask]),
-    }
+    tp = segmentation_metrics["tp"]
+    fp = segmentation_metrics["fp"]
+    fn = segmentation_metrics["fn"]
 
     per_instance_segmentation_metrics = pd.DataFrame(
         {
             "TargetID": np.arange(len(matched_predicted_ids), dtype=np.int64)[valid_mask] + start_instance_id,
             "PredictionID": matched_predicted_ids[valid_mask],
-            "IoU": segmentation_metrics["iou"][valid_mask],
-            "Precision": segmentation_metrics["precision"][valid_mask],
-            "Recall": segmentation_metrics["recall"][valid_mask],
+            "IoU": tp / (tp + fp + fn),
+            "Precision": np.where((tp + fp) > 0, tp / (tp + fp), np.nan),
+            "Recall": tp / (tp + fn),
         }
     )
+
+    avg_segmentation_metrics = {
+        "MeanIoU": per_instance_segmentation_metrics["IoU"].mean(),
+        "MeanPrecision": np.nanmean(per_instance_segmentation_metrics["Precision"]),
+        "MeanRecall": per_instance_segmentation_metrics["Recall"].mean(),
+    }
 
     avg_segmentation_metrics_per_xy_partition = None
     per_instance_segmentation_metrics_per_xy_partition = None

@@ -55,7 +55,7 @@ def filter_instances_min_points(
 
     unique_instance_ids, point_counts = np.unique(instance_ids, return_counts=True)
     discarded_instance_ids = unique_instance_ids[point_counts < min_points]
-    instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
+    instance_ids[np.isin(instance_ids, discarded_instance_ids)] = -1
 
     return make_labels_consecutive(  # type: ignore[return-value]
         instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
@@ -117,7 +117,7 @@ def filter_instances_vertical_extent(
     if not inplace:
         instance_ids = instance_ids.copy()
 
-    instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
+    instance_ids[np.isin(instance_ids, discarded_instance_ids)] = -1
 
     return make_labels_consecutive(  # type: ignore[return-value]
         instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
@@ -189,7 +189,7 @@ def filter_instances_pca(
     if not inplace:
         instance_ids = instance_ids.copy()
 
-    instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
+    instance_ids[np.isin(instance_ids, discarded_instance_ids)] = -1
 
     return make_labels_consecutive(  # type: ignore[return-value]
         instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True
@@ -247,7 +247,7 @@ def filter_instances_intensity(
         if np.quantile(intensities[instance_ids == label], q=threshold_percentile) <= min_intensity:
             discarded_instance_ids.append(label)
 
-    instance_ids[np.in1d(instance_ids, discarded_instance_ids)] = -1
+    instance_ids[np.isin(instance_ids, discarded_instance_ids)] = -1
 
     return make_labels_consecutive(  # type: ignore[return-value]
         instance_ids, ignore_id=-1, inplace=inplace, return_unique_labels=True

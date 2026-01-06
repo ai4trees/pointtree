@@ -11,7 +11,6 @@ from typing import Dict, Literal, Optional, Tuple, cast
 
 import numpy as np
 import pandas as pd
-import torch
 
 from pointtree.type_aliases import FloatArray, LongArray
 from pointtree._evaluation_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module

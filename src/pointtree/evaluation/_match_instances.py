@@ -2,7 +2,7 @@
 
 __all__ = ["match_instances"]
 
-from typing import Literal, Optional, Tuple
+from typing import Dict, Literal, Optional, Tuple
 
 import numpy as np
 from pointtorch.metrics.instance_segmentation import match_instances as match_instances_pointtorch
@@ -12,7 +12,7 @@ from pointtree.operations import cloth_simulation_filtering, create_digital_terr
 from pointtree.type_aliases import FloatArray, LongArray
 
 
-def match_instances(
+def match_instances(  # pylint: disable=too-many-locals
     target: LongArray,
     prediction: LongArray,
     xyz: FloatArray,
@@ -30,7 +30,7 @@ def match_instances(
     min_tree_height_fp: float = 0.0,
     min_precision_fp: float = 0.0,
     labeled_mask: Optional[np.ndarray] = None,
-) -> Tuple[LongArray, LongArray]:
+) -> Tuple[LongArray, LongArray, Dict[str, LongArray]]:
     r"""
     This method implements the instance matching methods proposed in the following works:
 
@@ -180,7 +180,9 @@ def match_instances(
                 predicted_id = start_instance_id + predicted_idx
                 if min_precision_fp > 0:
                     # count percentage of points belonging to labeled ground-truth instances
-                    intersection = np.logical_and(labeled_mask, prediction == predicted_id).sum()  # type: ignore[arg-type]
+                    intersection = np.logical_and(  # type: ignore[arg-type]
+                        labeled_mask, prediction == predicted_id
+                    ).sum()
                     precision = intersection / (prediction == predicted_id).sum()
                 else:
                     precision = 1.0

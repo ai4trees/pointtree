@@ -84,7 +84,6 @@ jobs:
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
-    strategy:
     runs-on: ubuntu-latest
     strategy:
       matrix:

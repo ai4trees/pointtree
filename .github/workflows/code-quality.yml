@@ -85,16 +85,19 @@ jobs:
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
     runs-on: ubuntu-latest
-    # run tests for all supported Python and PyTorch versions
     strategy:
       matrix:
         version: [
-          {python: "3.10", torch: "2.1.0"},
-          {python: "3.11", torch: "2.2.0"},
-          {python: "3.12", torch: "2.3.0"},
-          {python: "3.12", torch: "2.4.0"},
-          # {python: "3.13", torch: "2.5.0"}  # Python 3.13 currently is not supported because PyGAM does not support it
+          {python: "3.10", torch: "2.5.0", image: "python:3.10-trixie"},
+          {python: "3.11", torch: "2.6.0", image: "python:3.11-trixie"},
+          {python: "3.12", torch: "2.7.0", image: "python:3.12-trixie"},
+          {python: "3.13", torch: "2.8.0", image: "python:3.13-trixie"},
+          {python: "3.14", torch: "2.9.0", image: "python:3.14-trixie"}
         ]
+    container:
+      image: ${{ matrix.version.image }}
+      volumes:
+        - ${{ github.workspace }}:/github/workspace
     steps:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
@@ -103,53 +106,47 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - name: Setup up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.version.python }}
       - name: Install package and dependencies
-        if: ${{ matrix.version.python != '3.13'}}
+        if: ${{ matrix.version.python < '3.14'}}
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends g++
           python -m pip install torch==${{ matrix.version.torch }}
           python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install --upgrade -e .'[dev, docs]'
-          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
       - name: Install package and dependencies
-        if: ${{ matrix.version.python == '3.13'}}
+        if: ${{ matrix.version.python >= '3.14'}}
         shell: bash
         run: |
+          apt-get update && apt-get install -y libhdf5-dev
+          python -m pip install wheel setuptools
+          python -m pip install git+https://github.com/PyTables/PyTables
           python -m pip install torch==${{ matrix.version.torch }}
-          python -m pip install --upgrade wheel setuptools numpy
-          python -m pip install --no-use-pep517 torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
+          cd /github/workspace/
           python -m pip install --upgrade -e .'[dev, docs]'
-          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
       - name: Install compatible numpy version
         if: ${{ matrix.version.python == '3.10' || matrix.version.python == '3.11' || matrix.version.python == '3.12' }}
         shell: bash
         run: |
           python -m pip install numpy==1.26.4
       - name: Execute tests
-        if: matrix.version.python != '3.12'
+        if: matrix.version.python < '3.14'
         shell: bash
         run: |
-          pytest
-      - name: Execute tests and measure code coverage
-        shell: bash
-        run: |
+          cd /github/workspace/
           pytest
       - name: Execute tests (without numba JIT) and measure code coverage
-        if: matrix.version.python == '3.12'
+        if: matrix.version.python == '3.14'
         shell: bash
         run: |
+          cd /github/workspace/
           NUMBA_DISABLE_JIT=1 pytest --cov --cov-report=xml
       - name: Upload results to Codecov
-        if: matrix.version.python == '3.12'
+        if: matrix.version.python == '3.14'
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true

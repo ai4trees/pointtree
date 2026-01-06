@@ -13,7 +13,10 @@ The package contains implementation of the following tree instance segmentation 
 - TreeXAlgorithm
 - CoarseToFineAlgorithm
 
-It contains the official source code of the paper ["Burmeister, Josafat-Mattias, et al. "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences 10 (2024): 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
+It contains the official source code of the following papers:
+
+- TreeXAlgorithm - [Burmeister, Josafat-Mattias, Tockner, Andreas, Reder, Stefan, Engel, Markus, Richter, Rico, Mund, Jan-Peter, & Döllner, Jürgen (2025). "treeX: Unsupervised Tree Instance Segmentation in Dense Forest Point Clouds." arXiv preprint arXiv:2509.03633.](https://doi.org/10.48550/arXiv.2509.03633)
+- CoarseToFineAlgorithm - [Burmeister, Josafat-Mattias, Richter, Rico, Reder, Stefan, Mund, Jan-Peter, & Döllner, Jürgen (2024). "Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation." ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences, 10, 79-86.](https://isprs-annals.copernicus.org/articles/X-4-W5-2024/79/2024/isprs-annals-X-4-W5-2024-79-2024.pdf)
 
 ### Package Documentation
 
@@ -84,13 +87,23 @@ point_cloud.to("./demo_segmented.laz", columns=["x", "y", "z", "instance_id"])
 
 ### How to Cite
 
-If you use our code, please consider citing our paper:
+If you use our code, please consider citing our papers:
+
+```
+@article{Burmeister_Tree_X_2025,
+author = {Burmeister, Josafat-Mattias and Tockner, Andreas and Reder, Stefan and Engel, Markus and Richter, Rico and Mund, Jan-Peter and D{\"o}llner, J{\"u}rgen},
+doi = {https://doi.org/10.48550/arXiv.2509.03633},
+journal = {{arXiv} preprint},
+title = {{treeX}: Unsupervised Tree Instance Segmentation in Dense Forest Point Clouds},
+year = {2025}
+}
+```
 
 ```
 @article{Burmeister_Tree_Instance_Segmentation_2024,
-author = {Burmeister, Josafat-Mattias and Richter, Rico and Reder, Stefan and Mund, Jan-Peter and Döllner, Jürgen},
+author = {Burmeister, Josafat-Mattias and Richter, Rico and Reder, Stefan and Mund, Jan-Peter and D{\"o}llner, J{\"u}rgen},
 doi = {10.5194/isprs-annals-X-4-W5-2024-79-2024},
-journal = {ISPRS Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences},
+journal = {{ISPRS} Annals of the Photogrammetry, Remote Sensing and Spatial Information Sciences},
 pages = {79--86},
 title = {{Tree Instance Segmentation in Urban 3D Point Clouds Using a Coarse-to-Fine Algorithm Based on Semantic Segmentation}},
 volume = {X-4/W5-2024},

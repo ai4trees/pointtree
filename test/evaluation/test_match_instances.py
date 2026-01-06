@@ -144,7 +144,7 @@ class TestMetrics:
         labeled_mask = np.array([True] * 8 + [False] * 4, dtype=bool) if pass_labeled_mask else None
         xyz = np.random.randn(len(target), 3)
 
-        matched_target_ids, matched_predicted_ids, _ = match_instances(
+        matched_target_ids, matched_predicted_ids, metrics = match_instances(
             target,
             prediction,
             xyz=xyz,
@@ -162,8 +162,17 @@ class TestMetrics:
             expected_matched_predicted_ids = np.array([2, -1, -1], dtype=np.int64) + start_instance_id
             expected_matched_target_ids = np.array([-1, -2, 0, -2], dtype=np.int64) + start_instance_id
 
+        expected_metrics = {
+            "tp": np.array([2, 0, 0], dtype=np.int64),
+            "fp": np.array([1, 0, 0], dtype=np.int64),
+            "fn": np.array([0, 3, 1], dtype=np.int64),
+        }
+
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(expected_matched_predicted_ids, matched_predicted_ids)
+
+        for key, expected_metric in expected_metrics.items():
+            np.testing.assert_almost_equal(expected_metric, metrics[key])
 
     @pytest.mark.parametrize("min_tree_height_fp", [0.0, 2.0])
     @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
@@ -192,7 +201,13 @@ class TestMetrics:
         else:
             expected_matched_target_ids = np.array([0, -1], dtype=np.int64) + start_instance_id
 
-        matched_target_ids, matched_predicted_ids, _ = match_instances(
+        expected_metrics = {
+            "tp": np.array([3], dtype=np.int64),
+            "fp": np.array([0], dtype=np.int64),
+            "fn": np.array([0], dtype=np.int64),
+        }
+
+        matched_target_ids, matched_predicted_ids, metrics = match_instances(
             target,
             prediction,
             xyz=xyz,
@@ -204,3 +219,6 @@ class TestMetrics:
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(expected_matched_predicted_ids, matched_predicted_ids)
+
+        for key, expected_metric in expected_metrics.items():
+            np.testing.assert_almost_equal(expected_metric, metrics[key])

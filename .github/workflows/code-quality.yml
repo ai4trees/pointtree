@@ -123,10 +123,8 @@ jobs:
           python -m pip install wheel setuptools
           python -m pip install git+https://github.com/PyTables/PyTables
           python -m pip install torch==${{ matrix.version.torch }}
-          git clone https://github.com/rusty1s/pytorch_scatter.git
-          cd pytorch_scatter && python setup.py install && python setup.py clean --all && cd .. && rm -r pytorch_scatter
-          git clone https://github.com/rusty1s/pytorch_cluster.git
-          cd pytorch_cluster && python setup.py install && python setup.py clean --all && cd .. && rm -r pytorch_cluster
+          python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
+          python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           cd /github/workspace/
           python -m pip install --upgrade -e .'[dev, docs]'

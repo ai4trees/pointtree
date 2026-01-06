@@ -135,7 +135,7 @@ class TestMetrics:
 
     @pytest.mark.parametrize("pass_labeled_mask", [True, False])
     @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
-    def test_match_instances_labeled_mask(
+    def test_match_instances_labeled_mask(  # pylint: disable=too-many-locals
         self, pass_labeled_mask: bool, invalid_instance_id: int, uncertain_instance_id: int
     ):
         start_instance_id = invalid_instance_id + 1
@@ -176,7 +176,7 @@ class TestMetrics:
 
     @pytest.mark.parametrize("min_tree_height_fp", [0.0, 2.0])
     @pytest.mark.parametrize("invalid_instance_id, uncertain_instance_id", [(-1, -2), (0, -1)])
-    def test_instance_detection_metrics_min_tree_height_fp(
+    def test_instance_detection_metrics_min_tree_height_fp(  # pylint: disable=too-many-locals
         self, min_tree_height_fp: float, invalid_instance_id: int, uncertain_instance_id: int
     ):
         start_instance_id = invalid_instance_id + 1

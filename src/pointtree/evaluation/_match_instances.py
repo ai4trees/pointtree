@@ -180,8 +180,8 @@ def match_instances(  # pylint: disable=too-many-locals
                 predicted_id = start_instance_id + predicted_idx
                 if min_precision_fp > 0:
                     # count percentage of points belonging to labeled ground-truth instances
-                    intersection = np.logical_and(  # type: ignore[arg-type]
-                        labeled_mask, prediction == predicted_id
+                    intersection = np.logical_and(
+                        labeled_mask, prediction == predicted_id  # type: ignore[arg-type]
                     ).sum()
                     precision = intersection / (prediction == predicted_id).sum()
                 else:

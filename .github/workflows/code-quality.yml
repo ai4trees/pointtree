@@ -51,12 +51,11 @@ jobs:
         shell: bash
         run: |
           cd /github/workspace/
-          pip install torch==2.4.0
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install torch==2.9.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade -e .'[dev, docs]'
-          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
@@ -73,14 +72,11 @@ jobs:
         shell: bash
         run: |
           cd /github/workspace/
-          pip install torch==2.4.0
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
+          pip install torch==2.9.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade .'[dev, docs]'
-          echo "install circle detection"
-          pip install --force-reinstall git+https://github.com/josafatburmeister/circle_detection.git
-          echo "installed circle detection"
           pylint src --rcfile=.rcfile
           pylint test --rcfile=.rcfile --disable duplicate-code --disable missing-function-docstring
   test:
@@ -119,9 +115,6 @@ jobs:
         if: ${{ matrix.version.python >= '3.14'}}
         shell: bash
         run: |
-          apt-get update && apt-get install -y libhdf5-dev
-          python -m pip install wheel setuptools
-          python -m pip install git+https://github.com/PyTables/PyTables
           python -m pip install torch==${{ matrix.version.torch }}
           python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html
           python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-${{ matrix.version.torch }}+cpu.html

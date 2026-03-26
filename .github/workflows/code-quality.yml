@@ -84,11 +84,11 @@ jobs:
     strategy:
       matrix:
         version: [
-          {python: "3.10", torch: "2.5.0", image: "python:3.10-trixie"},
-          {python: "3.11", torch: "2.6.0", image: "python:3.11-trixie"},
-          {python: "3.12", torch: "2.7.0", image: "python:3.12-trixie"},
-          {python: "3.13", torch: "2.8.0", image: "python:3.13-trixie"},
-          {python: "3.14", torch: "2.9.0", image: "python:3.14-trixie"}
+          {python: "3.10", torch: "2.6.0", image: "python:3.10-trixie"},
+          {python: "3.11", torch: "2.7.0", image: "python:3.11-trixie"},
+          {python: "3.12", torch: "2.8.0", image: "python:3.12-trixie"},
+          {python: "3.13", torch: "2.9.0", image: "python:3.13-trixie"},
+          {python: "3.14", torch: "2.10.0", image: "python:3.14-trixie"}
         ]
     container:
       image: ${{ matrix.version.image }}

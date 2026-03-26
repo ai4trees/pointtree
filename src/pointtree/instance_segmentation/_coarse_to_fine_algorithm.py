@@ -426,8 +426,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
         xyz = xyz.copy()
         xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
-        xyz[:, :2] -= bounding_box[0]
-        xyz[:, 2] -= xyz[:, 2].min(axis=0)
+        xyz[:, :2] -= bounding_box[0]  # type: ignore[misc]
+        xyz[:, 2] -= xyz[:, 2].min(axis=0)  # type: ignore[misc]
 
         device = torch.device("cpu")
 
@@ -529,7 +529,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 )
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
-                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(  # type:ignore[assignment]
+                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(
                     smoothed_canopy_height_model.dtype
                 )
                 smoothed_canopy_height_model[canopy_height_model == 0] = 0

@@ -285,7 +285,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             watershed_labels_without_border,
         )
 
-        instance_ids_to_refine = np.sort(np.unique(instance_ids[seed_mask]))
+        instance_ids_to_refine = np.unique(instance_ids[seed_mask], sorted=True)
 
         crown_distance_fields = self.compute_crown_distance_fields(
             watershed_labels_without_border, tree_positions_grid[instance_ids_to_refine]
@@ -831,14 +831,14 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         """
         with Profiler('"Watershed correction', self._performance_tracker):
             self._logger.info("Correct Watershed segmentation...")
-            for instance_id in np.unique(watershed_labels_without_border):
+            for instance_id in np.unique(watershed_labels_without_border, sorted=False):
                 if instance_id == 0:  # background
                     continue
 
                 instance_mask = watershed_labels_without_border == instance_id
 
                 dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
-                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask])
+                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask], sorted=False)
 
                 if instance_mask.sum() == 1 or (len(neighbor_instance_ids) == 2) and (0 not in neighbor_instance_ids):
                     neighbor_instance_ids = neighbor_instance_ids[neighbor_instance_ids != 0]
@@ -1025,7 +1025,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             ):
                 instance_mask = watershed_labels_without_border == instance_id + 1
                 dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
-                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask]) - 1
+                neighbor_instance_ids = (
+                    np.unique(watershed_labels_without_border[dilated_instance_mask], sorted=False) - 1
+                )
 
                 has_neighbor_to_refine = False
                 for neighbor_instance_id in neighbor_instance_ids:

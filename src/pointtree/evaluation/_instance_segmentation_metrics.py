@@ -100,13 +100,13 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     if len(target) != len(prediction):
         raise ValueError("Target and prediction must have the same length.")
 
-    target_ids = np.unique(target)
+    target_ids = np.unique(target, sorted=False)
     target_ids = target_ids[target_ids != invalid_instance_id]
 
     if len(matched_predicted_ids) != len(target_ids):
         raise ValueError("The length of matched_predicted_ids must be equal to the number of target instances.")
 
-    prediction_ids = np.unique(prediction)
+    prediction_ids = np.unique(prediction, sorted=False)
     prediction_ids = prediction_ids[prediction_ids != invalid_instance_id]
 
     start_instance_id_target = target_ids.min() if len(target_ids) > 0 else None
@@ -210,7 +210,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
     if len(target) != len(prediction):
         raise ValueError("Target and prediction must have the same length.")
 
-    target_ids = np.unique(target)
+    target_ids = np.unique(target, sorted=False)
     target_ids = target_ids[target_ids != invalid_instance_id]
 
     if len(matched_predicted_ids) != len(target_ids):
@@ -228,7 +228,7 @@ def instance_segmentation_metrics(  # pylint: disable=too-many-locals
 
         return average_metrics, per_instance_metrics
 
-    prediction_ids = np.unique(prediction)
+    prediction_ids = np.unique(prediction, sorted=False)
     prediction_ids = prediction_ids[prediction_ids != invalid_instance_id]
 
     start_instance_id_target = cast(int, target_ids.min())
@@ -382,13 +382,13 @@ def instance_segmentation_metrics_per_partition(  # pylint: disable=too-many-loc
     if len(target) != len(prediction):
         raise ValueError("Target and prediction must have the same length.")
 
-    target_ids = np.unique(target)
+    target_ids = np.unique(target, sorted=False)
     target_ids = target_ids[target_ids != invalid_instance_id]
 
     if len(matched_predicted_ids) != len(target_ids):
         raise ValueError("The length of matched_predicted_ids must be equal to the number of target instances.")
 
-    prediction_ids = np.unique(prediction)
+    prediction_ids = np.unique(prediction, sorted=False)
     prediction_ids = prediction_ids[prediction_ids != invalid_instance_id]
 
     if len(target_ids) == 0 or (not include_unmatched_instances and len(prediction_ids) == 0):

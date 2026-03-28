@@ -39,7 +39,7 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     container:
-      image: josafatburmeister/pointtree:cpu
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -60,7 +60,7 @@ jobs:
   pylint:
     runs-on: ubuntu-latest
     container:
-      image: josafatburmeister/pointtree:cpu
+      image: josafatburmeister/pointtree:latest
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:

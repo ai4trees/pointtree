@@ -1974,8 +1974,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         if self._invalid_tree_id != -1:
             if self._invalid_tree_id == 0:
-                instance_ids[instance_ids != -1] += 1
-            instance_ids[instance_ids == -1] = self._invalid_tree_id
+                instance_ids[instance_ids != -1] += 1  # type: ignore[index]
+            instance_ids[instance_ids == -1] = self._invalid_tree_id  # type: ignore[index]
 
         full_instance_ids = np.full(len(xyz), fill_value=self._invalid_tree_id, dtype=np.int64)
         full_instance_ids = instance_ids[inverse_indices]

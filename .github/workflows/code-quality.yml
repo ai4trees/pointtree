@@ -39,7 +39,7 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     container:
-      image: josafatburmeister/pointtree:latest
+      image: josafatburmeister/pointtree:cpu
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -51,16 +51,16 @@ jobs:
         shell: bash
         run: |
           cd /github/workspace/
-          pip install torch==2.9.0
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
-          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
+          pip install torch==2.10.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade -e .'[dev, docs]'
           mypy . --warn-unused-ignores --show-error-codes --no-incremental
   pylint:
     runs-on: ubuntu-latest
     container:
-      image: josafatburmeister/pointtree:latest
+      image: josafatburmeister/pointtree:cpu
       volumes:
         - ${{ github.workspace }}:/github/workspace
     steps:
@@ -72,9 +72,9 @@ jobs:
         shell: bash
         run: |
           cd /github/workspace/
-          pip install torch==2.9.0
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
-          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.9.0+cpu.html
+          pip install torch==2.10.0
+          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
+          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
           pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           python -m pip install -v --upgrade .'[dev, docs]'
           pylint src --rcfile=.rcfile

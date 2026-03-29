@@ -58,6 +58,11 @@ jobs:
           CIBW_ENABLE: cpython-freethreading
           CIBW_TEST_COMMAND: pytest {package}/test
           CIBW_TEST_REQUIRES: pytest
+          CIBW_BEFORE_TEST: >
+            python -m pip install --upgrade pip &&
+            python -m pip install torch==2.10.0 &&
+            python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
+            python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
           CIBW_CONFIG_SETTINGS_MACOS: >
             cmake.args=-DOPENMP_ROOT=${{ github.workspace }}/llvm-project/openmp/install
           CIBW_ENVIRONMENT_MACOS: >

@@ -41,17 +41,17 @@ jobs:
         if: ${{ startsWith(matrix.os, 'macos') }}
         run: |
           git clone --depth 1 https://github.com/llvm/llvm-project.git
-          cd llvm-project/openmp
 
-          cmake -S . -B build \
+          cmake -S llvm-project/runtimes -B llvm-project/build-openmp \
+            -DLLVM_ENABLE_RUNTIMES=openmp \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/llvm-project/openmp/install" \
             -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 \
             -DLIBOMP_ENABLE_SHARED=ON
 
-          cmake --build build -j
-          cmake --install build
+          cmake --build llvm-project/build-openmp -j
+          cmake --install llvm-project/build-openmp
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.0
         env:

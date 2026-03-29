@@ -84,7 +84,7 @@ ArrayXl grow_trees(
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t i = 0; i < growing_xyz.rows(); ++i) {
-    std::vector<size_t> knn_index(num_neighbors_region_growing);
+    std::vector<KDTree3IndexType<scalar_T>> knn_index(num_neighbors_region_growing);
     std::vector<scalar_T> knn_dist(num_neighbors_region_growing);
     ArrayX3<scalar_T> query_xyz = growing_xyz(i, Eigen::all);
 

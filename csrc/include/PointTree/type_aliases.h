@@ -71,6 +71,18 @@ template <typename scalar_T>
 using KDTree3 = nanoflann::KDTreeEigenMatrixAdaptor<MatrixX3<scalar_T>, 3, nanoflann::metric_L2_Simple>;
 
 template <typename scalar_T>
+using KDTree2IndexType = typename KDTree2<scalar_T>::IndexType;
+
+template <typename scalar_T>
+using KDTree3IndexType = typename KDTree3<scalar_T>::IndexType;
+
+template <typename scalar_T>
+using KDTree2ResultItem = nanoflann::ResultItem<KDTree2IndexType<scalar_T>, scalar_T>;
+
+template <typename scalar_T>
+using KDTree3ResultItem = nanoflann::ResultItem<KDTree3IndexType<scalar_T>, scalar_T>;
+
+template <typename scalar_T>
 using QueueElementType = std::tuple<int64_t, int64_t, scalar_T>;
 
 }  // namespace PointTree

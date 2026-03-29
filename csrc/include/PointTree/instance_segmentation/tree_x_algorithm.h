@@ -171,7 +171,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_stem_layers_refined_fittin
           buffer_width = stem_search_circle_fitting_large_buffer_width;
         }
 
-        std::vector<nanoflann::ResultItem<size_t, scalar_T>> search_result;
+        std::vector<KDTree2ResultItem<scalar_T>> search_result;
 
         auto min_radius_squared = circle_radius - buffer_width;
         min_radius_squared = min_radius_squared * min_radius_squared;
@@ -204,7 +204,7 @@ std::tuple<ArrayX2<scalar_T>, ArrayXl> collect_inputs_stem_layers_refined_fittin
           buffer_width = stem_search_circle_fitting_large_buffer_width;
         }
 
-        std::vector<nanoflann::ResultItem<size_t, scalar_T>> search_result;
+        std::vector<KDTree2ResultItem<scalar_T>> search_result;
 
         auto max_radius_squared = ellipse(2) + buffer_width;
         max_radius_squared = max_radius_squared * max_radius_squared;
@@ -301,7 +301,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
   for (int64_t tree_id = 0; tree_id < num_trees; ++tree_id) {
     ArrayX<scalar_T> tree_position = tree_positions.row(tree_id);
 
-    std::vector<nanoflann::ResultItem<size_t, scalar_T>> search_result;
+    std::vector<KDTree2ResultItem<scalar_T>> search_result;
 
     scalar_T search_radius = search_radii(tree_id) > region_growing_seed_min_diameter / 2
                                  ? search_radii(tree_id)
@@ -314,7 +314,7 @@ std::tuple<ArrayXl, std::vector<int64_t>> collect_region_growing_seeds(
 
     std::transform(
         search_result.begin(), search_result.end(), current_seed_indices.begin(),
-        [seed_layer_indices](const nanoflann::ResultItem<size_t, scalar_T>& x) {
+        [seed_layer_indices](const KDTree2ResultItem<scalar_T>& x) {
           return seed_layer_indices[static_cast<int64_t>(x.first)];
         });
 
@@ -415,7 +415,7 @@ ArrayXl segment_tree_crowns(
     ArrayXb becomes_new_seed = ArrayXb::Constant(unassigned_indices.size(), 0);
     ArrayXb tree_was_grown = ArrayXb::Constant(num_trees, 0);
 
-    std::vector<size_t> knn_index(unassigned_indices.size());
+    std::vector<KDTree3IndexType<scalar_T>> knn_index(unassigned_indices.size());
     std::vector<scalar_T> knn_dist(unassigned_indices.size());
 
 #pragma omp parallel for num_threads(num_workers)

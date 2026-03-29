@@ -2,9 +2,10 @@ name: Code Quality Checks
 
 on:
   workflow_call:
-    secrets:
-      codecov_token:
-        required: true
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   black:
@@ -15,7 +16,7 @@ jobs:
       - name: Checkout out repository
         uses: actions/checkout@v6
       - name: Setup up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Analysing the code with black
@@ -134,8 +135,8 @@ jobs:
           NUMBA_DISABLE_JIT=1 pytest --cov --cov-report=xml
       - name: Upload results to Codecov
         if: matrix.version.python == '3.14'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true
-          token: ${{ secrets.codecov_token }}
+          use_oidc: true
           verbose: true

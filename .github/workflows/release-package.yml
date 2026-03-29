@@ -67,7 +67,7 @@ jobs:
             DYLD_LIBRARY_PATH="${{ github.workspace }}/llvm-project/openmp/install/lib"
           CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -84,7 +84,7 @@ jobs:
       - name: Force correct release branch on workflow sha
         run: git checkout -B ${{ github.ref_name }} ${{ github.sha }}
       - name: Setup up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
       # to build the package, a preview of the released version is created but not committed
@@ -99,7 +99,7 @@ jobs:
           pip install build
       - name: Build sdist
         run: python -m build --sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: cibw-sdist
           path: dist/*.tar.gz
@@ -129,7 +129,7 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Setup up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
       - name: Install build dependencies

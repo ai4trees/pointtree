@@ -13,7 +13,7 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup up Python
         uses: actions/setup-python@v3
         with:
@@ -30,7 +30,7 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Format C++ code with clang-format
         shell: bash
         run: |
@@ -46,7 +46,7 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Analysing the code with mypy
         shell: bash
         run: |
@@ -67,7 +67,7 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Analysing the code with pylint
         shell: bash
         run: |
@@ -97,7 +97,7 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0

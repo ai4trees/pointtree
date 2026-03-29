@@ -53,7 +53,7 @@ def filter_instances_min_points(
     if min_points is None:
         return instance_ids, unique_instance_ids
 
-    unique_instance_ids, point_counts = np.unique(instance_ids, return_counts=True)
+    unique_instance_ids, point_counts = np.unique(instance_ids, return_counts=True, sorted=False)
     discarded_instance_ids = unique_instance_ids[point_counts < min_points]
     instance_ids[np.isin(instance_ids, discarded_instance_ids)] = -1
 
@@ -104,7 +104,7 @@ def filter_instances_vertical_extent(
     if min_vertical_extent is None:
         return instance_ids, unique_instance_ids
 
-    unique_instance_ids, inverse_indices = np.unique(instance_ids, return_inverse=True)
+    unique_instance_ids, inverse_indices = np.unique(instance_ids, return_inverse=True, sorted=False)
 
     min_z_per_cluster = np.full(len(unique_instance_ids), fill_value=np.inf, dtype=xyz.dtype)
     max_z_per_cluster = np.full(len(unique_instance_ids), fill_value=-np.inf, dtype=xyz.dtype)

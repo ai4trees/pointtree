@@ -13,7 +13,7 @@ from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampl
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, footprint_rectangle, dilation, erosion
 from skimage.feature import peak_local_max  # pylint: disable=no-name-in-module
-from skimage.segmentation import watershed, find_boundaries
+from skimage.segmentation import watershed, find_boundaries  # pylint: disable=no-name-in-module
 from sklearn.cluster import DBSCAN
 import torch
 from torch_scatter import scatter_max
@@ -285,7 +285,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             watershed_labels_without_border,
         )
 
-        instance_ids_to_refine = np.sort(np.unique(instance_ids[seed_mask]))
+        instance_ids_to_refine = np.unique(instance_ids[seed_mask], sorted=True)
 
         crown_distance_fields = self.compute_crown_distance_fields(
             watershed_labels_without_border, tree_positions_grid[instance_ids_to_refine]
@@ -426,8 +426,8 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
 
         xyz = xyz.copy()
         xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
-        xyz[:, :2] -= bounding_box[0]  # type: ignore[misc]
-        xyz[:, 2] -= xyz[:, 2].min(axis=0)  # type: ignore[misc]
+        xyz[:, :2] -= bounding_box[0]
+        xyz[:, 2] -= xyz[:, 2].min(axis=0)
 
         device = torch.device("cpu")
 
@@ -529,9 +529,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 )
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
-                smoothed_canopy_height_model = smoothed_canopy_height_model / weights.astype(
-                    smoothed_canopy_height_model.dtype
-                )
+                smoothed_canopy_height_model /= weights.astype(smoothed_canopy_height_model.dtype)
                 smoothed_canopy_height_model[canopy_height_model == 0] = 0
                 canopy_height_model = smoothed_canopy_height_model
 
@@ -831,14 +829,14 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         """
         with Profiler('"Watershed correction', self._performance_tracker):
             self._logger.info("Correct Watershed segmentation...")
-            for instance_id in np.unique(watershed_labels_without_border):
+            for instance_id in np.unique(watershed_labels_without_border, sorted=False):
                 if instance_id == 0:  # background
                     continue
 
                 instance_mask = watershed_labels_without_border == instance_id
 
                 dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
-                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask])
+                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask], sorted=False)
 
                 if instance_mask.sum() == 1 or (len(neighbor_instance_ids) == 2) and (0 not in neighbor_instance_ids):
                     neighbor_instance_ids = neighbor_instance_ids[neighbor_instance_ids != 0]
@@ -1025,7 +1023,9 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             ):
                 instance_mask = watershed_labels_without_border == instance_id + 1
                 dilated_instance_mask = dilation(instance_mask, footprint_rectangle((3, 3)))
-                neighbor_instance_ids = np.unique(watershed_labels_without_border[dilated_instance_mask]) - 1
+                neighbor_instance_ids = (
+                    np.unique(watershed_labels_without_border[dilated_instance_mask], sorted=False) - 1
+                )
 
                 has_neighbor_to_refine = False
                 for neighbor_instance_id in neighbor_instance_ids:

@@ -58,19 +58,13 @@ def color_instance_segmentation(
         for instance_id in fp_ids:
             if instance_id == -1:
                 continue
-            point_cloud.loc[
-                point_cloud[instance_id_column] == instance_id,
-                ["r", "g", "b"],  # type: ignore[call-overload]
-            ] = acm_red
+            point_cloud.loc[point_cloud[instance_id_column] == instance_id, ["r", "g", "b"]] = acm_red
 
     if fn_ids is not None and target_instance_id_column:
         for instance_id in fn_ids:
             if instance_id == -1:
                 continue
-            point_cloud.loc[  # type: ignore[call-overload]
-                point_cloud[target_instance_id_column] == instance_id,
-                ["r", "g", "b"],
-            ] = acm_blue
+            point_cloud.loc[point_cloud[target_instance_id_column] == instance_id, ["r", "g", "b"]] = acm_blue
 
     return point_cloud
 

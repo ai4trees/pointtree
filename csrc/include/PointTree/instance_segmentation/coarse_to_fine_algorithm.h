@@ -84,14 +84,16 @@ ArrayXl grow_trees(
 
 #pragma omp parallel for num_threads(num_workers)
   for (int64_t i = 0; i < growing_xyz.rows(); ++i) {
-    std::vector<int64_t> knn_index(num_neighbors_region_growing);
+    std::vector<size_t> knn_index(num_neighbors_region_growing);
     std::vector<scalar_T> knn_dist(num_neighbors_region_growing);
     ArrayX3<scalar_T> query_xyz = growing_xyz(i, Eigen::all);
 
     auto num_results =
         kd_tree.index_->knnSearch(query_xyz.data(), num_neighbors_region_growing, &knn_index[0], &knn_dist[0]);
     assert(num_results == num_neighbors_region_growing);
-    neighbor_indices(i, Eigen::all) = Eigen::Map<ArrayXl>(knn_index.data(), num_neighbors_region_growing);
+    for (int64_t j = 0; j < num_neighbors_region_growing; ++j) {
+      neighbor_indices(i, j) = static_cast<int64_t>(knn_index[j]);
+    }
     squared_neighbor_dists(i, Eigen::all) = Eigen::Map<ArrayX<scalar_T>>(knn_dist.data(), num_neighbors_region_growing);
   }
 

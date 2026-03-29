@@ -529,9 +529,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
                 )
                 weights = ndi.gaussian_filter((canopy_height_model > 0).astype(float), sigma=self._smooth_sigma)
                 weights[weights == 0] = 1
-                smoothed_canopy_height_model /= weights.astype(  # type: ignore[assignment]
-                    smoothed_canopy_height_model.dtype
-                )
+                smoothed_canopy_height_model /= weights.astype(smoothed_canopy_height_model.dtype)
                 smoothed_canopy_height_model[canopy_height_model == 0] = 0
                 canopy_height_model = smoothed_canopy_height_model
 

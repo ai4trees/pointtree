@@ -58,7 +58,6 @@ jobs:
           CIBW_ENABLE: cpython-freethreading
           CIBW_TEST_COMMAND: pytest {package}/test
           CIBW_TEST_REQUIRES: pytest
-          CIBW_SKIP: "pp39-macosx_arm64 pp39-manylinux_i686 cp39-win_arm64 cp310-win_arm64"
           CIBW_CONFIG_SETTINGS_MACOS: >
             cmake.args=-DOPENMP_ROOT=${{ github.workspace }}/llvm-project/openmp/install
           CIBW_ENVIRONMENT_MACOS: >

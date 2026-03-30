@@ -62,10 +62,10 @@ jobs:
           CIBW_BEFORE_TEST_LINUX: >
             ARCH=$(python -c "import platform; print(platform.machine())") &&
             if [ "$ARCH" = "aarch64" ]; then
-              python -m pip install --upgrade "pip<=20.0.0" "setuptools>=61,<81" wheel ninja build meson-python &&
-              python -m pip install torch==2.5.0 &&
-              python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.5.0+cpu.html &&
-              python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.5.0+cpu.html;
+              python -m pip install --upgrade pip setuptools wheel ninja build meson-python &&
+              python -m pip install torch==2.10.0 &&
+              python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
+              python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
             else
               python -m pip install --upgrade pip setuptools wheel build;
               python -m pip install torch==2.10.0 &&

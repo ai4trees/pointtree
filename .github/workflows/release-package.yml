@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-latest, macos-15-intel]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel] # ubuntu-24.04-arm, windows-11-arm,
     steps:
       # Note: we need to checkout the repository at the workflow sha in case during the workflow
       # the branch was updated. To keep PSR working with the configured release branches,
@@ -72,7 +72,7 @@ jobs:
             python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           CIBW_BEFORE_TEST_WINDOWS: >
             python -m pip install --upgrade pip &&
-            python -m pip install torch==2.10.0 &&
+            python -m pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu &&
             python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
             python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
             python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git

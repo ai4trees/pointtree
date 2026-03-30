@@ -60,7 +60,7 @@ jobs:
           CIBW_TEST_COMMAND: pytest {package}/test
           CIBW_TEST_REQUIRES: pytest
           CIBW_BEFORE_TEST_LINUX: >
-            python -m pip install --upgrade pip setuptools<20.0.0 wheel build &&
+            python -m pip install --upgrade pip "setuptools<20.0.0" wheel build &&
             python -m pip install torch==2.7.0 &&
             python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&
             python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&

@@ -61,8 +61,8 @@ jobs:
           CIBW_BEFORE_TEST_LINUX: >
             python -m pip install --upgrade pip &&
             python -m pip install torch==2.7.0 &&
-            python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&
-            python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&
+            python -m pip install --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&
+            python -m pip install --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&
             python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           CIBW_BEFORE_TEST_MACOS: >
             python -m pip install --upgrade pip &&

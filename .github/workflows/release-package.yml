@@ -66,13 +66,14 @@ jobs:
             python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.7.0+cpu.html &&
             python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
           CIBW_BEFORE_TEST_MACOS: >
-            python -m pip install --upgrade pip &&
             ARCH=$(python -c "import platform; print(platform.machine())") &&
             if [ "$ARCH" = "x86_64" ]; then
+              python -m pip install --upgrade pip<=20.0.0 &&
               python -m pip install torch==2.2.0 setuptools<81.0.0;
               python -m pip install --no-build-isolation torch-scatter -f https://data.pyg.org/whl/torch-2.2.0+cpu.html;
               python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.2.0+cpu.html;
             else
+              python -m pip install --upgrade pip &&
               python -m pip install torch==2.10.0;
               python -m pip install torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
               python -m pip install torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;

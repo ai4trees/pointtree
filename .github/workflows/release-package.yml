@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest] # , , macos-15-intel
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
     steps:
       # Note: we need to checkout the repository at the workflow sha in case during the workflow
       # the branch was updated. To keep PSR working with the configured release branches,
@@ -56,6 +56,13 @@ jobs:
         uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_SKIP: "*-win32 cp314t-* *-musllinux_*"
+          CIBW_CONFIG_SETTINGS_MACOS: >
+            cmake.args=-DOPENMP_ROOT=${{ github.workspace }}/llvm-project/openmp/install
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=10.15
+            DYLD_LIBRARY_PATH="${{ github.workspace }}/llvm-project/openmp/install/lib"
+          CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
           CIBW_TEST_COMMAND: pytest {package}/test
           CIBW_TEST_REQUIRES: pytest
           CIBW_BEFORE_TEST_LINUX: >
@@ -70,27 +77,17 @@ jobs:
               python -m pip install torch==2.10.0 &&
               python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
               python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
-            fi &&
-            python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
+            fi
           CIBW_BEFORE_TEST_MACOS: >
             python -m pip install --upgrade pip "setuptools<81" &&
             python -m pip install torch==2.10.0 &&
             python -m pip install --no-build-isolation torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
-            python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
-            python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
+            python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
           CIBW_BEFORE_TEST_WINDOWS: >
             python -m pip install --upgrade pip &&
             python -m pip install torch==2.10.0 &&
             python -m pip install --no-build-isolation torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
-            python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
-            python -m pip install --force-reinstall git+https://github.com/ai4trees/pointtorch.git
-          CIBW_CONFIG_SETTINGS_MACOS: >
-            cmake.args=-DOPENMP_ROOT=${{ github.workspace }}/llvm-project/openmp/install
-          CIBW_ENVIRONMENT_MACOS: >
-            MACOSX_DEPLOYMENT_TARGET=10.15
-            DYLD_LIBRARY_PATH="${{ github.workspace }}/llvm-project/openmp/install/lib"
-          CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
+            python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
       - uses: actions/upload-artifact@v6
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}

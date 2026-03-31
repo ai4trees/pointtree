@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   deploy-docs:
-    if: github.repository == 'ai4trees/pointtree'
+    if: github.repository == 'ai4trees/pointtree' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -45,7 +45,7 @@ jobs:
       - name: Clean up potential remnants of past jobs
         uses: AutoModality/action-clean@v1.1.0
       - name: Checkout out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Prepare docs build
@@ -113,7 +113,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           # Upload entire repository
           path: './docs/all_builds'

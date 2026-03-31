@@ -14,19 +14,127 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release-package:
-    if: github.repository == 'ai4trees/pointtree' && github.ref_name == 'main'
-    runs-on: ubuntu-latest
+  build-wheels:
+    name: Build wheels for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, macos-latest]
     steps:
-      - name: Clean up potential remnants of past jobs
-        uses: AutoModality/action-clean@v1.1.0
       # Note: we need to checkout the repository at the workflow sha in case during the workflow
       # the branch was updated. To keep PSR working with the configured release branches,
       # we force a checkout of the desired release branch but at the workflow sha HEAD.
       - name: Check out repository at workflow sha
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Force correct release branch on workflow sha
+        run: git checkout -B ${{ github.ref_name }} ${{ github.sha }}
+      # to build the package, a preview of the released version is created but not committed
+      - name: Create release preview
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel python-semantic-release
+          semantic-release version --no-commit --skip-build --no-vcs-release --no-tag
+      - name: Install OpenMP on MacOS
+        if: ${{ startsWith(matrix.os, 'macos') }}
+        run: |
+          git clone --depth 1 https://github.com/llvm/llvm-project.git
+
+          cmake -S llvm-project/runtimes -B llvm-project/build-openmp \
+            -DLLVM_ENABLE_RUNTIMES=openmp \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/llvm-project/openmp/install" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
+            -DLIBOMP_ENABLE_SHARED=ON
+
+          cmake --build llvm-project/build-openmp -j
+          cmake --install llvm-project/build-openmp
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.3.0
+        env:
+          CIBW_SKIP: "*-win32 cp314t-* *-musllinux_*"
+          CIBW_CONFIG_SETTINGS_MACOS: >
+            cmake.args=-DOPENMP_ROOT=${{ github.workspace }}/llvm-project/openmp/install
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=10.15
+            DYLD_LIBRARY_PATH="${{ github.workspace }}/llvm-project/openmp/install/lib"
+          CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
+          CIBW_TEST_COMMAND: pytest {package}/test
+          CIBW_TEST_REQUIRES: pytest
+          CIBW_BEFORE_TEST_LINUX: >
+            ARCH=$(python -c "import platform; print(platform.machine())") &&
+            if [ "$ARCH" = "aarch64" ]; then
+              python -m pip install --upgrade pip setuptools wheel ninja build meson-python &&
+              python -m pip install torch==2.10.0 &&
+              python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
+              python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
+            else
+              python -m pip install --upgrade pip setuptools wheel build;
+              python -m pip install torch==2.10.0 &&
+              python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
+              python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
+            fi
+          CIBW_BEFORE_TEST_MACOS: >
+            python -m pip install --upgrade pip "setuptools<81" &&
+            python -m pip install torch==2.10.0 &&
+            python -m pip install --no-build-isolation torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
+            python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
+          CIBW_BEFORE_TEST_WINDOWS: >
+            python -m pip install --upgrade pip &&
+            python -m pip install torch==2.10.0 &&
+            python -m pip install --no-build-isolation torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
+            python -m pip install --no-build-isolation torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          path: ./wheelhouse/*.whl
+
+  build-sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository at workflow sha
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Force correct release branch on workflow sha
+        run: git checkout -B ${{ github.ref_name }} ${{ github.sha }}
+      - name: Setup up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      # to build the package, a preview of the released version is created but not committed
+      - name: Create release preview
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel python-semantic-release
+          semantic-release version --no-commit --skip-build --no-vcs-release --no-tag
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+      - name: Build sdist
+        run: python -m build --sdist
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cibw-sdist
+          path: dist/*.tar.gz
+
+  release-package:
+    needs: [build-wheels, build-sdist]
+    if: github.repository == 'ai4trees/pointtree' && github.ref_name == 'main'
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: Clean up potential remnants of past jobs
+        uses: AutoModality/action-clean@v1.1.0
+      - name: Check out repository at workflow sha
+        uses: actions/checkout@v6
+        with:
           fetch-depth: 0
           ref: ${{ github.sha }}
       - name: Force correct release branch on workflow sha
@@ -35,26 +143,33 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git checkout -B ${{ github.ref_name }} ${{ github.sha }}
-      - name: Install build and package dependencies
+      - uses: actions/download-artifact@v4
+        with:
+          # unpacks all CIBW artifacts into dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+      - name: Setup up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install build wheel python-semantic-release setuptools
-          pip install torch==2.4.0
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          pip install torch-cluster -f https://data.pyg.org/whl/torch-2.4.0+cpu.html
-          python -m pip install .
+          pip install build wheel python-semantic-release
       - name: Create release
         id: release
         run: |
-          semantic-release version
+          git config --global --add safe.directory $(realpath .)
+          semantic-release version --skip-build
         env:
-          PSR_DOCKER_GITHUB_ACTION: true
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         if: steps.release.outputs.released == 'true'
         with:
           repository-url: https://test.pypi.org/legacy/
+          user: __token__
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
       - name: Test install from TestPyPI
         run: |
@@ -66,4 +181,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         if: steps.release.outputs.released == 'true'
         with:
+          user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}

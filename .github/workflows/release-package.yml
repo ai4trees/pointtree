@@ -55,7 +55,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.0
         env:
-          CIBW_SKIP: "*-win32 cp314t-*"
+          CIBW_SKIP: "*-win32 cp314t-* *-musllinux_*"
           CIBW_TEST_COMMAND: pytest {package}/test
           CIBW_TEST_REQUIRES: pytest
           CIBW_BEFORE_TEST_LINUX: >

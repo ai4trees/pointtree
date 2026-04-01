@@ -166,7 +166,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish package to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        if: steps.release.outputs.released == 'true'
+        # if: steps.release.outputs.released == 'true'
         with:
           repository-url: https://test.pypi.org/legacy/
           user: __token__
@@ -181,9 +181,9 @@ jobs:
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \
             pointtree
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        if: steps.release.outputs.released == 'true'
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      # - name: Publish to PyPI
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   if: steps.release.outputs.released == 'true'
+      #   with:
+      #     user: __token__
+      #     password: ${{ secrets.PYPI_API_TOKEN }}

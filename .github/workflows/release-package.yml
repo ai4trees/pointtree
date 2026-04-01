@@ -73,7 +73,7 @@ jobs:
               python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
               python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
             else
-              python -m pip install --upgrade pip setuptools wheel build;
+              python -m pip install --upgrade pip setuptools wheel build &&
               python -m pip install torch==2.10.0 &&
               python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html &&
               python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html;
@@ -173,6 +173,10 @@ jobs:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
       - name: Test install from TestPyPI
         run: |
+          python -m pip install --upgrade pip setuptools wheel build && \
+          python -m pip install torch==2.10.0 && \
+          python -m pip install --no-build-isolation --no-binary=torch-scatter torch-scatter -f https://data.pyg.org/whl/torch-2.10.0+cpu.html && \
+          python -m pip install --no-build-isolation --no-binary=torch-cluster torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html && \
           python -m pip install \
             --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple \

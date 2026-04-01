@@ -22,9 +22,19 @@ It contains the official source code of the following papers:
 
 The documentation of our package is available [here](https://ai4trees.github.io/pointtree/stable).
 
-### Project Setup
+### Installation
 
-The setup of our package is described in the [documentation](https://ai4trees.github.io/pointtree/stable#get-started).
+The installation steps are detailed in the [documentation](https://ai4trees.github.io/pointtree/stable#get-started). A minimal example is shown below:
+
+```bash
+python -m pip install torch==2.10.0
+```
+```bash
+python -m  pip install torch-scatter torch-cluster -f https://data.pyg.org/whl/torch-2.10.0+cpu.html
+```
+```bash
+python -m pip install pointtree
+```
 
 ### How To Use the Package
 

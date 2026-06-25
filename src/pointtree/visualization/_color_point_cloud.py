@@ -18,6 +18,8 @@ def color_instance_segmentation(
     target_instance_id_column: Optional[str] = None,
     fp_ids: Optional[List[int]] = None,
     fn_ids: Optional[List[int]] = None,
+    shift: Optional[int] = None,
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Sets the color of each point based on its instance ID.
@@ -38,7 +40,25 @@ def color_instance_segmentation(
     instance_ids = np.unique(point_cloud[instance_id_column].to_numpy())
     instance_ids = instance_ids[instance_ids >= 0]
 
-    colors = color_palette * math.ceil(len(instance_ids) / len(color_palette))  # pylint: disable=c-extension-no-member
+    if shift is not None:
+        color_palette_shifted = np.roll(color_palette, shift, axis=0)
+    else:
+        color_palette_shifted = color_palette
+
+    random_generator = np.random.default_rng(seed=seed)
+
+    colors = []
+    shift = 0
+    while len(colors) < len(instance_ids):
+        colors.extend(np.roll(color_palette_shifted, shift, axis=0))
+        shift += random_generator.integers(1, len(color_palette))
+
+    indices = [185, 221]
+    for i in indices:
+        if i > len(colors) -1:
+            continue
+        random_generator.choice(colors, axis=0)
+        colors[i] = random_generator.choice(colors, axis=0)
 
     color_idx = 0
 

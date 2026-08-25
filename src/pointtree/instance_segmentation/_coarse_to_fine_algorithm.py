@@ -422,7 +422,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             return np.empty((0, 0), dtype=np.float64), np.empty((0, 0), dtype=np.float64), np.empty(0, dtype=np.float64)
 
         if bounding_box is None:
-            bounding_box = np.row_stack([xyz[:, :2].min(axis=0), xyz[:, :2].max(axis=0)])
+            bounding_box = np.vstack([xyz[:, :2].min(axis=0), xyz[:, :2].max(axis=0)])
 
         xyz = xyz.copy()
         xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
@@ -511,7 +511,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         with Profiler("Height map computation", self._performance_tracker):
             bounding_box = None
             if self._algorithm != "watershed_crown_top_positions":
-                bounding_box = np.row_stack([tree_xyz[:, :2].min(axis=0), tree_xyz[:, :2].max(axis=0)])
+                bounding_box = np.vstack([tree_xyz[:, :2].min(axis=0), tree_xyz[:, :2].max(axis=0)])
                 tree_xyz = tree_xyz[classification == self._crown_class_id]
             canopy_height_model, count_map, grid_origin = self.create_height_map(
                 tree_xyz, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box

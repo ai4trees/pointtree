@@ -117,8 +117,9 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     The aim of this step is to identify clusters of points that represent individual tree stems, i.e., each stem should
     be represented by a single cluster. If the stem positions and diameters at breast height are already known (e.g.,
     from field measurements), this step can be skipped entirely by passing the known stem positions and diameters to the
-    :code:`stem_positions` and :code:`stem_diameters` parameters of :code:`__call__`. In that case, the stem detection described below is not executed, and the provided stem positions and diameters are
-    used directly as input to the subsequent region growing step.
+    :code:`stem_positions` and :code:`stem_diameters` parameters of :code:`__call__`. In that case, the stem detection
+    described below is not executed, and the provided stem positions and diameters are used directly as input to the
+    subsequent region growing step.
 
     For this purpose, a horizontal layer is extracted from the point cloud that
     contains all points within a certain height range above the terrain (the height range is defined by
@@ -1989,7 +1990,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         return full_instance_ids
 
-    def __call__(  # pylint: disable=too-many-locals
+    def __call__(  # pylint: disable=too-many-locals, too-many-statements
         self,
         xyz: FloatArray,
         intensities: Optional[FloatArray] = None,

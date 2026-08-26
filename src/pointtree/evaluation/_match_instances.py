@@ -144,7 +144,7 @@ def match_instances(  # pylint: disable=too-many-locals
         xyz=torch.from_numpy(xyz),
         method=method,
         invalid_instance_id=invalid_instance_id,
-    )
+    )[:3]
 
     matched_target_ids = matched_target_ids_torch.numpy()
     matched_predicted_ids = matched_predicted_ids_torch.numpy()

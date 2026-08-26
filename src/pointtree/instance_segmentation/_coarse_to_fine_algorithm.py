@@ -8,7 +8,6 @@ from typing import Literal, Optional, Tuple, Union, cast
 
 from scipy.spatial import KDTree
 import numpy as np
-import numpy.typing as npt
 from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, footprint_rectangle, dilation, erosion
@@ -422,7 +421,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             return np.empty((0, 0), dtype=np.float64), np.empty((0, 0), dtype=np.float64), np.empty(0, dtype=np.float64)
 
         if bounding_box is None:
-            bounding_box = np.row_stack([xyz[:, :2].min(axis=0), xyz[:, :2].max(axis=0)])
+            bounding_box = np.vstack([xyz[:, :2].min(axis=0), xyz[:, :2].max(axis=0)])
 
         xyz = xyz.copy()
         xyz = xyz[(xyz[:, :2] <= bounding_box[1]).all(axis=-1)]
@@ -511,7 +510,7 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
         with Profiler("Height map computation", self._performance_tracker):
             bounding_box = None
             if self._algorithm != "watershed_crown_top_positions":
-                bounding_box = np.row_stack([tree_xyz[:, :2].min(axis=0), tree_xyz[:, :2].max(axis=0)])
+                bounding_box = np.vstack([tree_xyz[:, :2].min(axis=0), tree_xyz[:, :2].max(axis=0)])
                 tree_xyz = tree_xyz[classification == self._crown_class_id]
             canopy_height_model, count_map, grid_origin = self.create_height_map(
                 tree_xyz, grid_size=self._grid_size_canopy_height_model, bounding_box=bounding_box
@@ -579,13 +578,17 @@ class CoarseToFineAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=t
             if len(crown_top_positions) == 0:
                 return trunk_positions
 
-            crown_distances, crown_indices = KDTree(crown_top_positions).query(trunk_positions, k=1)
-            crown_distances = cast(np.ndarray, crown_distances).flatten()
-            crown_indices = cast(np.ndarray, crown_indices).flatten()
+            crown_distances, crown_indices = cast(
+                Tuple[np.ndarray, np.ndarray], KDTree(crown_top_positions).query(trunk_positions, k=1)
+            )
+            crown_distances = crown_distances.flatten()
+            crown_indices = crown_indices.flatten()
 
-            trunk_distances, trunk_indices = KDTree(trunk_positions).query(crown_top_positions, k=1)
-            trunk_distances = cast(npt.NDArray, trunk_distances).flatten()
-            trunk_indices = cast(npt.NDArray, trunk_indices).flatten()
+            trunk_distances, trunk_indices = cast(
+                Tuple[np.ndarray, np.ndarray], KDTree(trunk_positions).query(crown_top_positions, k=1)
+            )
+            trunk_distances = trunk_distances.flatten()
+            trunk_indices = trunk_indices.flatten()
 
             tree_positions = []
             matched_crown_positions = []

@@ -22,7 +22,7 @@ class TestClothSimulationFiltering:  # pylint: disable=too-few-public-methods
 
         above_terrain_coords = np.array([[10, 10, 0.4], [40, 40, 0.2]], dtype=float)
 
-        coords = np.row_stack([terrain_coords, above_terrain_coords])
+        coords = np.vstack([terrain_coords, above_terrain_coords])
 
         resolution = 2
         classification = cloth_simulation_filtering(

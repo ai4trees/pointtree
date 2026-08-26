@@ -58,11 +58,11 @@ def plot_fitted_shape(  # pylint: disable=too-many-locals
 
     axis = plt.gca()
 
-    fig_width_x = xy[:, 0].max() - xy[:, 0].min()
-    fig_width_y = xy[:, 1].max() - xy[:, 1].min()
+    fig_width_x = float(xy[:, 0].max() - xy[:, 0].min())
+    fig_width_y = float(xy[:, 1].max() - xy[:, 1].min())
     fig_width = max(fig_width_x, fig_width_y)
-    fig_center_x = xy[:, 0].min() + fig_width / 2
-    fig_center_y = xy[:, 1].min() + fig_width / 2
+    fig_center_x = float(xy[:, 0].min() + fig_width / 2)
+    fig_center_y = float(xy[:, 1].min() + fig_width / 2)
     padding = max(0.2 * fig_width, 0.1)
 
     axis.set_xlim((fig_center_x - fig_width / 2 - padding, fig_center_x + fig_width / 2 + padding))

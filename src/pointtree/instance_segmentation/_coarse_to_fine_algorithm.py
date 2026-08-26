@@ -8,7 +8,6 @@ from typing import Literal, Optional, Tuple, Union, cast
 
 from scipy.spatial import KDTree
 import numpy as np
-import numpy.typing as npt
 from pointtorch.operations.numpy import make_labels_consecutive, voxel_downsampling
 import scipy.ndimage as ndi
 from skimage.morphology import diamond, disk, footprint_rectangle, dilation, erosion

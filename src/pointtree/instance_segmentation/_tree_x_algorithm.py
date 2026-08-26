@@ -5,7 +5,7 @@ __all__ = ["TreeXAlgorithm"]
 import itertools
 import multiprocessing
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, cast, Dict, List, Literal, Optional, Tuple, Union
 
 from circle_detection import MEstimator, Ransac
 import numpy as np
@@ -1970,7 +1970,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             int(self._num_workers),
         )
 
-        instance_ids = make_labels_consecutive(instance_ids, ignore_id=-1, inplace=True)
+        instance_ids = cast(LongArray, make_labels_consecutive(instance_ids, ignore_id=-1, inplace=True))
 
         if self._invalid_tree_id != -1:
             if self._invalid_tree_id == 0:

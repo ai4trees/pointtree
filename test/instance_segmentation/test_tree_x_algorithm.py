@@ -1007,7 +1007,7 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
             np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
 
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
-    def test_full_algorithm_with_known_stems(self, scalar_type: np.dtype, cache_dir):
+    def test_full_algorithm_with_known_stems(self, scalar_type: np.dtype):
         xyz, _, expected_stem_positions, expected_stem_diameters, expected_tree_heights = generate_tree_point_cloud(
             scalar_type, "C", generate_intensities=False
         )

@@ -1006,6 +1006,32 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
             np.testing.assert_almost_equal(expected_stem_diameters, stem_diameters, decimal=2)
             np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
 
+    @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+    def test_full_algorithm_with_known_stems(self, scalar_type: np.dtype):
+        xyz, _, expected_stem_positions, expected_stem_diameters, expected_tree_heights = generate_tree_point_cloud(
+            scalar_type, "C", generate_intensities=False
+        )
+
+        algorithm = TreeXAlgorithm(tree_seg_cum_search_dist_include_terrain=2)
+
+        instance_ids, stem_positions, stem_diameters = algorithm(
+            xyz, stem_positions=expected_stem_positions, stem_diameters=expected_stem_diameters
+        )
+
+        np.testing.assert_array_equal(expected_stem_positions.astype(scalar_type), stem_positions)
+        np.testing.assert_array_equal(expected_stem_diameters.astype(scalar_type), stem_diameters)
+
+        assert len(xyz) == len(instance_ids)
+
+        tree_heights = np.empty(len(np.unique(instance_ids)) - 1, dtype=np.float64)
+        for instance_id in np.unique(instance_ids):
+            instance_points = xyz[instance_ids == instance_id]
+            if len(instance_points) > 0:
+                tree_heights[instance_id] = instance_points[:, 2].max() - instance_points[:, 2].min()
+
+        assert len(np.unique(instance_ids)) == 3
+        np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
+
     @pytest.mark.parametrize("stem_search_refined_circle_fitting", [True, False])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     def test_full_algorithm_no_trees_detected(
@@ -1037,6 +1063,38 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
 
         with pytest.raises(ValueError):
             algorithm(xyz, intensities)
+
+    def test_full_algorithm_only_stem_positions_set(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_positions=np.zeros((1, 2), dtype=np.float64))
+
+    def test_full_algorithm_only_stem_diameters_set(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_diameters=np.zeros(1, dtype=np.float64))
+
+    def test_full_algorithm_invalid_stem_positions_shape(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_positions=np.zeros((1, 3), dtype=np.float64), stem_diameters=np.zeros(1))
+
+    def test_full_algorithm_stem_positions_diameters_length_mismatch(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_positions=np.zeros((2, 2), dtype=np.float64), stem_diameters=np.zeros(1))
 
     def test_invalid_tree_id(self):
         with pytest.raises(ValueError):

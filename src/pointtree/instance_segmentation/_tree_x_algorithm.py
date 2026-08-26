@@ -115,7 +115,13 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     .. rubric:: 3. Detection of Tree Stems
 
     The aim of this step is to identify clusters of points that represent individual tree stems, i.e., each stem should
-    be represented by a single cluster. For this purpose, a horizontal layer is extracted from the point cloud that
+    be represented by a single cluster. If the stem positions and diameters at breast height are already known (e.g.,
+    from field measurements), this step can be skipped entirely by passing the known stem positions and diameters to the
+    :code:`stem_positions` and :code:`stem_diameters` parameters of :code:`__call__`. In that case, the stem detection
+    described below is not executed, and the provided stem positions and diameters are used directly as input to the
+    subsequent region growing step.
+
+    For this purpose, a horizontal layer is extracted from the point cloud that
     contains all points within a certain height range above the terrain (the height range is defined by
     :code:`stem_search_min_z` and :code:`stem_search_max_z`). This layer should be chosen so that it contains all tree
     stems and as few other objects as possible. The points within this slice are downsampled using voxel-based
@@ -293,12 +299,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
     points to be processed or the maximum number of iterations is reached.
 
     To select the initial seed points for a given tree, the following approach is used: (1) All points that were
-    assigned to the respective stem during the stem detection stage are used as seed points. (2) Additionally, a
-    cylinder with a height of :code:`tree_seg_seed_layer_height` and a diameter of
-    :code:`tree_seg_seed_diameter_factor * d` is considered, where :code:`d` is the tree's
-    stem diameter at breast height, which has been computed in the previous step. The cylinder's center is
-    positioned at the stem center at breast height, which also has been computed in the previous stage. All points
-    within the cylinder that have not yet been selected as seed points for other trees are selected as seed points.
+    assigned to the respective stem during the stem detection stage are used as seed points (if the stem detection
+    stage was skipped because stem positions and diameters were directly provided by the user, this source of seed
+    points is not available). (2) Additionally, a cylinder with a height of :code:`tree_seg_seed_layer_height` and a
+    diameter of :code:`tree_seg_seed_diameter_factor * d` is considered, where :code:`d` is the tree's
+    stem diameter at breast height, which has either been computed in the previous step or provided by the user. The
+    cylinder's center is positioned at the stem center at breast height, which has likewise either been computed in
+    the previous stage or provided by the user. All points within the cylinder that have not yet been selected as
+    seed points for other trees are selected as seed points.
 
     The search radius for the iterative region growing procedure is set as follows: First, the search radius is set
     to the voxel size used for voxel-based subsampling, which is done before starting the region growing procedure.
@@ -1982,12 +1990,14 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
         return full_instance_ids
 
-    def __call__(  # pylint: disable=too-many-locals
+    def __call__(  # pylint: disable=too-many-locals, too-many-statements
         self,
         xyz: FloatArray,
         intensities: Optional[FloatArray] = None,
         point_cloud_id: Optional[str] = None,
         crs: Optional[str] = None,
+        stem_positions: Optional[FloatArray] = None,
+        stem_diameters: Optional[FloatArray] = None,
     ) -> Tuple[LongArray, FloatArray, FloatArray]:
         r"""
         Runs the tree instance segmentation for the given point cloud.
@@ -2001,26 +2011,41 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             crs: EPSG code of the coordinate reference system of the input point cloud. The EPSG code is used to set the
                 coordinate reference system when exporting intermediate data, such as a digital terrain model file.
                 If set to :code:`None`, no coordinate reference system is set for the exported data.
+            stem_positions: Known stem positions (xy-coordinates of the stem center at breast height) to use instead of
+                detecting the stems automatically. If set together with :code:`stem_diameters`, the stem detection step
+                is skipped and the provided stem positions and diameters are used directly as input for the region
+                growing step. If set to :code:`None`, the stems are detected automatically.
+            stem_diameters: Known stem diameters at breast height to use instead of detecting the stems automatically.
+                Must be set together with :code:`stem_positions` and have the same length. If set to :code:`None`, the
+                stems are detected automatically.
 
         Returns:
             :Tuple of three arrays:
                 - Tree instance labels for all points. For points not belonging to any tree, the label is set to
                   :code:`invalid_instance_id` (constructor parameter).
-                - Stem positions of the detected trees (xy-coordinates of the stem center at breast height).
-                - Stem diameters at breast height of the detected trees.
+                - Stem positions of the trees (xy-coordinates of the stem center at breast height). If
+                  :code:`stem_positions` was set, this is equal to the input :code:`stem_positions`.
+                - Stem diameters at breast height of the trees. If :code:`stem_diameters` was set, this is equal to the
+                  input :code:`stem_diameters`.
 
         Raises:
-            ValueError: If :code:`intensities` is not :code:`None`.
-            ValueError: If :code:`xyz` and :code:`intensities` have different lengths.
+            ValueError: If :code:`intensities` is not :code:`None` and :code:`xyz` and :code:`intensities` have
+                different lengths.
+            ValueError: If exactly one of :code:`stem_positions` and :code:`stem_diameters` is set to :code:`None`.
+            ValueError: If :code:`stem_positions` and :code:`stem_diameters` are set and have different lengths, or if
+                :code:`stem_positions` does not have shape :math:`(S, 2)`.
 
         Shape:
             - :code:`xyz`: :math:`(N, 3)`
             - :code:`intensities`: :math:`(N)`
+            - :code:`stem_positions`: :math:`(S, 2)`
+            - :code:`stem_diameters`: :math:`(S)`
             - Output: :math:`(N)`, :math:`(T)`, :math:`(T)`
 
             | where
             |
             | :math:`N = \text{ number of points}`
+            | :math:`S = \text{ number of known stems}`
             | :math:`T = \text{ number of detected trees}`
 
         **Example**::
@@ -2034,12 +2059,31 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                 intensities = point_cloud["intensity"].to_numpy()
 
                 instance_ids, stem_positions, stem_diameters = algorithm(xyz, intensities)
+
+        If the stem positions and diameters are already known, they can be passed to the algorithm in order to skip
+        the stem detection step::
+
+                instance_ids, _, _ = algorithm(
+                    xyz, intensities, stem_positions=known_stem_positions, stem_diameters=known_stem_diameters
+                )
         """
 
         self._random_generator = np.random.default_rng(seed=self._random_seed)
 
         if intensities is not None and len(xyz) != len(intensities):
             raise ValueError("xyz and intensities must have the same length.")
+
+        if (stem_positions is None) != (stem_diameters is None):
+            raise ValueError("stem_positions and stem_diameters must either both be set or both be None.")
+
+        stems_provided = stem_positions is not None and stem_diameters is not None
+        if stems_provided:
+            stem_positions = np.asarray(stem_positions)
+            stem_diameters = np.asarray(stem_diameters)
+            if stem_positions.ndim != 2 or stem_positions.shape[1] != 2:
+                raise ValueError("stem_positions must have shape (S, 2).")
+            if stem_diameters.ndim != 1 or len(stem_diameters) != len(stem_positions):
+                raise ValueError("stem_diameters must have shape (S,) and the same length as stem_positions.")
 
         with Profiler("Construction of digital terrain model", self._performance_tracker):
             with Profiler("Terrain classification", self._performance_tracker):
@@ -2073,39 +2117,47 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, self._dtm_resolution)
 
         with Profiler("Detection of tree stems", self._performance_tracker):
-            self._logger.info("Detect stems...")
-            stem_layer_filter = np.flatnonzero(
-                np.logical_and(
-                    dists_to_dtm >= self._stem_search_min_z,
-                    dists_to_dtm < self._stem_search_max_z,
+            if stems_provided:
+                self._logger.info("Using user-provided stem positions and diameters, skipping stem detection...")
+                stem_positions = cast(npt.NDArray, stem_positions).astype(xyz.dtype)
+                stem_diameters = cast(npt.NDArray, stem_diameters).astype(xyz.dtype)
+                # no points are used as region growing seed points based on the stem detection result (seed points are
+                # still selected using the cylinder-based approach)
+                cluster_labels_full = np.full(len(xyz), fill_value=-1, dtype=np.int64)
+            else:
+                self._logger.info("Detect stems...")
+                stem_layer_filter = np.flatnonzero(
+                    np.logical_and(
+                        dists_to_dtm >= self._stem_search_min_z,
+                        dists_to_dtm < self._stem_search_max_z,
+                    )
                 )
-            )
-            stem_layer_xyz = xyz[stem_layer_filter]
+                stem_layer_xyz = xyz[stem_layer_filter]
 
-            if self._visualization_folder is not None and point_cloud_id is not None:
-                self.export_point_cloud(
+                if self._visualization_folder is not None and point_cloud_id is not None:
+                    self.export_point_cloud(
+                        stem_layer_xyz,
+                        {"dist_to_dtm": dists_to_dtm[stem_layer_filter]},
+                        "stem_layer",
+                        point_cloud_id,
+                        crs=crs,
+                    )
+
+                stem_positions, stem_diameters, cluster_labels = self.detect_stems(
                     stem_layer_xyz,
-                    {"dist_to_dtm": dists_to_dtm[stem_layer_filter]},
-                    "stem_layer",
-                    point_cloud_id,
+                    dtm,
+                    dtm_offset,
+                    intensities=intensities[stem_layer_filter] if intensities is not None else None,
+                    point_cloud_id=point_cloud_id,
                     crs=crs,
                 )
-
-            stem_positions, stem_diameters, cluster_labels = self.detect_stems(
-                stem_layer_xyz,
-                dtm,
-                dtm_offset,
-                intensities=intensities[stem_layer_filter] if intensities is not None else None,
-                point_cloud_id=point_cloud_id,
-                crs=crs,
-            )
-            cluster_labels_full = np.full(len(xyz), fill_value=-1, dtype=np.int64)
-            cluster_labels_full[stem_layer_filter] = cluster_labels
+                cluster_labels_full = np.full(len(xyz), fill_value=-1, dtype=np.int64)
+                cluster_labels_full[stem_layer_filter] = cluster_labels
+                del stem_layer_filter
+                del stem_layer_xyz
+                del cluster_labels
             del dtm
             del dtm_offset
-            del stem_layer_filter
-            del stem_layer_xyz
-            del cluster_labels
 
         if len(stem_positions) == 0:
             return (

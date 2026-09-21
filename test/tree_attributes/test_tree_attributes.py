@@ -7,6 +7,7 @@ import pytest
 from pointtree.tree_attributes import (
     crown_volume,
     crown_width,
+    stem_diameter,
     stem_direction,
     tree_attributes,
     tree_height,
@@ -138,18 +139,43 @@ class TestStemDirection:
         np.testing.assert_allclose(direction, expected_direction, atol=1e-6)
 
 
+class TestStemDiameter:
+    """Tests for pointtree.tree_attributes.stem_diameter."""
+
+    def test_too_few_points(self):
+        stem_xyz = np.random.rand(5, 3).astype(np.float64)
+
+        diameters = stem_diameter(stem_xyz, min_points=15)
+
+        assert diameters.shape == (1,)
+        assert np.isnan(diameters).all()
+
+    def test_no_points_within_any_layer(self):
+        # all points are below the default layer_start of 1.0 m, so no horizontal layer contains enough points
+        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=0.5)
+
+        diameters = stem_diameter(stem_xyz)
+
+        assert np.isnan(diameters).all()
+
+    def test_multiple_target_heights(self):
+        # the cylinder has a constant radius, so the diameter estimate should be the same at every target height
+        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3)
+
+        diameters = stem_diameter(stem_xyz, target_heights=np.array([1.3, 2.0, 3.0]), random_seed=42)
+
+        assert diameters.shape == (3,)
+        np.testing.assert_allclose(diameters, 0.3, atol=0.01)
+
+
 class TestTreeAttributes:
     """Tests for pointtree.tree_attributes.tree_attributes."""
 
     def make_tree(self):
-        crown_xyz = np.array(
-            [[-1.0, 0.0, 5.0], [1.0, 0.0, 5.0], [0.0, -1.0, 6.0], [0.0, 1.0, 7.0]], dtype=np.float64
-        )
-        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=1.5)
+        crown_xyz = np.array([[-1.0, 0.0, 5.0], [1.0, 0.0, 5.0], [0.0, -1.0, 6.0], [0.0, 1.0, 7.0]], dtype=np.float64)
+        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3)
         tree_xyz = np.concatenate([crown_xyz, stem_xyz])
-        classification = np.concatenate(
-            [np.full(len(crown_xyz), fill_value=1), np.full(len(stem_xyz), fill_value=0)]
-        )
+        classification = np.concatenate([np.full(len(crown_xyz), fill_value=1), np.full(len(stem_xyz), fill_value=0)])
         return tree_xyz, classification
 
     def test_computes_all_attributes_by_default(self):
@@ -171,7 +197,25 @@ class TestTreeAttributes:
         }
         assert attributes["tree_height"] == pytest.approx(tree_xyz[:, 2].max() - tree_xyz[:, 2].min())
         assert attributes["crown_width"] == pytest.approx(2.0)
+        assert set(attributes["stem_diameter"].keys()) == {1.3}
+        assert attributes["stem_diameter"][1.3] == pytest.approx(0.3, abs=0.01)
         np.testing.assert_allclose(attributes["stem_direction"], [0.0, 0.0, 1.0], atol=1e-6)
+
+    def test_stem_diameter_for_multiple_target_heights(self):
+        tree_xyz, classification = self.make_tree()
+
+        attributes = tree_attributes(
+            tree_xyz,
+            attributes=["stem_diameter"],
+            classification=classification,
+            stem_class_ids=[0],
+            leaf_class_ids=[1],
+            stem_diameter_target_heights=np.array([1.3, 2.0, 3.0]),
+        )
+
+        assert set(attributes["stem_diameter"].keys()) == {1.3, 2.0, 3.0}
+        for diameter in attributes["stem_diameter"].values():
+            assert diameter == pytest.approx(0.3, abs=0.01)
 
     def test_computes_only_requested_attributes(self):
         tree_xyz, classification = self.make_tree()

@@ -654,56 +654,6 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
         assert expected_stem_positions.dtype == stem_positions.dtype
         np.testing.assert_almost_equal(expected_stem_positions, stem_positions)
 
-    def test_diameter_estimation_gam_circle(self):
-        algorithm = TreeXAlgorithm()
-
-        circles = np.array([[1, 1, 1]])
-        points = generate_circle_points(circles, min_points=50, max_points=50)
-
-        diameter_with_full_circle, polygon_vertices_with_full_ellipse = algorithm.stem_diameter_estimation_gam(
-            points, circles[0, :2]
-        )
-
-        assert circles[0, 2] * 2 == pytest.approx(diameter_with_full_circle, abs=0.001)
-        assert polygon_vertices_with_full_ellipse.ndim == 2
-        assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-        assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-
-        diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.stem_diameter_estimation_gam(
-            points[:30], circles[0, :2]
-        )
-
-        assert circles[0, 2] * 2 == pytest.approx(diameter_with_missing_part, abs=0.001)
-        assert polygon_vertices_with_missing_part.ndim == 2
-        assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
-        assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
-
-    def test_diameter_estimation_gam_ellipse(self):
-        algorithm = TreeXAlgorithm(stem_search_gam_max_radius_diff=0.4)
-
-        ellipses = np.array([[1, 1, 1.2, 0.9, 0]])
-        points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
-
-        diameter_with_full_ellipse, polygon_vertices_with_full_ellipse = algorithm.stem_diameter_estimation_gam(
-            points, ellipses[0, :2]
-        )
-
-        expected_diameter = ellipses[0, 2] + ellipses[0, 3]
-
-        assert expected_diameter == pytest.approx(diameter_with_full_ellipse, abs=0.025)
-        assert polygon_vertices_with_full_ellipse.ndim == 2
-        assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-        assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-
-        diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.stem_diameter_estimation_gam(
-            points[:35], ellipses[0, :2]
-        )
-
-        assert expected_diameter == pytest.approx(diameter_with_missing_part, abs=0.1)
-        assert polygon_vertices_with_missing_part.ndim == 2
-        assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
-        assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
-
     @pytest.mark.parametrize("create_visualization", [False, True])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     @pytest.mark.parametrize("empty_input_points", [False, True])

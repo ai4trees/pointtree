@@ -1,6 +1,6 @@
 """Computation of tree attributes from individual tree point clouds."""
 
-__all__ = ["tree_attributes", "crown_volume", "crown_width", "tree_height", "stem_direction"]
+__all__ = ["tree_attributes", "crown_volume", "crown_width", "tree_height", "stem_diameter", "stem_direction"]
 
 
 from typing import Any, Dict, List, Literal, Optional
@@ -9,16 +9,23 @@ import numpy as np
 import numpy.typing as npt
 from sklearn.decomposition import PCA
 
+from .stem_diameter import (
+    estimate_stem_diameter,
+    fit_circles_and_ellipses_to_stem_layers,
+    select_best_stem_layer_combination,
+)
+
 
 def tree_attributes(
     tree_xyz: npt.NDArray,
     attributes: Optional[
-        List[Literal["crown_volume", "crown_width", "tree_height", "stem_direction"]]
+        List[Literal["crown_volume", "crown_width", "tree_height", "stem_diameter", "stem_direction"]]
     ] = None,
     classification: Optional[npt.NDArray] = None,
     ground_height: Optional[float] = None,
     stem_class_ids: Optional[List[int]] = None,
     leaf_class_ids: Optional[List[int]] = None,
+    stem_diameter_target_heights: Optional[npt.NDArray] = None,
 ) -> Dict[str, Any]:
     """
     Computes attributes for a single tree.
@@ -40,9 +47,15 @@ def tree_attributes(
         leaf_class_ids: Class IDs that identify leaf points. Used together with :code:`classification` to select the
             points passed to :code:`crown_volume` and :code:`crown_width`. If :code:`None`, or if
             :code:`classification` is :code:`None`, all points of :code:`tree_xyz` are used.
+        stem_diameter_target_heights: Heights above the ground at which the stem diameter is to be estimated. Passed
+            through to :code:`stem_diameter`. Defaults to :code:`None`, which means that only the stem diameter at
+            1.3 m above the ground is estimated.
 
     Returns:
-        Dictionary mapping the name of each computed attribute to its value.
+        Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
+        estimated at multiple heights, the value stored under the key :code:`"stem_diameter"` is itself a
+        dictionary mapping each target height (rounded to two decimal places) to the diameter estimated at that
+        height.
     """
 
     tree_attributes: Dict[str, Any] = {}
@@ -62,6 +75,13 @@ def tree_attributes(
 
     if attributes is None or "tree_height" in attributes:
         tree_attributes["tree_height"] = tree_height(tree_xyz, ground_height=ground_height)
+
+    if attributes is None or "stem_diameter" in attributes:
+        target_heights = stem_diameter_target_heights if stem_diameter_target_heights is not None else np.array([1.3])
+        diameters = stem_diameter(stem_xyz, ground_height=ground_height, target_heights=target_heights)
+        tree_attributes["stem_diameter"] = {
+            round(float(height), 2): float(diameter) for height, diameter in zip(target_heights, diameters)
+        }
 
     if attributes is None or "stem_direction" in attributes:
         tree_attributes["stem_direction"] = stem_direction(stem_xyz)
@@ -141,6 +161,174 @@ def tree_height(xyz: npt.NDArray, ground_height: Optional[float] = None) -> floa
         return xyz[:, 2].max() - ground_height
 
     return xyz[:, 2].max() - xyz[:, 2].min()
+
+
+def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-many-positional-arguments
+    stem_xyz: npt.NDArray,
+    ground_height: Optional[float] = None,
+    target_heights: Optional[npt.NDArray] = None,
+    circle_fitting_method: Literal["ransac", "m-estimator"] = "ransac",
+    num_layers: int = 15,
+    layer_height: float = 0.225,
+    layer_overlap: float = 0.025,
+    layer_start: float = 1.0,
+    std_num_layers: int = 6,
+    max_std_diameter: float = 0.04,
+    bandwidth: float = 0.01,
+    min_points: int = 15,
+    min_fitting_score: float = 100.0,
+    min_stem_diameter: float = 0.02,
+    max_stem_diameter: float = 1.0,
+    min_completeness_idx: Optional[float] = 0.3,
+    fit_ellipses: bool = False,
+    ellipse_filter_threshold: float = 0.6,
+    gam_max_radius_diff: Optional[float] = 0.3,
+    random_seed: Optional[int] = None,
+) -> npt.NDArray:
+    r"""
+    Estimates the stem diameter at the target height using the circle / ellipse fitting approach of the treeX algorithm
+    (see :code:`pointtree.instance_segmentation.TreeXAlgorithm`). :code:`num_layers` horizontal layers of height
+    :code:`layer_height` are extracted from the stem points, starting at :code:`layer_start` meters above the
+    ground and overlapping adjacent layers by :code:`layer_overlap`. A circle (or, if :code:`fit_ellipses` is
+    :code:`True`, alternatively an ellipse) is fitted to the points of each layer. From all combinations of
+    :code:`std_num_layers` layers with a valid circle fit, the combination with the lowest standard deviation of the
+    fitted diameters is selected, provided that this standard deviation does not exceed :code:`max_std_diameter`. If
+    no such combination of circles exists, the same selection is repeated using the fitted ellipses (if
+    :code:`fit_ellipses` is :code:`True`). For each layer of the selected combination, the stem diameter is refined
+    by fitting a generalized additive model (GAM) to the points of that layer, using the center of the respective
+    circle or ellipse to normalize the points (if the GAM fit is invalid, the diameter of the circle or ellipse is
+    used instead). Finally, a linear model is fitted to the diameters of the selected layers to predict the stem
+    diameter as a function of the height above the ground, and the predictions of this model for :code:`target_heights`
+    are returned as the estimated diameters.
+
+    Args:
+        stem_xyz: Coordinates of the points belonging to the tree stem.
+        ground_height: Height of the ground surface underneath the tree. If :code:`None`, the minimum z-coordinate
+            of :code:`stem_xyz` is used instead.
+        target_heights: Heights above the ground at which the stem diameter is to be estimated. Defaults to
+            :code:`None`, which means that the stem diameter at 1.3 m above the ground is estimated.
+        circle_fitting_method: Circle fitting method to use: :code:`"ransac"` or :code:`"m-estimator"`.
+        num_layers: Number of horizontal layers used for the circle / ellipse fitting.
+        layer_height: Height of the horizontal layers used for circle / ellipse fitting.
+        layer_overlap: Overlap between adjacent horizontal layers used for circle / ellipse fitting.
+        layer_start: Height above the ground at which the lowest layer used for circle / ellipse fitting starts.
+        std_num_layers: Number of horizontal layers to consider when selecting the combination of layers with the
+            lowest standard deviation of the fitted diameters.
+        max_std_diameter: Maximum standard deviation of the fitted diameters within a combination of
+            :code:`std_num_layers` layers for that combination to be considered valid.
+        bandwidth: Bandwidth for circle fitting. It is used in the calculation of the circle fitting score and, for
+            the M-estimator method, also for kernel density estimation.
+        min_points: Minimum number of points that a horizontal layer must contain in order for a circle / ellipse to
+            be fitted to it.
+        min_fitting_score: Minimum fitting score that circles must achieve in the circle fitting to be considered
+            valid. Only used when :code:`circle_fitting_method` is set to :code:`"ransac"`.
+        min_stem_diameter: Minimum circle / ellipse diameter to be considered a valid fit.
+        max_stem_diameter: Maximum circle / ellipse diameter to be considered a valid fit.
+        min_completeness_idx: Minimum circumferential completeness index that circles must have to be considered
+            valid. If :code:`None`, the circumferential completeness index is not used for filtering.
+        fit_ellipses: Whether ellipses should additionally be fitted to the layers and used as a fallback if no
+            valid combination of circles is found.
+        ellipse_filter_threshold: Ellipses are only kept if the ratio of the radius along the semi-minor axis to the
+            radius along the semi-major axis is greater than or equal to this threshold. Only used when
+            :code:`fit_ellipses` is :code:`True`.
+        gam_max_radius_diff: If the difference between the minimum and the maximum of the radii predicted by the GAM
+            is greater than this value, the GAM fit is considered invalid and the diameter of the fitted circle or
+            ellipse is used instead. If :code:`None`, the GAM fit is never considered invalid based on this
+            criterion.
+        random_seed: Seed for the random number generator used for circle fitting and for the small random offset
+            added to the point radii before fitting the GAM (to avoid perfect separation). If :code:`None`, the
+            random number generator is not seeded.
+
+    Returns:
+        Estimated stem diameters at the target heights. :code:`NaN` if the diameter could not be estimated,
+        e.g., because :code:`stem_xyz` does not contain enough points in at least :code:`std_num_layers` valid
+        layers.
+    """
+    if target_heights is None:
+        target_heights = np.array([1.3])
+
+    if len(stem_xyz) < min_points:
+        return np.full_like(target_heights, fill_value=np.nan)
+
+    if ground_height is not None:
+        height_above_ground = stem_xyz[:, 2] - ground_height
+    else:
+        height_above_ground = stem_xyz[:, 2] - stem_xyz[:, 2].min()
+
+    layer_starts = layer_start + np.arange(num_layers) * (layer_height - layer_overlap)
+    layer_ends = layer_starts + layer_height
+    layer_heights = layer_starts + layer_height / 2
+
+    xy_batches = []
+    batch_lengths = np.zeros(num_layers, dtype=np.int64)
+    for layer in range(num_layers):
+        mask = (height_above_ground >= layer_starts[layer]) & (height_above_ground < layer_ends[layer])
+        if mask.sum() >= min_points:
+            xy_batches.append(stem_xyz[mask, :2])
+            batch_lengths[layer] = mask.sum()
+
+    if len(xy_batches) == 0:
+        return np.full_like(target_heights, fill_value=np.nan)
+
+    stem_layer_xy = np.concatenate(xy_batches, axis=0).astype(np.float64)
+    stem_layer_xy = np.asfortranarray(stem_layer_xy)
+
+    random_generator = np.random.default_rng(seed=random_seed)
+
+    layer_circles, layer_ellipses = fit_circles_and_ellipses_to_stem_layers(
+        stem_layer_xy,
+        batch_lengths,
+        circle_fitting_method=circle_fitting_method,
+        bandwidth=bandwidth,
+        min_fitting_score=min_fitting_score,
+        min_stem_diameter=min_stem_diameter,
+        max_stem_diameter=max_stem_diameter,
+        min_completeness_idx=min_completeness_idx,
+        fit_ellipses=fit_ellipses,
+        ellipse_filter_threshold=ellipse_filter_threshold,
+        seed=random_seed,
+    )
+
+    existing_circle_layers = np.flatnonzero(layer_circles[:, 2] != -1)
+    best_combination = select_best_stem_layer_combination(
+        existing_circle_layers, layer_circles[:, 2] * 2, std_num_layers, max_std_diameter
+    )
+    use_circles = True
+
+    if best_combination is None and fit_ellipses:
+        existing_ellipse_layers = np.flatnonzero(layer_ellipses[:, 2] != -1)
+        best_combination = select_best_stem_layer_combination(
+            existing_ellipse_layers, layer_ellipses[:, 2:4].sum(axis=-1), std_num_layers, max_std_diameter
+        )
+        use_circles = False
+
+    if best_combination is None:
+        return np.full_like(target_heights, fill_value=np.nan)
+
+    circles_or_ellipses = layer_circles[best_combination] if use_circles else layer_ellipses[best_combination]
+    centers = circles_or_ellipses[:, :2]
+    fallback_diameters = circles_or_ellipses[:, 2] * 2 if use_circles else circles_or_ellipses[:, 2:4].sum(axis=-1)
+    combination_heights = layer_heights[best_combination]
+
+    batch_starts = np.cumsum(np.concatenate((np.array([0], dtype=np.int64), batch_lengths)))[:-1]
+    combination_batch_lengths = batch_lengths[best_combination]
+    combination_layer_xy = np.concatenate(
+        [stem_layer_xy[batch_starts[layer] : batch_starts[layer] + batch_lengths[layer]] for layer in best_combination],
+        axis=0,
+    )
+
+    diameters, _, _, _ = estimate_stem_diameter(
+        combination_layer_xy,
+        combination_batch_lengths,
+        centers,
+        fallback_diameters,
+        combination_heights,
+        target_heights,
+        gam_max_radius_diff,
+        random_generator,
+    )
+
+    return diameters
 
 
 def stem_direction(stem_xyz: npt.NDArray) -> npt.NDArray:

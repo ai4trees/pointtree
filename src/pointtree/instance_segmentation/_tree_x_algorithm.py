@@ -2,7 +2,6 @@
 
 __all__ = ["TreeXAlgorithm"]
 
-import itertools
 import multiprocessing
 from pathlib import Path
 from typing import Any, cast, Dict, List, Literal, Optional, Tuple, Union
@@ -12,7 +11,6 @@ import numpy as np
 import numpy.typing as npt
 from pointtorch import PointCloud
 from pointtorch.operations.numpy import voxel_downsampling, make_labels_consecutive
-from pygam import LinearGAM, s
 import rasterio
 from rasterio.transform import from_origin
 from sklearn.cluster import DBSCAN
@@ -23,9 +21,13 @@ from pointtree.operations import (
     create_digital_terrain_model,
     cloth_simulation_filtering,
     distance_to_dtm,
-    fit_ellipse,
     estimate_with_linear_model,
-    polygon_area,
+    fit_ellipse,
+)
+from pointtree.tree_attributes.stem_diameter import (
+    estimate_stem_diameter,
+    fit_circles_and_ellipses_to_stem_layers,
+    select_best_stem_layer_combination,
 )
 from pointtree._tree_x_algorithm_cpp import (  # type: ignore[import-untyped] # pylint: disable=import-error, no-name-in-module
     segment_tree_crowns as segment_tree_crowns_cpp,
@@ -909,18 +911,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             num_layers = self._stem_search_circle_fitting_num_layers
 
-            layer_circles = np.full(
-                (len(unique_cluster_labels), num_layers, 3),
-                fill_value=-1,
-                dtype=stem_layer_xyz.dtype,
-            )
-
-            layer_ellipses = np.full(
-                (len(unique_cluster_labels), num_layers, 5),
-                fill_value=-1,
-                dtype=stem_layer_xyz.dtype,
-            )
-
             if not stem_layer_xyz.flags.f_contiguous:
                 stem_layer_xyz = stem_layer_xyz.copy(order="F")
 
@@ -945,6 +935,8 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             )
 
             if len(unique_cluster_labels) == 0:
+                layer_circles = np.full((0, num_layers, 3), fill_value=-1, dtype=stem_layer_xyz.dtype)
+                layer_ellipses = np.full((0, num_layers, 5), fill_value=-1, dtype=stem_layer_xyz.dtype)
                 return (
                     layer_circles,
                     layer_ellipses,
@@ -954,76 +946,31 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                     batch_lengths_xy,
                 )
 
-            min_radius = self._stem_search_circle_fitting_min_stem_diameter / 2
-            max_radius = self._stem_search_circle_fitting_max_stem_diameter / 2
-            min_start_radius = min_radius + min(
-                2 * self._stem_search_circle_fitting_bandwidth, (max_radius - min_radius) / 4
-            )
-            max_start_radius = max_radius - min(
-                2 * self._stem_search_circle_fitting_bandwidth, (max_radius - min_radius) / 4
-            )
-
-            circle_detector: Union[MEstimator, Ransac]
-            if self._stem_search_circle_fitting_method == "m-estimator":
-                circle_detector = MEstimator(
-                    bandwidth=self._stem_search_circle_fitting_bandwidth,
-                    break_min_change=1e-6,
-                    min_step_size=1e-10,
-                    max_iterations=300,
-                    armijo_min_decrease_percentage=0.5,
-                    armijo_attenuation_factor=0.25,
-                )
-                circle_detector.detect(
-                    stem_layer_xy,
-                    batch_lengths=batch_lengths_xy,
-                    n_start_x=3,
-                    n_start_y=3,
-                    min_start_radius=min_start_radius,
-                    max_start_radius=max_start_radius,
-                    break_min_radius=min_radius,
-                    break_max_radius=max_radius,
-                    n_start_radius=3,
-                    num_workers=self._num_workers,
-                )
-            else:
-                circle_detector = Ransac(
-                    bandwidth=self._stem_search_circle_fitting_bandwidth,
-                    min_fitting_score=self._stem_search_circle_fitting_min_fitting_score,
-                )
-                circle_detector.detect(
-                    stem_layer_xy,
-                    batch_lengths=batch_lengths_xy,
-                    break_min_radius=min_radius,
-                    break_max_radius=max_radius,
-                    num_workers=self._num_workers,
-                    seed=self._random_seed,
-                )
-            circle_detector.filter(
-                max_circles=1,
-                deduplication_precision=4,
-                min_circumferential_completeness_idx=self._stem_search_circle_fitting_min_completeness_idx,
-                circumferential_completeness_idx_max_dist=self._stem_search_circle_fitting_bandwidth,
-                circumferential_completeness_idx_num_regions=int(365 / 5),
-                non_maximum_suppression=True,
+            flat_circles, flat_ellipses = fit_circles_and_ellipses_to_stem_layers(
+                stem_layer_xy,
+                batch_lengths_xy,
+                circle_fitting_method=self._stem_search_circle_fitting_method,
+                bandwidth=self._stem_search_circle_fitting_bandwidth,
+                min_fitting_score=self._stem_search_circle_fitting_min_fitting_score,
+                min_stem_diameter=self._stem_search_circle_fitting_min_stem_diameter,
+                max_stem_diameter=self._stem_search_circle_fitting_max_stem_diameter,
+                min_completeness_idx=self._stem_search_circle_fitting_min_completeness_idx,
+                fit_ellipses=self._stem_search_ellipse_fitting,
+                ellipse_filter_threshold=self._stem_search_ellipse_filter_threshold,
                 num_workers=self._num_workers,
+                seed=self._random_seed,
             )
 
-            ellipses = None
-            if self._stem_search_ellipse_fitting:
-                ellipses = fit_ellipse(stem_layer_xy, batch_lengths_xy)
+            layer_circles = flat_circles.reshape(len(unique_cluster_labels), num_layers, 3)
+            layer_ellipses = flat_ellipses.reshape(len(unique_cluster_labels), num_layers, 5)
 
             visualization_tasks: List[Tuple[Any, ...]] = []
 
             batch_starts_xy = np.cumsum(np.concatenate((np.array([0], dtype=np.int64), batch_lengths_xy)))[:-1]
-            batch_starts_circles = np.cumsum(
-                np.concatenate((np.array([0], dtype=np.int64), circle_detector.batch_lengths_circles))
-            )[:-1]
+
             for cluster_idx, label in enumerate(unique_cluster_labels):
-                for layer in range(self._stem_search_circle_fitting_num_layers):
+                for layer in range(num_layers):
                     flat_idx = cluster_idx * num_layers + layer
-                    batch_start_idx_xy = batch_starts_xy[flat_idx]
-                    batch_end_idx_xy = batch_start_idx_xy + batch_lengths_xy[flat_idx]
-                    circle_idx = batch_starts_circles[flat_idx]
                     if batch_lengths_xy[flat_idx] < self._stem_search_circle_fitting_min_points:
                         self._logger.info(
                             "Layer %d of stem cluster %d contains too few points to fit a circle or an ellipse.",
@@ -1032,15 +979,11 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         )
                         continue
 
-                    has_circle = circle_detector.batch_lengths_circles[flat_idx] > 0
-                    has_ellipse = ellipses is not None and ellipses[flat_idx, 2] != -1
+                    batch_start_idx_xy = batch_starts_xy[flat_idx]
+                    batch_end_idx_xy = batch_start_idx_xy + batch_lengths_xy[flat_idx]
 
-                    if has_ellipse:
-                        # filter out ellipses if radius is outside the accepted range
-                        radius_major, radius_minor = ellipses[flat_idx, 2:4]  # type: ignore[index]
-
-                        if radius_minor / radius_major < self._stem_search_ellipse_filter_threshold:
-                            has_ellipse = False
+                    has_circle = layer_circles[cluster_idx, layer, 2] != -1
+                    has_ellipse = layer_ellipses[cluster_idx, layer, 2] != -1
 
                     if not has_circle and not has_ellipse:
                         self._logger.info(
@@ -1049,9 +992,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                             label,
                         )
                         continue
-
                     if has_circle:
-                        layer_circles[cluster_idx, layer, :3] = circle_detector.circles[circle_idx]
                         if self._visualization_folder is not None and point_cloud_id is not None:
                             visualization_path = (
                                 self._visualization_folder / point_cloud_id / f"circle_stem_{label}_layer_{layer}.png"
@@ -1060,19 +1001,21 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                                 (
                                     stem_layer_xy[batch_start_idx_xy:batch_end_idx_xy],
                                     visualization_path,
-                                    circle_detector.circles[circle_idx],
+                                    layer_circles[cluster_idx, layer],
                                 )
                             )
                     if has_ellipse:
-                        ellipse = ellipses[flat_idx]  # type: ignore[index]
-
-                        layer_ellipses[cluster_idx, layer] = ellipse
                         if self._visualization_folder is not None and point_cloud_id is not None:
                             visualization_path = (
                                 self._visualization_folder / point_cloud_id / f"ellipse_stem_{label}_layer_{layer}.png"
                             )
                             visualization_tasks.append(
-                                (stem_layer_xy[batch_start_idx_xy:batch_end_idx_xy], visualization_path, None, ellipse)
+                                (
+                                    stem_layer_xy[batch_start_idx_xy:batch_end_idx_xy],
+                                    visualization_path,
+                                    None,
+                                    layer_ellipses[cluster_idx, layer],
+                                )
                             )
 
         if len(visualization_tasks) > 0:
@@ -1408,7 +1351,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         """
 
         num_instances = len(layer_circles)
-        num_layers = layer_circles.shape[1]
 
         filter_mask = np.zeros(num_instances, dtype=bool)
         best_circle_combination = np.full(
@@ -1419,59 +1361,36 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         )
 
         for label in range(num_instances):
-            existing_circle_layers = np.arange(num_layers, dtype=np.int64)[layer_circles[label, :, 2] != -1]
-            existing_ellipse_layers = np.arange(num_layers, dtype=np.int64)[layer_ellipses[label, :, 2] != -1]
+            existing_circle_layers = np.flatnonzero(layer_circles[label, :, 2] != -1)
 
-            if (
-                len(existing_circle_layers) < self._stem_search_circle_fitting_std_num_layers
-                and len(existing_ellipse_layers) < self._stem_search_circle_fitting_std_num_layers
-            ):
+            circle_combination = select_best_stem_layer_combination(
+                existing_circle_layers,
+                layer_circles[label, :, 2] * 2,
+                self._stem_search_circle_fitting_std_num_layers,
+                self._stem_search_circle_fitting_max_std_diameter,
+                positions=layer_circles[label, :, :2],
+                max_std_position=self._stem_search_circle_fitting_max_std_position,
+            )
+
+            if circle_combination is not None:
+                filter_mask[label] = True
+                best_circle_combination[label] = circle_combination
                 continue
 
-            if len(existing_circle_layers) >= self._stem_search_circle_fitting_std_num_layers:
-                circle_diameters = layer_circles[label, :, 2] * 2
-                combinations = np.array(
-                    list(
-                        itertools.combinations(existing_circle_layers, self._stem_search_circle_fitting_std_num_layers)
-                    )
-                )
-                minimum_std = np.inf
-                for combination in combinations:
-                    diameter_std = np.std(circle_diameters[combination])
-                    position_std = np.zeros(2, dtype=diameter_std.dtype)
-                    if self._stem_search_circle_fitting_max_std_position is not None:
-                        position_std = np.std(layer_circles[label, combination, :2], axis=0)
-                    if (
-                        diameter_std <= self._stem_search_circle_fitting_max_std_diameter
-                        and (position_std <= self._stem_search_circle_fitting_max_std_position).all()
-                    ):
-                        filter_mask[label] = True
-                        if diameter_std < minimum_std:
-                            minimum_std = diameter_std
-                            best_circle_combination[label] = combination
-            if not filter_mask[label]:
-                ellipse_diameters = (layer_ellipses[label, :, 2:4]).sum(axis=-1)
-                combinations = np.array(
-                    list(
-                        itertools.combinations(existing_ellipse_layers, self._stem_search_circle_fitting_std_num_layers)
-                    )
-                )
-                minimum_std = np.inf
-                for combination in combinations:
-                    diameter_std = np.std(ellipse_diameters[combination])
+            existing_ellipse_layers = np.flatnonzero(layer_ellipses[label, :, 2] != -1)
 
-                    position_std = np.zeros(2, dtype=diameter_std.dtype)
-                    if self._stem_search_circle_fitting_max_std_position is not None:
-                        position_std = np.std(layer_ellipses[label, combination, :2], axis=0)
+            ellipse_combination = select_best_stem_layer_combination(
+                existing_ellipse_layers,
+                layer_ellipses[label, :, 2:4].sum(axis=-1),
+                self._stem_search_circle_fitting_std_num_layers,
+                self._stem_search_circle_fitting_max_std_diameter,
+                positions=layer_ellipses[label, :, :2],
+                max_std_position=self._stem_search_circle_fitting_max_std_position,
+            )
 
-                    if (
-                        diameter_std <= self._stem_search_circle_fitting_max_std_diameter
-                        and (position_std <= self._stem_search_circle_fitting_max_std_position).all()
-                    ):
-                        filter_mask[label] = True
-                        if diameter_std < minimum_std:
-                            minimum_std = diameter_std
-                            best_ellipse_combination[label] = combination
+            if ellipse_combination is not None:
+                filter_mask[label] = True
+                best_ellipse_combination[label] = ellipse_combination
 
         return filter_mask, best_circle_combination[filter_mask], best_ellipse_combination[filter_mask]
 
@@ -1692,7 +1611,6 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         """
 
         num_instances = len(layer_circles)
-        len_layer_combination = best_circle_combination.shape[1]
         num_layers = self._stem_search_circle_fitting_num_layers
 
         stem_diameters = np.empty(num_instances, dtype=stem_layer_xy.dtype)
@@ -1705,47 +1623,58 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
             if has_circle_combination:
                 best_combination = best_circle_combination[label]
                 circles_or_ellipses = layer_circles[label, best_combination]
+                fallback_diameters = circles_or_ellipses[:, 2] * 2
             else:
                 best_combination = best_ellipse_combination[label]
                 circles_or_ellipses = layer_ellipses[label, best_combination]
+                fallback_diameters = circles_or_ellipses[:, 2:4].sum(axis=-1)
 
             layer_heights_combination = layer_heights[best_combination]
             centers = circles_or_ellipses[:, :2]
 
-            layer_diameters = np.empty(len_layer_combination, dtype=stem_layer_xy.dtype)
+            flat_indices = label * num_layers + best_combination
+            combination_batch_lengths = batch_lengths_xy[flat_indices]
+            combination_batch_starts = batch_starts[flat_indices]
+            combination_local_starts = np.cumsum(
+                np.concatenate((np.array([0], dtype=np.int64), combination_batch_lengths))
+            )[:-1]
+            combination_layer_xy = np.concatenate(
+                [
+                    stem_layer_xy[start : start + length]
+                    for start, length in zip(combination_batch_starts, combination_batch_lengths)
+                ],
+                axis=0,
+            )
 
-            for layer_idx, layer in enumerate(best_combination):
-                flat_idx = label * num_layers + layer
-                batch_start_idx = batch_starts[flat_idx]
-                batch_end_idx = batch_start_idx + batch_lengths_xy[flat_idx]
-                diameter_gam = None
-                polygon_vertices = None
-                if batch_start_idx < batch_end_idx:
-                    diameter_gam, polygon_vertices = self.stem_diameter_estimation_gam(
-                        stem_layer_xy[batch_start_idx:batch_end_idx], centers[layer_idx]
-                    )
-                if diameter_gam is not None:
-                    layer_diameters[layer_idx] = diameter_gam
-                else:
-                    if has_circle_combination:
-                        layer_diameters[layer_idx] = circles_or_ellipses[layer_idx, 2] * 2
-                    else:
-                        layer_diameters[layer_idx] = circles_or_ellipses[layer_idx, 2:4].sum()
+            diameters, _, gam_diameters, polygon_vertices_per_layer = estimate_stem_diameter(
+                combination_layer_xy,
+                combination_batch_lengths,
+                centers,
+                fallback_diameters,
+                layer_heights_combination,
+                np.array([1.3], dtype=stem_layer_xy.dtype),
+                self._stem_search_gam_max_radius_diff,
+                self._random_generator,
+            )
+            stem_diameters[label] = diameters[0]
 
-                if (
-                    polygon_vertices is not None
-                    and self._visualization_folder is not None
-                    and point_cloud_id is not None
-                ):
-                    if diameter_gam is not None:
+            if self._visualization_folder is not None and point_cloud_id is not None:
+                for combination_idx, layer in enumerate(best_combination):
+                    polygon_vertices = polygon_vertices_per_layer[combination_idx]
+                    if polygon_vertices is None:
+                        continue
+
+                    if gam_diameters[combination_idx] is not None:
                         file_name = f"gam_stem_{label}_layer_{layer}.png"
                     else:
                         file_name = f"gam_stem_{label}_layer_{layer}_invalid.png"
 
                     visualization_path = self._visualization_folder / point_cloud_id / file_name
+                    local_start = combination_local_starts[combination_idx]
+                    local_end = local_start + combination_batch_lengths[combination_idx]
                     visualization_tasks.append(
                         (
-                            stem_layer_xy[batch_start_idx:batch_end_idx],
+                            combination_layer_xy[local_start:local_end],
                             visualization_path,
                             None,
                             None,
@@ -1753,98 +1682,12 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
                         )
                     )
 
-            prediction, _ = estimate_with_linear_model(
-                layer_heights_combination, layer_diameters, np.array([1.3], dtype=stem_layer_xy.dtype)
-            )
-            stem_diameters[label] = prediction[0]
-
         if len(visualization_tasks) > 0:
             num_workers = self._num_workers if self._num_workers > 0 else multiprocessing.cpu_count()
             with multiprocessing.Pool(processes=num_workers) as pool:
                 pool.starmap(plot_fitted_shape, visualization_tasks)
 
         return stem_diameters
-
-    def stem_diameter_estimation_gam(  # pylint: disable=too-many-locals
-        self,
-        points: FloatArray,
-        center: FloatArray,
-    ) -> Tuple[Optional[float], FloatArray]:
-        r"""
-        Estimates the diameter of a tree stem at a certain height using a generalized additive model (GAM). It is
-        assumed that a circle or an ellipse has already been fitted to the points of the tree stem in a layer around the
-        respective height. To create the GAM, the points are converted into polar coordinates, using the center of the
-        previously fitted circle or ellipse as the coordinate origin. The GAM is then fitted to predict the radius of
-        the points based on the angles. The fitted GAM is then used to predict the stem radii in one-degree intervals.
-        From these predictions, the stem's boundary polygon is constructed and the stem diameter is computed from the
-        area of the boundary polygon. Assuming the boundary polygon is approximately circular, the stem diameter is
-        calculated using the formula for a circle's diameter.
-
-        .. math::
-
-            d = 2 \cdot \sqrt{\frac{A_{polygon}}{\pi}}
-
-        If any of the predicted radii is negative or the difference between the minimum
-        and maximum of the predicted radii is greater than the value of :code:`stem_search_gam_max_radius_diff`
-        (constructor parameter), the fitted GAM is considered invalid, and :code:`None` is returned for the stem
-        diameter. In this case the diameter of the previously fitted circle or ellipse can be used as a more robust
-        estimate of the stem diameter.
-
-        Args:
-            points: Points belonging to the stem layer for which to estimate the diameter.
-            center: Center of the circle or ellipse that has been fitted to the stem layer.
-
-        Returns:
-            : Tuple with two elements:
-                - Estimated stem diameter. The estimated stem diameter may be :code:`None` if the fitted GAM is invalid.
-                - Array containing the sorted vertices of the stem's boundary polygon predicted by the GAM as cartesian
-                  coordinates.
-
-        Shape:
-            - :code:`points`: :math:`(N, 2)` or :math:`(N, 3)`
-            - :code:`center`: :math:`(2)`
-
-            | where
-            |
-            | :math:`N = \text{ number of points}`
-        """
-
-        points_centered = points[:, :2] - center.reshape((-1, 2))
-
-        # calculate polar coordinates
-        polar_radius = np.linalg.norm(points_centered[:, :2], axis=-1)
-
-        # add small random offset to avoid perfect separation
-        polar_radius += self._random_generator.normal(0, 1e-8, len(points))
-
-        polar_angle = np.arctan2(points_centered[:, 1], points_centered[:, 0])
-
-        # fit GAM
-        polar_xy = np.column_stack((polar_angle, polar_radius))
-        gam = LinearGAM(s(0, basis="cp", edge_knots=[-np.pi, np.pi])).fit(polar_xy[:, 0], polar_xy[:, 1])
-        del polar_xy
-
-        # predict stem outline using fitted GAM
-        polar_angles = np.asarray([-np.pi + 2 * np.pi * k / 360 for k in range(360)])
-        polar_radii = gam.predict(polar_angles)
-
-        cartesian_coords_x = polar_radii * np.cos(polar_angles)
-        cartesian_coords_y = polar_radii * np.sin(polar_angles)
-
-        cartesian_coords = np.column_stack((cartesian_coords_x, cartesian_coords_y))
-        cartesian_coords = cartesian_coords + center.reshape((-1, 2))
-
-        radius_diff = polar_radii.max() - polar_radii.min()
-
-        if (
-            self._stem_search_gam_max_radius_diff is not None and radius_diff > self._stem_search_gam_max_radius_diff
-        ) or (polar_radii < 0).any():
-            return None, cartesian_coords
-
-        stem_area = polygon_area(cartesian_coords_x, cartesian_coords_y)
-        diameter_gam = 2 * np.sqrt(stem_area / np.pi)
-
-        return diameter_gam, cartesian_coords
 
     def segment_crowns(
         self,

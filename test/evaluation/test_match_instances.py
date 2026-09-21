@@ -16,7 +16,9 @@ class TestMetrics:
         ["panoptic_segmentation", "point2tree", "for_instance", "for_ai_net", "tree_learn"],
     )
     @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_match_instances(self, method: str, invalid_instance_id: int, return_best_matches: bool):
+    def test_match_instances(  # pylint: disable=too-many-locals
+        self, method: str, invalid_instance_id: int, return_best_matches: bool
+    ):
         start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3, -1], dtype=np.int64)
         prediction = np.array([2, 2, 2, 2, -1, 3, 1, 0, 0, 1, 2, -1, -1, -1, -1, -1], dtype=np.int64)

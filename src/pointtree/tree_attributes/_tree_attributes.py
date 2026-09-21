@@ -1,9 +1,19 @@
 """Computation of tree attributes from individual tree point clouds."""
 
-__all__ = ["tree_attributes", "crown_volume", "crown_width", "tree_height", "stem_diameter", "stem_direction"]
+__all__ = [
+    "tree_attributes",
+    "crown_base_height",
+    "crown_volume",
+    "crown_width",
+    "tree_height",
+    "tree_position",
+    "under_branch_height",
+    "stem_diameter",
+    "stem_direction",
+]
 
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -16,14 +26,26 @@ from .stem_diameter import (
 )
 
 
-def tree_attributes(
+def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too-many-positional-arguments
     tree_xyz: npt.NDArray,
     attributes: Optional[
-        List[Literal["crown_volume", "crown_width", "tree_height", "stem_diameter", "stem_direction"]]
+        List[
+            Literal[
+                "crown_base_height",
+                "crown_volume",
+                "crown_width",
+                "tree_height",
+                "tree_position",
+                "under_branch_height",
+                "stem_diameter",
+                "stem_direction",
+            ]
+        ]
     ] = None,
     classification: Optional[npt.NDArray] = None,
     ground_height: Optional[float] = None,
     stem_class_ids: Optional[List[int]] = None,
+    branch_class_ids: Optional[List[int]] = None,
     leaf_class_ids: Optional[List[int]] = None,
     stem_diameter_target_heights: Optional[npt.NDArray] = None,
 ) -> Dict[str, Any]:
@@ -34,19 +56,15 @@ def tree_attributes(
         tree_xyz: Coordinates of all points belonging to the tree.
         attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed.
         classification: Semantic class ID for each point in :code:`tree_xyz`. Used together with
-            :code:`stem_class_ids` and :code:`leaf_class_ids` to restrict the points used to compute the stem and
-            crown attributes, respectively. If :code:`None`, all points of :code:`tree_xyz` are used for every
-            attribute.
-        ground_height: Height of the ground surface underneath the tree, used to compute the tree height. If
-            :code:`None`, the tree height is computed as the difference between the maximum and minimum
-            z-coordinate of :code:`tree_xyz`.
-        stem_class_ids: Class IDs that identify stem points. Used together with :code:`classification` to select the
-            points passed to :code:`stem_diameter` and :code:`stem_direction`. If :code:`None`, or if
-            :code:`classification` is :code:`None`, all points of :code:`tree_xyz` are used.
-        branch_class_ids: Class IDs that identify branch points. Currently unused.
-        leaf_class_ids: Class IDs that identify leaf points. Used together with :code:`classification` to select the
-            points passed to :code:`crown_volume` and :code:`crown_width`. If :code:`None`, or if
-            :code:`classification` is :code:`None`, all points of :code:`tree_xyz` are used.
+            :code:`stem_class_ids`, :code:`branch_class_ids`, and :code:`leaf_class_ids` to restrict the points used
+            to compute the stem, branch, and crown attributes, respectively. If :code:`None`, all points of
+            :code:`tree_xyz` are used for every attribute.
+        ground_height: Height of the ground surface underneath the tree, used to compute the tree height, crown
+            base height, and under branch height. If :code:`None`, the minimum z-coordinate of :code:`tree_xyz` is
+            used instead.
+        stem_class_ids: Class IDs that identify stem points in :code:`classification`.
+        branch_class_ids: Class IDs that identify branch points in :code:`classification`.
+        leaf_class_ids: Class IDs that identify leaf points in :code:`classification`.
         stem_diameter_target_heights: Heights above the ground at which the stem diameter is to be estimated. Passed
             through to :code:`stem_diameter`. Defaults to :code:`None`, which means that only the stem diameter at
             1.3 m above the ground is estimated.
@@ -58,35 +76,70 @@ def tree_attributes(
         height.
     """
 
-    tree_attributes: Dict[str, Any] = {}
+    tree_attributes_dict: Dict[str, Any] = {}
 
     stem_xyz = tree_xyz
+    branch_xyz = tree_xyz
     crown_xyz = tree_xyz
     if classification is not None and stem_class_ids is not None:
         stem_xyz = tree_xyz[np.isin(classification, stem_class_ids)]
+    if classification is not None and branch_class_ids is not None:
+        branch_xyz = tree_xyz[np.isin(classification, branch_class_ids)]
     if classification is not None and leaf_class_ids is not None:
         crown_xyz = tree_xyz[np.isin(classification, leaf_class_ids)]
 
+    ground_height = ground_height if ground_height is not None else float(tree_xyz[:, 2].min())
+
     if attributes is None or "crown_volume" in attributes:
-        tree_attributes["crown_volume"] = crown_volume(crown_xyz)
+        tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz)
 
     if attributes is None or "crown_width" in attributes:
-        tree_attributes["crown_width"] = crown_width(crown_xyz)
+        tree_attributes_dict["crown_width"] = crown_width(crown_xyz)
 
     if attributes is None or "tree_height" in attributes:
-        tree_attributes["tree_height"] = tree_height(tree_xyz, ground_height=ground_height)
+        tree_attributes_dict["tree_height"] = tree_height(tree_xyz, ground_height=ground_height)
+
+    if attributes is None or "tree_position" in attributes:
+        tree_attributes_dict["tree_position"] = tree_position(stem_xyz)
+
+    if attributes is None or "crown_base_height" in attributes:
+        tree_attributes_dict["crown_base_height"] = crown_base_height(crown_xyz, ground_height)
+
+    if attributes is None or "under_branch_height" in attributes:
+        tree_attributes_dict["under_branch_height"] = under_branch_height(branch_xyz, ground_height)
 
     if attributes is None or "stem_diameter" in attributes:
         target_heights = stem_diameter_target_heights if stem_diameter_target_heights is not None else np.array([1.3])
         diameters = stem_diameter(stem_xyz, ground_height=ground_height, target_heights=target_heights)
-        tree_attributes["stem_diameter"] = {
+        tree_attributes_dict["stem_diameter"] = {
             round(float(height), 2): float(diameter) for height, diameter in zip(target_heights, diameters)
         }
 
     if attributes is None or "stem_direction" in attributes:
-        tree_attributes["stem_direction"] = stem_direction(stem_xyz)
+        tree_attributes_dict["stem_direction"] = stem_direction(stem_xyz)
 
-    return tree_attributes
+    return tree_attributes_dict
+
+
+def crown_base_height(crown_xyz: npt.NDArray, ground_height: float) -> float:
+    """
+    Computes the height of the crown base above the ground. The crown base height is estimated as the height of the
+    of the lowest leaf point above the ground.
+
+    Args:
+        crown_xyz: Coordinates of the points belonging to the tree crown.
+        ground_height: Height of the ground surface underneath the tree.
+
+    Returns:
+        Height of the crown base above the ground. :code:`NaN` if :code:`crown_xyz` is empty.
+    """
+
+    if len(crown_xyz) == 0:
+        return float("nan")
+
+    crown_base = float(crown_xyz[:, 2].min()) - ground_height
+
+    return max(crown_base, 0.0)
 
 
 def crown_volume(crown_xyz: npt.NDArray, voxel_size: float = 0.5) -> float:
@@ -158,9 +211,28 @@ def tree_height(xyz: npt.NDArray, ground_height: Optional[float] = None) -> floa
         return 0.0
 
     if ground_height is not None:
-        return xyz[:, 2].max() - ground_height
+        return max(xyz[:, 2].max() - ground_height, 0.0)
 
     return xyz[:, 2].max() - xyz[:, 2].min()
+
+
+def tree_position(stem_xyz: npt.NDArray) -> Tuple[float, float]:
+    """
+    Computes the position of a tree as the mean x- and y-coordinate of its stem points.
+
+    Args:
+        stem_xyz: Coordinates of the points belonging to the tree stem.
+
+    Returns:
+        X- and y-coordinate of the tree position. :code:`(NaN, NaN)` if :code:`stem_xyz` is empty.
+    """
+
+    if len(stem_xyz) == 0:
+        return float("nan"), float("nan")
+
+    mean_xy = stem_xyz[:, :2].mean(axis=0)
+
+    return float(mean_xy[0]), float(mean_xy[1])
 
 
 def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-many-positional-arguments
@@ -352,3 +424,22 @@ def stem_direction(stem_xyz: npt.NDArray) -> npt.NDArray:
         direction = -direction
 
     return direction
+
+
+def under_branch_height(branch_xyz: npt.NDArray, ground_height: float) -> float:
+    """
+    Computes the height of the first (i.e., lowest) branching point above the ground, i.e., the length of the
+    branch-free section of the stem. This is only computed if there is at least one branch point.
+
+    Args:
+        branch_xyz: Coordinates of the points belonging to the tree's branches.
+        ground_height: Height of the ground surface underneath the tree.
+
+    Returns:
+        Height of the first branching point above the ground. :code:`NaN` if it cannot be determined.
+    """
+
+    if len(branch_xyz) == 0:
+        return float("nan")
+
+    return max(float(branch_xyz[:, 2].min()) - ground_height, 0.0)

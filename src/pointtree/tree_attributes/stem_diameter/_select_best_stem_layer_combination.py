@@ -65,7 +65,7 @@ def select_best_stem_layer_combination(
     for combination in itertools.combinations(existing_layers, combination_size):
         combination_array = np.asarray(combination, dtype=np.int64)
 
-        diameter_std = np.std(diameters[combination_array])
+        diameter_std = float(np.std(diameters[combination_array]))
         if diameter_std > max_std_diameter:
             continue
 

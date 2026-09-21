@@ -5,12 +5,15 @@ import numpy.typing as npt
 import pytest
 
 from pointtree.tree_attributes import (
+    crown_base_height,
     crown_volume,
     crown_width,
     stem_diameter,
     stem_direction,
     tree_attributes,
     tree_height,
+    tree_position,
+    under_branch_height,
 )
 
 from ..utils import generate_circle_points
@@ -34,6 +37,26 @@ def generate_cylinder_points(
 
     return np.concatenate(layers).astype(np.float64)
 
+
+class TestCrownBaseHeight:
+    """Tests for pointtree.tree_attributes.crown_base_height."""
+
+    def test_valid(self):
+        crown_xyz = np.array([[0.0, 0.0, 4.0], [0.0, 0.0, 6.0]], dtype=np.float64)
+
+        height = crown_base_height(crown_xyz, ground_height=0.0)
+
+        assert height == pytest.approx(4.0)
+
+    def test_clamped_to_zero(self):
+        crown_xyz = np.array([[0.0, 0.0, -1.0]], dtype=np.float64)
+
+        height = crown_base_height(crown_xyz, ground_height=0.0)
+
+        assert height == pytest.approx(0.0)
+
+    def test_no_crown_points(self):
+        assert np.isnan(crown_base_height(np.empty((0, 3), dtype=np.float64), ground_height=0.0))
 
 class TestCrownVolume:
     """Tests for pointtree.tree_attributes.crown_volume."""
@@ -79,23 +102,6 @@ class TestCrownWidth:
         xyz = np.array([[0.0, -2.0, 0.0], [0.5, 3.0, 5.0]], dtype=np.float64)
 
         assert crown_width(xyz) == pytest.approx(5.0)
-
-
-class TestTreeHeight:
-    """Tests for pointtree.tree_attributes.tree_height."""
-
-    def test_empty_tree(self):
-        assert tree_height(np.empty((0, 3), dtype=np.float64)) == 0.0
-
-    def test_without_ground_height(self):
-        xyz = np.array([[0.0, 0.0, 1.5], [0.0, 0.0, 5.5]], dtype=np.float64)
-
-        assert tree_height(xyz) == pytest.approx(4.0)
-
-    def test_with_ground_height(self):
-        xyz = np.array([[0.0, 0.0, 1.5], [0.0, 0.0, 5.5]], dtype=np.float64)
-
-        assert tree_height(xyz, ground_height=1.0) == pytest.approx(4.5)
 
 
 class TestStemDirection:
@@ -168,14 +174,72 @@ class TestStemDiameter:
         np.testing.assert_allclose(diameters, 0.3, atol=0.01)
 
 
+class TestTreeHeight:
+    """Tests for pointtree.tree_attributes.tree_height."""
+
+    def test_empty_tree(self):
+        assert tree_height(np.empty((0, 3), dtype=np.float64)) == 0.0
+
+    def test_without_ground_height(self):
+        xyz = np.array([[0.0, 0.0, 1.5], [0.0, 0.0, 5.5]], dtype=np.float64)
+
+        assert tree_height(xyz) == pytest.approx(4.0)
+
+    def test_with_ground_height(self):
+        xyz = np.array([[0.0, 0.0, 1.5], [0.0, 0.0, 5.5]], dtype=np.float64)
+
+        assert tree_height(xyz, ground_height=1.0) == pytest.approx(4.5)
+
+class TestTreePosition:
+    """Tests for pointtree.tree_attributes.tree_position."""
+
+    def test_empty_stem(self):
+        position = tree_position(np.empty((0, 3), dtype=np.float64))
+
+        assert np.isnan(position).all()
+
+    def test_mean_of_stem_points(self):
+        stem_xyz = np.array([[1.0, 2.0, 0.0], [3.0, 4.0, 1.0]], dtype=np.float64)
+
+        assert tree_position(stem_xyz) == pytest.approx((2.0, 3.0))
+
+class TestUnderBranchHeight:
+    """Tests for pointtree.tree_attributes.under_branch_height."""
+
+    def test_valid(self):
+        branch_xyz = np.array([[0.0, 0.0, 3.0], [0.0, 0.0, 3.5]], dtype=np.float64)
+
+        height = under_branch_height(branch_xyz, ground_height=0.0)
+
+        assert height == pytest.approx(3.0)
+
+    def test_clamped_to_zero(self):
+        branch_xyz = np.array([[0.0, 0.0, -1.0]], dtype=np.float64)
+
+        height = under_branch_height(branch_xyz, ground_height=0.0)
+
+        assert height == pytest.approx(0.0)
+
+    def test_nan_when_no_branches(self):
+        height = under_branch_height(np.empty((0, 3), dtype=np.float64), ground_height=0.0)
+
+        assert np.isnan(height)
+
 class TestTreeAttributes:
     """Tests for pointtree.tree_attributes.tree_attributes."""
 
     def make_tree(self):
         crown_xyz = np.array([[-1.0, 0.0, 5.0], [1.0, 0.0, 5.0], [0.0, -1.0, 6.0], [0.0, 1.0, 7.0]], dtype=np.float64)
+        branch_xyz = np.array([[0.0, 0.0, 4.5], [0.0, 0.0, 4.8]], dtype=np.float64)
         stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3)
-        tree_xyz = np.concatenate([crown_xyz, stem_xyz])
-        classification = np.concatenate([np.full(len(crown_xyz), fill_value=1), np.full(len(stem_xyz), fill_value=0)])
+        tree_xyz = np.concatenate([crown_xyz, branch_xyz, stem_xyz])
+        classification = np.concatenate(
+            [
+                np.full(len(crown_xyz), fill_value=1),
+                np.full(len(branch_xyz), fill_value=2),
+                np.full(len(stem_xyz), fill_value=0),
+            ]
+        )
         return tree_xyz, classification
 
     def test_computes_all_attributes_by_default(self):
@@ -185,6 +249,7 @@ class TestTreeAttributes:
             tree_xyz,
             classification=classification,
             stem_class_ids=[0],
+            branch_class_ids=[2],
             leaf_class_ids=[1],
         )
 
@@ -192,11 +257,17 @@ class TestTreeAttributes:
             "crown_volume",
             "crown_width",
             "tree_height",
+            "tree_position",
+            "crown_base_height",
+            "under_branch_height",
             "stem_diameter",
             "stem_direction",
         }
         assert attributes["tree_height"] == pytest.approx(tree_xyz[:, 2].max() - tree_xyz[:, 2].min())
         assert attributes["crown_width"] == pytest.approx(2.0)
+        assert attributes["tree_position"] == pytest.approx((0.0, 0.0), abs=0.01)
+        assert attributes["crown_base_height"] == pytest.approx(5.0)
+        assert attributes["under_branch_height"] == pytest.approx(4.5)
         assert set(attributes["stem_diameter"].keys()) == {1.3}
         assert attributes["stem_diameter"][1.3] == pytest.approx(0.3, abs=0.01)
         np.testing.assert_allclose(attributes["stem_direction"], [0.0, 0.0, 1.0], atol=1e-6)

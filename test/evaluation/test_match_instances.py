@@ -10,12 +10,13 @@ from pointtree.evaluation import match_instances
 class TestMetrics:
     """Tests for pointtree.evaluation.match_instances."""
 
+    @pytest.mark.parametrize("return_best_matches", [True, False])
     @pytest.mark.parametrize(
         "method",
         ["panoptic_segmentation", "point2tree", "for_instance", "for_ai_net", "tree_learn"],
     )
     @pytest.mark.parametrize("invalid_instance_id", [-1, 0])
-    def test_match_instances(self, method: str, invalid_instance_id: int):
+    def test_match_instances(self, method: str, invalid_instance_id: int, return_best_matches: bool):
         start_instance_id = invalid_instance_id + 1
         target = np.array([1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 1, 3, 3, 3, 3, -1], dtype=np.int64)
         prediction = np.array([2, 2, 2, 2, -1, 3, 1, 0, 0, 1, 2, -1, -1, -1, -1, -1], dtype=np.int64)
@@ -36,12 +37,27 @@ class TestMetrics:
         expected_matched_target_ids += start_instance_id
         expected_matched_predicted_ids += start_instance_id
 
-        matched_target_ids, matched_predicted_ids, _ = match_instances(
-            target, prediction, xyz=xyz, method=method, invalid_instance_id=invalid_instance_id
+        matching_results = match_instances(
+            target,
+            prediction,
+            xyz=xyz,
+            method=method,
+            invalid_instance_id=invalid_instance_id,
+            return_best_matches=return_best_matches,
         )
+        matched_target_ids, matched_predicted_ids = matching_results[:2]
 
         np.testing.assert_array_equal(expected_matched_target_ids, matched_target_ids)
         np.testing.assert_array_equal(matched_predicted_ids, expected_matched_predicted_ids)
+
+        if return_best_matches:
+            best_target_ids_per_prediction, best_predicted_ids_per_target = matching_results[3:]
+
+            expected_best_target_ids_per_prediction = np.array([0, 0, 1, 2], dtype=np.int64) + start_instance_id
+            expected_best_predicted_ids_per_target = np.array([0, 2, 3, -1], dtype=np.int64) + start_instance_id
+
+            np.testing.assert_array_equal(expected_best_target_ids_per_prediction, best_target_ids_per_prediction)
+            np.testing.assert_array_equal(expected_best_predicted_ids_per_target, best_predicted_ids_per_target)
 
     @pytest.mark.parametrize(
         "method",

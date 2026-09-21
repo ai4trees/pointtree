@@ -69,6 +69,49 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics["OmissionError"] == 0
         assert metrics["F1Score"] == 1
 
+    @pytest.mark.parametrize("count_fp_if_matched_with_fn", [True, False])
+    def test_instance_detection_metrics_counting_of_fp(self, count_fp_if_matched_with_fn: bool):
+        target = np.array([0, 0, 2, 2, 1, 1, 1, 1, 1], dtype=np.int64)
+        prediction = np.array([0, 0, 1, -1, 2, -1, 3, 3, 3], dtype=np.int64)
+
+        matched_predicted_ids = np.array([0, -1, 1], dtype=np.int64)
+        matched_target_ids = np.array([0, 2, -1, -1], dtype=np.int64)
+        best_target_ids_per_prediction = np.array([0, 2, 1, 1], dtype=np.int64)
+        best_predicted_ids_per_target = np.array([0, 3, 1], dtype=np.int64)
+
+        if not count_fp_if_matched_with_fn:
+            with pytest.raises(ValueError):
+                instance_detection_metrics(
+                    target,
+                    prediction,
+                    matched_predicted_ids,
+                    matched_target_ids,
+                    count_fp_if_matched_with_fn=False,
+                )
+
+        metrics = instance_detection_metrics(
+            target,
+            prediction,
+            matched_predicted_ids,
+            matched_target_ids,
+            count_fp_if_matched_with_fn=count_fp_if_matched_with_fn,
+            best_target_ids_per_prediction=None if count_fp_if_matched_with_fn else best_target_ids_per_prediction,
+            best_predicted_ids_per_target=None if count_fp_if_matched_with_fn else best_predicted_ids_per_target,
+        )
+
+        assert metrics["TP"] == 2
+        assert metrics["FN"] == 1
+        if count_fp_if_matched_with_fn:
+            assert metrics["FP"] == 2
+            assert metrics["Precision"] == pytest.approx(2 / 4)
+            assert metrics["Recall"] == pytest.approx(2 / 3)
+            assert metrics["F1Score"] == pytest.approx(4 / 7)
+        else:
+            assert metrics["FP"] == 1
+            assert metrics["Precision"] == pytest.approx(2 / 3)
+            assert metrics["Recall"] == pytest.approx(2 / 3)
+            assert metrics["F1Score"] == pytest.approx(2 / 3)
+
     def test_match_instances_invalid_uncertain_instance_id(self):
         target = np.array([1, 2, 3], dtype=np.int64)
         prediction = np.array([1, 2, 3], dtype=np.int64)
@@ -1122,3 +1165,31 @@ class TestInstanceSegmentationMetrics:  # pylint: disable=too-many-public-method
         assert metrics_per_xy_partition_per_instance is None
         assert metrics_per_z_partition is None
         assert metrics_per_z_partition_per_instance is None
+
+    @pytest.mark.parametrize("count_fp_if_matched_with_fn", [True, False])
+    def test_evaluate_instance_segmentation_counting_of_fp(self, count_fp_if_matched_with_fn: bool):
+        xyz = np.zeros((9, 3), dtype=np.float64)
+        target = np.array([0, 0, 2, 2, 1, 1, 1, 1, 1], dtype=np.int64)
+        prediction = np.array([0, 0, 1, -1, 2, -1, 3, 3, 3], dtype=np.int64)
+
+        metrics, *_ = evaluate_instance_segmentation(
+            xyz,
+            target,
+            prediction,
+            detection_metrics_matching_method="panoptic_segmentation",
+            count_fp_if_matched_with_fn=count_fp_if_matched_with_fn,
+            compute_partition_metrics=False,
+        )
+
+        assert metrics["DetectionTP"].iloc[0] == 2
+        assert metrics["DetectionFN"].iloc[0] == 1
+        if count_fp_if_matched_with_fn:
+            assert metrics["DetectionFP"].iloc[0] == 2
+            assert metrics["DetectionPrecision"].iloc[0] == pytest.approx(2 / 4)
+            assert metrics["DetectionRecall"].iloc[0] == pytest.approx(2 / 3)
+            assert metrics["DetectionF1Score"].iloc[0] == pytest.approx(4 / 7)
+        else:
+            assert metrics["DetectionFP"].iloc[0] == 1
+            assert metrics["DetectionPrecision"].iloc[0] == pytest.approx(2 / 3)
+            assert metrics["DetectionRecall"].iloc[0] == pytest.approx(2 / 3)
+            assert metrics["DetectionF1Score"].iloc[0] == pytest.approx(2 / 3)

@@ -15,6 +15,7 @@ __all__ = [
 
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
+from circle_detection.operations import circumferential_completeness_index
 import numpy as np
 import numpy.typing as npt
 from sklearn.decomposition import PCA
@@ -73,7 +74,10 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
         Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
         estimated at multiple heights, the value stored under the key :code:`"stem_diameter"` is itself a
         dictionary mapping each target height (rounded to two decimal places) to the diameter estimated at that
-        height.
+        height. If :code:`"stem_diameter"` is computed, the dictionary additionally contains the keys
+        :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
+        the circumferential completeness indices and the standard deviation of the diameters of the layers that
+        were used to estimate the stem diameter (see :code:`stem_diameter`).
     """
 
     tree_attributes_dict: Dict[str, Any] = {}
@@ -110,10 +114,14 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
 
     if attributes is None or "stem_diameter" in attributes:
         target_heights = stem_diameter_target_heights if stem_diameter_target_heights is not None else np.array([1.3])
-        diameters = stem_diameter(stem_xyz, ground_height=ground_height, target_heights=target_heights)
+        diameters, completeness_indices, layer_diameter_std = stem_diameter(
+            stem_xyz, ground_height=ground_height, target_heights=target_heights
+        )
         tree_attributes_dict["stem_diameter"] = {
             round(float(height), 2): float(diameter) for height, diameter in zip(target_heights, diameters)
         }
+        tree_attributes_dict["stem_diameter_layer_completeness"] = completeness_indices
+        tree_attributes_dict["stem_diameter_layer_std"] = layer_diameter_std
 
     if attributes is None or "stem_direction" in attributes:
         tree_attributes_dict["stem_direction"] = stem_direction(stem_xyz)
@@ -256,7 +264,7 @@ def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-m
     ellipse_filter_threshold: float = 0.6,
     gam_max_radius_diff: Optional[float] = 0.3,
     random_seed: Optional[int] = None,
-) -> npt.NDArray:
+) -> Tuple[npt.NDArray, npt.NDArray, float]:
     r"""
     Estimates the stem diameter at the target height using the circle / ellipse fitting approach of the treeX algorithm
     (see :code:`pointtree.instance_segmentation.TreeXAlgorithm`). :code:`num_layers` horizontal layers of height
@@ -312,15 +320,33 @@ def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-m
             random number generator is not seeded.
 
     Returns:
-        Estimated stem diameters at the target heights. :code:`NaN` if the diameter could not be estimated,
-        e.g., because :code:`stem_xyz` does not contain enough points in at least :code:`std_num_layers` valid
-        layers.
+        :Tuple of three elements:
+            - Estimated stem diameters at the target heights. :code:`NaN` if the diameter could not be estimated,
+              e.g., because :code:`stem_xyz` does not contain enough points in at least :code:`std_num_layers`
+              valid layers.
+            - Circumferential completeness indices of the circles fitted to the :code:`std_num_layers` layers that
+              were used to estimate the stem diameter. :code:`NaN` for a layer if the diameter could not be
+              estimated, or if the ellipse fallback was used for the respective layer combination instead of
+              circles (in which case no circumferential completeness index is available).
+            - Standard deviation of the diameters of the :code:`std_num_layers` layers that were used to estimate
+              the stem diameter (see :code:`select_best_stem_layer_combination`). :code:`NaN` if the diameter could
+              not be estimated.
+
+    Shape:
+        - Output: :math:`(T)`, :math:`(L)`, scalar
+
+        | where
+        |
+        | :math:`T` = number of target heights
+        | :math:`L` = number of layers used to estimate the stem diameters
     """
     if target_heights is None:
         target_heights = np.array([1.3])
 
+    no_completeness_indices = np.full(std_num_layers, fill_value=np.nan)
+
     if len(stem_xyz) < min_points:
-        return np.full_like(target_heights, fill_value=np.nan)
+        return np.full_like(target_heights, fill_value=np.nan), no_completeness_indices, float("nan")
 
     if ground_height is not None:
         height_above_ground = stem_xyz[:, 2] - ground_height
@@ -340,7 +366,7 @@ def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-m
             batch_lengths[layer] = mask.sum()
 
     if len(xy_batches) == 0:
-        return np.full_like(target_heights, fill_value=np.nan)
+        return np.full_like(target_heights, fill_value=np.nan), no_completeness_indices, float("nan")
 
     stem_layer_xy = np.concatenate(xy_batches, axis=0).astype(np.float64)
     stem_layer_xy = np.asfortranarray(stem_layer_xy)
@@ -362,20 +388,20 @@ def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-m
     )
 
     existing_circle_layers = np.flatnonzero(layer_circles[:, 2] != -1)
-    best_combination = select_best_stem_layer_combination(
+    best_combination, layer_diameter_std = select_best_stem_layer_combination(
         existing_circle_layers, layer_circles[:, 2] * 2, std_num_layers, max_std_diameter
     )
     use_circles = True
 
     if best_combination is None and fit_ellipses:
         existing_ellipse_layers = np.flatnonzero(layer_ellipses[:, 2] != -1)
-        best_combination = select_best_stem_layer_combination(
+        best_combination, layer_diameter_std = select_best_stem_layer_combination(
             existing_ellipse_layers, layer_ellipses[:, 2:4].sum(axis=-1), std_num_layers, max_std_diameter
         )
         use_circles = False
 
     if best_combination is None:
-        return np.full_like(target_heights, fill_value=np.nan)
+        return np.full_like(target_heights, fill_value=np.nan), no_completeness_indices, float("nan")
 
     circles_or_ellipses = layer_circles[best_combination] if use_circles else layer_ellipses[best_combination]
     centers = circles_or_ellipses[:, :2]
@@ -389,6 +415,18 @@ def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-m
         axis=0,
     )
 
+    if use_circles:
+        completeness_indices = circumferential_completeness_index(
+            np.ascontiguousarray(circles_or_ellipses[:, :3]),
+            combination_layer_xy,
+            num_regions=int(365 / 5),
+            max_dist=bandwidth,
+            batch_lengths_circles=np.ones(std_num_layers, dtype=np.int64),
+            batch_lengths_xy=combination_batch_lengths,
+        )
+    else:
+        completeness_indices = no_completeness_indices
+
     diameters, _, _, _ = estimate_stem_diameter(
         combination_layer_xy,
         combination_batch_lengths,
@@ -400,7 +438,7 @@ def stem_diameter(  # pylint: disable=too-many-locals, too-many-arguments, too-m
         random_generator,
     )
 
-    return diameters
+    return diameters, completeness_indices, layer_diameter_std
 
 
 def stem_direction(stem_xyz: npt.NDArray) -> npt.NDArray:

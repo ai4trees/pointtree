@@ -1363,7 +1363,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
         for label in range(num_instances):
             existing_circle_layers = np.flatnonzero(layer_circles[label, :, 2] != -1)
 
-            circle_combination = select_best_stem_layer_combination(
+            circle_combination, _ = select_best_stem_layer_combination(
                 existing_circle_layers,
                 layer_circles[label, :, 2] * 2,
                 self._stem_search_circle_fitting_std_num_layers,
@@ -1379,7 +1379,7 @@ class TreeXAlgorithm(InstanceSegmentationAlgorithm):  # pylint: disable=too-many
 
             existing_ellipse_layers = np.flatnonzero(layer_ellipses[label, :, 2] != -1)
 
-            ellipse_combination = select_best_stem_layer_combination(
+            ellipse_combination, _ = select_best_stem_layer_combination(
                 existing_ellipse_layers,
                 layer_ellipses[label, :, 2:4].sum(axis=-1),
                 self._stem_search_circle_fitting_std_num_layers,

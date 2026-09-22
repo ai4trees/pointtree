@@ -20,9 +20,29 @@ from ..utils import generate_circle_points
 
 
 def generate_cylinder_points(
-    radius: float, min_z: float, max_z: float, layer_spacing: float = 0.05, points_per_layer: int = 30
+    radius: float,
+    min_z: float,
+    max_z: float,
+    layer_spacing: float = 0.05,
+    points_per_layer: int = 30,
+    angular_fraction: float = 1.0,
 ) -> npt.NDArray[np.float64]:
-    """Generates points sampled around the outline of a vertical cylinder of the given radius."""
+    """
+    Generates points sampled around the outline of a vertical cylinder of the given radius.
+
+    Args:
+        radius: Radius of the cylinder.
+        min_z: Z-coordinate of the lowest layer of points.
+        max_z: Z-coordinate up to which layers of points are generated.
+        layer_spacing: Vertical spacing between consecutive layers of points.
+        points_per_layer: Number of points sampled around the full outline of each layer, before
+            :code:`angular_fraction` is applied.
+        angular_fraction: Fraction of each layer's circular outline that is covered by points. For example, a value
+            of 0.3 means that only the first 30 % of the angular range is covered by points.
+
+    Returns:
+        X-, y-, and z-coordinates of the generated points.
+    """
 
     layers = []
     z = min_z
@@ -31,6 +51,7 @@ def generate_cylinder_points(
         circle_points = generate_circle_points(
             np.array([[0.0, 0.0, radius]]), min_points=points_per_layer, max_points=points_per_layer, seed=layer_idx
         )
+        circle_points = circle_points[: round(len(circle_points) * angular_fraction)]
         layers.append(np.column_stack([circle_points, np.full(len(circle_points), fill_value=z)]))
         z += layer_spacing
         layer_idx += 1
@@ -57,6 +78,7 @@ class TestCrownBaseHeight:
 
     def test_no_crown_points(self):
         assert np.isnan(crown_base_height(np.empty((0, 3), dtype=np.float64), ground_height=0.0))
+
 
 class TestCrownVolume:
     """Tests for pointtree.tree_attributes.crown_volume."""
@@ -151,27 +173,61 @@ class TestStemDiameter:
     def test_too_few_points(self):
         stem_xyz = np.random.rand(5, 3).astype(np.float64)
 
-        diameters = stem_diameter(stem_xyz, min_points=15)
+        diameters, completeness_indices, layer_diameter_std = stem_diameter(stem_xyz, min_points=15, std_num_layers=6)
 
         assert diameters.shape == (1,)
         assert np.isnan(diameters).all()
+        assert completeness_indices.shape == (6,)
+        assert np.isnan(completeness_indices).all()
+        assert np.isnan(layer_diameter_std)
 
     def test_no_points_within_any_layer(self):
         # all points are below the default layer_start of 1.0 m, so no horizontal layer contains enough points
         stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=0.5)
 
-        diameters = stem_diameter(stem_xyz)
+        diameters, completeness_indices, layer_diameter_std = stem_diameter(stem_xyz)
 
         assert np.isnan(diameters).all()
+        assert np.isnan(completeness_indices).all()
+        assert np.isnan(layer_diameter_std)
 
     def test_multiple_target_heights(self):
         # the cylinder has a constant radius, so the diameter estimate should be the same at every target height
-        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3)
+        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3, points_per_layer=100)
 
-        diameters = stem_diameter(stem_xyz, target_heights=np.array([1.3, 2.0, 3.0]), random_seed=42)
+        diameters, completeness_indices, layer_diameter_std = stem_diameter(
+            stem_xyz, target_heights=np.array([1.3, 2.0, 3.0]), std_num_layers=6, random_seed=42
+        )
 
         assert diameters.shape == (3,)
         np.testing.assert_allclose(diameters, 0.3, atol=0.01)
+        np.testing.assert_array_equal(completeness_indices, np.ones_like(completeness_indices))
+        assert layer_diameter_std == pytest.approx(0.0, abs=1e-3)
+
+    def test_layer_completeness_reflects_angular_coverage(self):
+        kwargs = {
+            "std_num_layers": 4,
+            "num_layers": 4,
+            "layer_start": 0.2,
+            "layer_height": 0.3,
+            "layer_overlap": 0.0,
+            "min_completeness_idx": None,
+            "random_seed": 42,
+        }
+
+        full_stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=1.5, points_per_layer=200)
+        _, full_completeness_indices, _ = stem_diameter(full_stem_xyz, **kwargs)
+
+        angular_fraction = 0.3
+        partial_stem_xyz = generate_cylinder_points(
+            radius=0.15, min_z=0.0, max_z=1.5, points_per_layer=200, angular_fraction=angular_fraction
+        )
+        _, partial_completeness, _ = stem_diameter(partial_stem_xyz, **kwargs)
+
+        np.testing.assert_array_equal(full_completeness_indices, np.ones_like(full_completeness_indices))
+        np.testing.assert_array_almost_equal(
+            partial_completeness, np.full_like(partial_completeness, fill_value=angular_fraction), decimal=1
+        )
 
 
 class TestTreeHeight:
@@ -190,6 +246,7 @@ class TestTreeHeight:
 
         assert tree_height(xyz, ground_height=1.0) == pytest.approx(4.5)
 
+
 class TestTreePosition:
     """Tests for pointtree.tree_attributes.tree_position."""
 
@@ -202,6 +259,7 @@ class TestTreePosition:
         stem_xyz = np.array([[1.0, 2.0, 0.0], [3.0, 4.0, 1.0]], dtype=np.float64)
 
         assert tree_position(stem_xyz) == pytest.approx((2.0, 3.0))
+
 
 class TestUnderBranchHeight:
     """Tests for pointtree.tree_attributes.under_branch_height."""
@@ -224,6 +282,7 @@ class TestUnderBranchHeight:
         height = under_branch_height(np.empty((0, 3), dtype=np.float64), ground_height=0.0)
 
         assert np.isnan(height)
+
 
 class TestTreeAttributes:
     """Tests for pointtree.tree_attributes.tree_attributes."""
@@ -261,6 +320,8 @@ class TestTreeAttributes:
             "crown_base_height",
             "under_branch_height",
             "stem_diameter",
+            "stem_diameter_layer_completeness",
+            "stem_diameter_layer_std",
             "stem_direction",
         }
         assert attributes["tree_height"] == pytest.approx(tree_xyz[:, 2].max() - tree_xyz[:, 2].min())
@@ -270,6 +331,9 @@ class TestTreeAttributes:
         assert attributes["under_branch_height"] == pytest.approx(4.5)
         assert set(attributes["stem_diameter"].keys()) == {1.3}
         assert attributes["stem_diameter"][1.3] == pytest.approx(0.3, abs=0.01)
+        assert attributes["stem_diameter_layer_completeness"].shape == (6,)
+        assert not np.isnan(attributes["stem_diameter_layer_completeness"]).any()
+        assert attributes["stem_diameter_layer_std"] == pytest.approx(0.0, abs=1e-3)
         np.testing.assert_allclose(attributes["stem_direction"], [0.0, 0.0, 1.0], atol=1e-6)
 
     def test_stem_diameter_for_multiple_target_heights(self):

@@ -3,7 +3,7 @@
 __all__ = ["select_best_stem_layer_combination"]
 
 import itertools
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -17,7 +17,7 @@ def select_best_stem_layer_combination(
     max_std_diameter: float,
     positions: Optional[FloatArray] = None,
     max_std_position: float = np.inf,
-) -> Optional[LongArray]:
+) -> Tuple[Optional[LongArray], float]:
     r"""
     Selects the combination of :code:`combination_size` horizontal stem layers with the lowest standard deviation of
     the fitted circle or ellipse diameters, among all combinations whose diameter standard deviation does not exceed
@@ -39,15 +39,18 @@ def select_best_stem_layer_combination(
             :code:`None`.
 
     Returns:
-        Indices of the layers belonging to the combination with the lowest diameter standard deviation among the
-        valid combinations. :code:`None` if :code:`existing_layers` contains fewer than :code:`combination_size`
-        layers or if no valid combination was found.
+        :Tuple of two elements:
+            - Indices of the layers belonging to the combination with the lowest diameter standard deviation among
+              the valid combinations. :code:`None` if :code:`existing_layers` contains fewer than
+              :code:`combination_size` layers or if no valid combination was found.
+            - Standard deviation of the diameters within the selected combination. :code:`NaN` if no valid
+              combination was found.
 
     Shape:
         - :code:`existing_layers`: :math:`(L')`
         - :code:`diameters`: :math:`(L)`
         - :code:`positions`: :math:`(L, 2)`
-        - Output: :math:`(C)`
+        - Output: :math:`(C)` and scalar
 
         | where
         |
@@ -57,7 +60,7 @@ def select_best_stem_layer_combination(
     """
 
     if len(existing_layers) < combination_size:
-        return None
+        return None, float("nan")
 
     best_combination = None
     best_std = np.inf
@@ -78,4 +81,7 @@ def select_best_stem_layer_combination(
             best_std = diameter_std
             best_combination = combination_array
 
-    return best_combination
+    if best_combination is None:
+        return None, float("nan")
+
+    return best_combination, best_std

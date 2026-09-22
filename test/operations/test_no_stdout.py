@@ -31,7 +31,7 @@ class TestNoStdout:
         assert fake_stdout.getvalue() == ""
 
     def test_suppresses_output_when_fileno_is_missing(self, monkeypatch):
-        class StdoutWithoutFileno:
+        class StdoutWithoutFileno:  # pylint: disable=missing-class-docstring
             def write(self, _text):
                 pass
 

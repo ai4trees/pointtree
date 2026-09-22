@@ -32,6 +32,12 @@ def color_instance_segmentation(
             are not colored by a dedicated color.
         fn_ids: List of the ground truth tree IDs that represents false negatives. If set to :code:`None`, false
             negatives are not colored by a dedicated color.
+        shift: Number of positions by which the color palette is rolled before assigning colors to instances. Can be
+            used to vary the color assignment, e.g., when coloring the same point cloud multiple times. If set to
+            :code:`None`, the color palette is not shifted.
+        seed: Seed for the random number generator that determines the amount by which the color palette is
+            additionally rolled for each repetition through the palette (once the number of instances exceeds the
+            palette length). Defaults to 42.
 
     Returns:
         pandas.DataFrame: Point cloud with added or modified "r", "g", "b", "a" attributes.

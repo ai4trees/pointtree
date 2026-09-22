@@ -2,22 +2,24 @@
 
 __all__ = ["color_semantic_segmentation", "color_instance_segmentation"]
 
-import math
 from typing import Dict, List, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from ._color_palette import color_palette, acm_red, acm_blue
 from ._hex_to_rgb import hex_to_rgb
 
 
-def color_instance_segmentation(
+def color_instance_segmentation(  # pylint: disable=too-many-locals
     point_cloud: pd.DataFrame,
     instance_id_column: str,
     target_instance_id_column: Optional[str] = None,
     fp_ids: Optional[List[int]] = None,
     fn_ids: Optional[List[int]] = None,
+    shift: Optional[int] = None,
+    seed: int = 42,
 ) -> pd.DataFrame:
     """
     Sets the color of each point based on its instance ID.
@@ -30,6 +32,12 @@ def color_instance_segmentation(
             are not colored by a dedicated color.
         fn_ids: List of the ground truth tree IDs that represents false negatives. If set to :code:`None`, false
             negatives are not colored by a dedicated color.
+        shift: Number of positions by which the color palette is rolled before assigning colors to instances. Can be
+            used to vary the color assignment, e.g., when coloring the same point cloud multiple times. If set to
+            :code:`None`, the color palette is not shifted.
+        seed: Seed for the random number generator that determines the amount by which the color palette is
+            additionally rolled for each repetition through the palette (once the number of instances exceeds the
+            palette length). Defaults to 42.
 
     Returns:
         pandas.DataFrame: Point cloud with added or modified "r", "g", "b", "a" attributes.
@@ -38,7 +46,25 @@ def color_instance_segmentation(
     instance_ids = np.unique(point_cloud[instance_id_column].to_numpy())
     instance_ids = instance_ids[instance_ids >= 0]
 
-    colors = color_palette * math.ceil(len(instance_ids) / len(color_palette))  # pylint: disable=c-extension-no-member
+    if shift is not None:
+        color_palette_shifted = np.roll(color_palette, shift, axis=0).tolist()
+    else:
+        color_palette_shifted = color_palette
+
+    random_generator = np.random.default_rng(seed=seed)
+
+    colors: List[npt.NDArray] = []
+    shift = 0
+    while len(colors) < len(instance_ids):
+        colors.extend(np.roll(color_palette_shifted, shift, axis=0))
+        shift += int(random_generator.integers(1, len(color_palette)))
+
+    indices = [185, 221]
+    for i in indices:
+        if i > len(colors) - 1:
+            continue
+        random_generator.choice(colors, axis=0)
+        colors[i] = np.asarray(random_generator.choice(colors, axis=0))
 
     color_idx = 0
 

@@ -15,6 +15,7 @@ from pointtree.tree_attributes import (
     tree_position,
     under_branch_height,
 )
+from pointtree.tree_attributes.stem_diameter import StemDiameterAllometricModel
 
 from ..utils import generate_circle_points, generate_ellipse_points
 
@@ -362,10 +363,10 @@ class TestUnderBranchHeight:
 class TestTreeAttributes:
     """Tests for pointtree.tree_attributes.tree_attributes."""
 
-    def make_tree(self):
+    def make_tree(self, angular_fraction: float = 1.0):
         crown_xyz = np.array([[-1.0, 0.0, 5.0], [1.0, 0.0, 5.0], [0.0, -1.0, 6.0], [0.0, 1.0, 7.0]], dtype=np.float64)
         branch_xyz = np.array([[0.0, 0.0, 4.5], [0.0, 0.0, 4.8]], dtype=np.float64)
-        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3)
+        stem_xyz = generate_cylinder_points(radius=0.15, min_z=0.0, max_z=4.3, angular_fraction=angular_fraction)
         tree_xyz = np.concatenate([crown_xyz, branch_xyz, stem_xyz])
         classification = np.concatenate(
             [
@@ -426,6 +427,47 @@ class TestTreeAttributes:
         assert set(attributes["stem_diameter"].keys()) == {1.3, 2.0, 3.0}
         for diameter in attributes["stem_diameter"].values():
             assert diameter == pytest.approx(0.3, abs=0.01)
+
+    @pytest.mark.parametrize("use_allometric_model", (True, False))
+    def test_stem_diameter_falls_back_to_allometric_model(self, use_allometric_model: bool):
+        # an angular fraction below the default min_completeness_idx of 0.3 causes every fitted circle to be
+        # rejected, so the circle / ellipse fitting approach cannot estimate the stem diameter
+        tree_xyz, classification = self.make_tree(angular_fraction=0.2)
+        # tree_height = 7.0 (crown top) - 0.0 (ground height, i.e., minimum z of the tree), crown_width = 2.0
+        allometric_model = StemDiameterAllometricModel(scale=1.0, exponent=1.0, correction_factor=1.0)
+
+        attributes = tree_attributes(
+            tree_xyz,
+            attributes=["stem_diameter"],
+            classification=classification,
+            stem_class_ids=[0],
+            leaf_class_ids=[1],
+            allometric_model=allometric_model if use_allometric_model else None,
+            attribute_kwargs={"stem_diameter": {"target_heights": np.array([1.3, 2.0])}},
+        )
+
+        if use_allometric_model:
+            assert attributes["stem_diameter"][1.3] == pytest.approx(14.0)
+        else:
+            assert np.isnan(attributes["stem_diameter"][1.3])
+
+        assert np.isnan(attributes["stem_diameter"][2.0])
+
+    def test_allometric_model_is_not_used_when_normal_estimation_succeeds(self):
+        tree_xyz, classification = self.make_tree()
+        # if used, this model's prediction (1.0 * (7.0 * 2.0) ** 1.0) would be far off the actual diameter of 0.3
+        allometric_model = StemDiameterAllometricModel(scale=1.0, exponent=1.0, correction_factor=1.0)
+
+        attributes = tree_attributes(
+            tree_xyz,
+            attributes=["stem_diameter"],
+            classification=classification,
+            stem_class_ids=[0],
+            leaf_class_ids=[1],
+            allometric_model=allometric_model,
+        )
+
+        assert attributes["stem_diameter"][1.3] == pytest.approx(0.3, abs=0.01)
 
     def test_attribute_kwargs_are_passed_to_the_respective_attribute_function(self):
         tree_xyz, classification = self.make_tree()

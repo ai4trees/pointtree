@@ -5,6 +5,7 @@ __all__ = ["color_semantic_segmentation", "color_instance_segmentation"]
 from typing import Dict, List, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from ._color_palette import color_palette, acm_red, acm_blue
@@ -52,7 +53,7 @@ def color_instance_segmentation(  # pylint: disable=too-many-locals
 
     random_generator = np.random.default_rng(seed=seed)
 
-    colors: List[List[int]] = []
+    colors: List[npt.NDArray] = []
     shift = 0
     while len(colors) < len(instance_ids):
         colors.extend(np.roll(color_palette_shifted, shift, axis=0))
@@ -63,7 +64,7 @@ def color_instance_segmentation(  # pylint: disable=too-many-locals
         if i > len(colors) - 1:
             continue
         random_generator.choice(colors, axis=0)
-        colors[i] = random_generator.choice(colors, axis=0)
+        colors[i] = np.asarray(random_generator.choice(colors, axis=0))
 
     color_idx = 0
 
@@ -73,7 +74,7 @@ def color_instance_segmentation(  # pylint: disable=too-many-locals
 
     for instance_id in instance_ids:
         point_cloud.loc[
-            point_cloud[instance_id_column] == instance_id,  # type: ignore[index]
+            point_cloud[instance_id_column] == instance_id,
             ["r", "g", "b", "a"],
         ] = colors[color_idx]
 

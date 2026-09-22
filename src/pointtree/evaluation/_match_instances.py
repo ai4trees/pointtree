@@ -2,14 +2,18 @@
 
 __all__ = ["match_instances"]
 
-from typing import Dict, Literal, Optional, Tuple
+from typing import Dict, Literal, Optional, Tuple, Union, cast
 
 import numpy as np
+import numpy.typing as npt
 from pointtorch.metrics.instance_segmentation import match_instances as match_instances_pointtorch
 import torch
 
 from pointtree.operations import cloth_simulation_filtering, create_digital_terrain_model, distance_to_dtm
 from pointtree.type_aliases import FloatArray, LongArray
+
+MatchingResults = Tuple[LongArray, LongArray, Dict[str, LongArray]]
+MatchingResultsWithBestMatches = Tuple[LongArray, LongArray, Dict[str, LongArray], LongArray, LongArray]
 
 
 def match_instances(  # pylint: disable=too-many-locals
@@ -30,13 +34,14 @@ def match_instances(  # pylint: disable=too-many-locals
     min_tree_height_fp: float = 0.0,
     min_precision_fp: float = 0.0,
     labeled_mask: Optional[np.ndarray] = None,
-) -> Tuple[LongArray, LongArray, Dict[str, LongArray]]:
+    return_best_matches: bool = False,
+) -> Union[MatchingResults, MatchingResultsWithBestMatches]:
     r"""
     This method implements the instance matching methods proposed in the following works:
 
     - :code:`panoptic_segmentation`: `Kirillov, Alexander, et al. "Panoptic segmentation." Proceedings of the IEEE/CVF \
       Conference on Computer Vision and Pattern Recognition. 2019. <https://doi.org/10.1109/CVPR.2019.00963>`__
-      
+
       This method matches predicted and target instances if their IoU is striclty greater than 0.5, which results
       in an unambigous matching. This method is also used in `Wielgosz, Maciej, et al. "SegmentAnyTree: A Sensor and \
       Platform Agnostic Deep Learning Model for Tree Segmentation Using Laser Scanning Data." Remote Sensing of \
@@ -72,7 +77,7 @@ def match_instances(  # pylint: disable=too-many-locals
       means that predicted instances can be matched with multiple target instances. Such a matching approach is useful
       for the calculation of segmentation metrics (e.g., coverage) that should be independent from the instance
       detection rate.
-  
+
     - :code:`tree_learn`: `Henrich, Jonathan, et al. "TreeLearn: A Deep Learning Method for Segmenting Individual Trees
       from Ground-Based LiDAR Forest Point Clouds." Ecological Informatics 84 (2024): 102888.
       <https://doi.org/10.1016/j.ecoinf.2024.102888>`__
@@ -109,6 +114,9 @@ def match_instances(  # pylint: disable=too-many-locals
             matched instance ID is set to :code:`uncertain_instance_id`.
         labeled_mask: Boolean mask indicating which points are labeled. This mask is used to mark false positive
             instances that mainly consist of unlabeled points.
+        return_best_matches: Whether to additionally return the best predicted instance for each target instance and
+            the best target instance for each predicted instance according to the matching score used by the selected
+            method.
 
     Returns: A tuple with the following elements:
         - :code:`matched_target_ids`: IDs of the matched target instance for each predicted instance. If the predicted
@@ -121,6 +129,10 @@ def match_instances(  # pylint: disable=too-many-locals
           false positive, and false negative points between the matched instances. For target instances not matched to
           any prediction, the true and false posiitves are set to zero and the false negatives to the number of target
           points.
+        - :code:`best_target_ids_per_prediction`: Best target instance ID for each predicted instance. Only returned if
+          :code:`return_best_matches` is :code:`True`.
+        - :code:`best_predicted_ids_per_target`: Best predicted instance ID for each target instance. Only returned if
+          :code:`return_best_matches` is :code:`True`.
 
     Shape:
         - :code:`xyz`: :math:`(N, 3)`
@@ -130,6 +142,8 @@ def match_instances(  # pylint: disable=too-many-locals
             - :code:`matched_target_ids`: :math:`(P)`
             - :code:`matched_predicted_ids`: :math:`(T)`
             - :code:`metrics`: Dictionary whose values are tensors of length :math:`(T)`
+            - :code:`best_target_ids_per_prediction`: :math:`(P)`
+            - :code:`best_predicted_ids_per_target`: :math:`(T)`
 
         | where
         |
@@ -138,17 +152,28 @@ def match_instances(  # pylint: disable=too-many-locals
         | :math:`T` = number of target instances
     """
 
-    matched_target_ids_torch, matched_predicted_ids_torch, segmentation_metrics_torch = match_instances_pointtorch(
+    matching_results_torch = match_instances_pointtorch(
         torch.from_numpy(target),
         torch.from_numpy(prediction),
         xyz=torch.from_numpy(xyz),
         method=method,
         invalid_instance_id=invalid_instance_id,
+        return_best_matches=return_best_matches,
     )
 
+    matched_target_ids_torch, matched_predicted_ids_torch, segmentation_metrics_torch = matching_results_torch[:3]
     matched_target_ids = matched_target_ids_torch.numpy()
     matched_predicted_ids = matched_predicted_ids_torch.numpy()
     segmentation_metrics = {key: metric.numpy() for key, metric in segmentation_metrics_torch.items()}
+    best_target_ids_per_prediction: Optional[LongArray] = None
+    best_predicted_ids_per_target: Optional[LongArray] = None
+    if return_best_matches:
+        matching_results_torch_with_best_matches = cast(
+            Tuple[torch.Tensor, torch.Tensor, Dict[str, torch.Tensor], torch.Tensor, torch.Tensor],
+            matching_results_torch,
+        )
+        best_target_ids_per_prediction = matching_results_torch_with_best_matches[3].numpy()
+        best_predicted_ids_per_target = matching_results_torch_with_best_matches[4].numpy()
 
     if len(matched_target_ids) > 0:
         start_instance_id = prediction[prediction != invalid_instance_id].min()
@@ -169,29 +194,36 @@ def match_instances(  # pylint: disable=too-many-locals
             )
             dists_to_dtm = distance_to_dtm(xyz, dtm, dtm_offset, dtm_resolution=dtm_resolution)
 
-        if min_precision_fp <= 0 and min_tree_height_fp <= 0:
-            return matched_target_ids, matched_predicted_ids, segmentation_metrics
+        if min_precision_fp > 0 or min_tree_height_fp > 0:
+            if min_precision_fp > 0 and labeled_mask is None:
+                labeled_mask = target != invalid_instance_id
 
-        if min_precision_fp > 0 and labeled_mask is None:
-            labeled_mask = target != invalid_instance_id
+            for predicted_idx, matched_target_id in enumerate(matched_target_ids):
+                if matched_target_id == invalid_instance_id:
+                    predicted_id = start_instance_id + predicted_idx
+                    if min_precision_fp > 0:
+                        # count percentage of points belonging to labeled ground-truth instances
+                        intersection = np.logical_and(
+                            labeled_mask, prediction == predicted_id  # type: ignore[arg-type]
+                        ).sum()
+                        precision = intersection / (prediction == predicted_id).sum()
+                    else:
+                        precision = 1.0
 
-        for predicted_idx, matched_target_id in enumerate(matched_target_ids):
-            if matched_target_id == invalid_instance_id:
-                predicted_id = start_instance_id + predicted_idx
-                if min_precision_fp > 0:
-                    # count percentage of points belonging to labeled ground-truth instances
-                    intersection = np.logical_and(
-                        labeled_mask, prediction == predicted_id  # type: ignore[arg-type]
-                    ).sum()
-                    precision = intersection / (prediction == predicted_id).sum()
-                else:
-                    precision = 1.0
+                    tree_height = np.inf
+                    if dists_to_dtm is not None:
+                        tree_height = max(0, dists_to_dtm[prediction == predicted_id].max())
 
-                tree_height = np.inf
-                if dists_to_dtm is not None:
-                    tree_height = max(0, dists_to_dtm[prediction == predicted_id].max())
+                    if precision < min_precision_fp or tree_height < min_tree_height_fp:
+                        matched_target_ids[predicted_idx] = uncertain_instance_id
 
-                if precision < min_precision_fp or tree_height < min_tree_height_fp:
-                    matched_target_ids[predicted_idx] = uncertain_instance_id
+    if return_best_matches:
+        return (
+            matched_target_ids,
+            matched_predicted_ids,
+            segmentation_metrics,
+            cast(npt.NDArray, best_target_ids_per_prediction),
+            cast(npt.NDArray, best_predicted_ids_per_target),
+        )
 
     return matched_target_ids, matched_predicted_ids, segmentation_metrics

@@ -21,6 +21,53 @@ from pointtree._evaluation_cpp import (  # type: ignore[import-untyped] # pylint
 from ._match_instances import match_instances
 
 
+def _count_false_positives_matched_with_false_negatives(
+    matched_predicted_ids: LongArray,
+    matched_target_ids: LongArray,
+    best_target_ids_per_prediction: LongArray,
+    best_predicted_ids_per_target: LongArray,
+    invalid_instance_id: int,
+) -> int:
+    """
+    Counts unmatched predictions that are mutual best-score matches of unmatched targets.
+
+    Args:
+        matched_predicted_ids: ID of the matched predicted instance for each ground-truth instance.
+        matched_target_ids: ID of the matched ground-truth instance for each predicted instance.
+        best_target_ids_per_prediction: Best target instance ID for each predicted instance according to the matching
+            score.
+        best_predicted_ids_per_target: Best predicted instance ID for each target instance according to the matching
+            score.
+        invalid_instance_id: ID that is assigned to instances that could not be matched and are considered to be
+            false negative or false positive instances.
+
+    Returns:
+        Number of false positive predicted instances that are the mutual best-score match of a false negative target
+        instance.
+    """
+
+    false_negative_target_idxs = np.flatnonzero(matched_predicted_ids == invalid_instance_id)
+    false_positive_prediction_idxs = np.flatnonzero(matched_target_ids == invalid_instance_id)
+
+    if len(false_negative_target_idxs) == 0 or len(false_positive_prediction_idxs) == 0:
+        return 0
+
+    start_instance_id = invalid_instance_id + 1
+
+    best_prediction_ids = best_predicted_ids_per_target[false_negative_target_idxs]
+    has_best_prediction = best_prediction_ids != invalid_instance_id
+
+    false_negative_target_idxs = false_negative_target_idxs[has_best_prediction]
+    best_prediction_idxs = best_prediction_ids[has_best_prediction] - start_instance_id
+
+    is_false_positive = matched_target_ids[best_prediction_idxs] == invalid_instance_id
+    is_mutual_best_match = (
+        best_target_ids_per_prediction[best_prediction_idxs] == false_negative_target_idxs + start_instance_id
+    )
+
+    return int(np.count_nonzero(is_false_positive & is_mutual_best_match))
+
+
 def instance_detection_metrics(  # pylint: disable=too-many-locals
     target: LongArray,
     prediction: LongArray,
@@ -29,6 +76,9 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     *,
     invalid_instance_id: int = -1,
     uncertain_instance_id: int = -2,
+    count_fp_if_matched_with_fn: bool = True,
+    best_target_ids_per_prediction: Optional[LongArray] = None,
+    best_predicted_ids_per_target: Optional[LongArray] = None,
 ):
     r"""
     Computes metrics to measure the instance detection quality. Based on a given matching of ground-truth
@@ -68,6 +118,12 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
         uncertain_instance_id: ID that is assigned to predicted instances that could not be matched to any target
             instance but still should not be counted as false positive instances. Must be equal to or smaller than
             :code:`invalid_instance_id`.
+        count_fp_if_matched_with_fn: Whether unmatched predicted instances should be counted as false positives even if
+            they are the mutual best-IoU match of an unmatched target instance.
+        best_target_ids_per_prediction: Best target instance ID for each predicted instance according to the matching
+            score. Required if :code:`count_fp_if_matched_with_fn` is :code:`False`.
+        best_predicted_ids_per_target: Best predicted instance ID for each target instance according to the matching
+            score. Required if :code:`count_fp_if_matched_with_fn` is :code:`False`.
 
     Raises:
         - ValueError: If :code:`uncertain_instance_id` is larger than :code:`invalid_instance_id`.
@@ -125,6 +181,19 @@ def instance_detection_metrics(  # pylint: disable=too-many-locals
     tp = (np.logical_not(np.isin(matched_predicted_ids, (invalid_instance_id, uncertain_instance_id)))).sum()
     fn = (matched_predicted_ids == invalid_instance_id).sum()
     fp = (matched_target_ids == invalid_instance_id).sum()
+    if not count_fp_if_matched_with_fn:
+        if best_target_ids_per_prediction is None or best_predicted_ids_per_target is None:
+            raise ValueError(
+                "best_target_ids_per_prediction and best_predicted_ids_per_target must be provided if "
+                "count_fp_if_matched_with_fn is False."
+            )
+        fp -= _count_false_positives_matched_with_false_negatives(
+            matched_predicted_ids,
+            matched_target_ids,
+            best_target_ids_per_prediction,
+            best_predicted_ids_per_target,
+            invalid_instance_id,
+        )
 
     metrics = {
         "TP": tp,
@@ -490,6 +559,7 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches, too-ma
     include_unmatched_instances_in_seg_metrics: bool = True,
     invalid_instance_id: int = -1,
     uncertain_instance_id: int = -2,
+    count_fp_if_matched_with_fn: bool = True,
     compute_partition_metrics: bool = True,
     num_partitions: int = 10,
 ) -> Tuple[
@@ -534,6 +604,8 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches, too-ma
         uncertain_instance_id: ID that is assigned to predicted instances that could not be matched to any target
             instance but still should not be counted as false positive instances.  Must be equal to or smaller than
             :code:`invalid_instance_id`.
+        count_fp_if_matched_with_fn: Whether unmatched predicted instances should be counted as false positives even if
+            they are the mutual best-IoU match of an unmatched target instance.
         compute_partition_metrics: Whether the metrics per partition should be computed.
         num_partitions: Number of partitions for the computation of instance segmentation metrics per partition.
 
@@ -554,13 +626,24 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches, too-ma
             set to :code:`False`.
     """
 
-    matched_target_ids, matched_predicted_ids, _ = match_instances(
+    detection_matching_results = match_instances(
         target,
         prediction,
         xyz,
         method=detection_metrics_matching_method,
         invalid_instance_id=invalid_instance_id,
+        return_best_matches=not count_fp_if_matched_with_fn,
     )
+    detection_matching_results_with_best_matches = cast(
+        Tuple[LongArray, LongArray, Dict[str, LongArray], LongArray, LongArray],
+        detection_matching_results,
+    )
+    matched_target_ids, matched_predicted_ids = detection_matching_results[:2]
+    best_target_ids_per_prediction: Optional[LongArray] = None
+    best_predicted_ids_per_target: Optional[LongArray] = None
+    if not count_fp_if_matched_with_fn:
+        best_target_ids_per_prediction = detection_matching_results_with_best_matches[3]
+        best_predicted_ids_per_target = detection_matching_results_with_best_matches[4]
 
     instance_detect_metrics = instance_detection_metrics(
         target,
@@ -569,14 +652,20 @@ def evaluate_instance_segmentation(  # pylint: disable=too-many-branches, too-ma
         matched_target_ids,
         invalid_instance_id=invalid_instance_id,
         uncertain_instance_id=uncertain_instance_id,
+        count_fp_if_matched_with_fn=count_fp_if_matched_with_fn,
+        best_target_ids_per_prediction=best_target_ids_per_prediction,
+        best_predicted_ids_per_target=best_predicted_ids_per_target,
     )
 
-    matched_target_ids, matched_predicted_ids, segmentation_metrics = match_instances(
-        target,
-        prediction,
-        xyz,
-        method=segmentation_metrics_matching_method,
-        invalid_instance_id=invalid_instance_id,
+    matched_target_ids, matched_predicted_ids, segmentation_metrics = cast(
+        Tuple[LongArray, LongArray, Dict[str, LongArray]],
+        match_instances(
+            target,
+            prediction,
+            xyz,
+            method=segmentation_metrics_matching_method,
+            invalid_instance_id=invalid_instance_id,
+        ),
     )
 
     start_instance_id = target[target != invalid_instance_id].min()

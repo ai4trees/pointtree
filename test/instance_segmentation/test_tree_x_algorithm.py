@@ -654,56 +654,6 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
         assert expected_stem_positions.dtype == stem_positions.dtype
         np.testing.assert_almost_equal(expected_stem_positions, stem_positions)
 
-    def test_diameter_estimation_gam_circle(self):
-        algorithm = TreeXAlgorithm()
-
-        circles = np.array([[1, 1, 1]])
-        points = generate_circle_points(circles, min_points=50, max_points=50)
-
-        diameter_with_full_circle, polygon_vertices_with_full_ellipse = algorithm.stem_diameter_estimation_gam(
-            points, circles[0, :2]
-        )
-
-        assert circles[0, 2] * 2 == pytest.approx(diameter_with_full_circle, abs=0.001)
-        assert polygon_vertices_with_full_ellipse.ndim == 2
-        assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-        assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-
-        diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.stem_diameter_estimation_gam(
-            points[:30], circles[0, :2]
-        )
-
-        assert circles[0, 2] * 2 == pytest.approx(diameter_with_missing_part, abs=0.001)
-        assert polygon_vertices_with_missing_part.ndim == 2
-        assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
-        assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
-
-    def test_diameter_estimation_gam_ellipse(self):
-        algorithm = TreeXAlgorithm(stem_search_gam_max_radius_diff=0.4)
-
-        ellipses = np.array([[1, 1, 1.2, 0.9, 0]])
-        points = generate_ellipse_points(ellipses, min_points=50, max_points=50)
-
-        diameter_with_full_ellipse, polygon_vertices_with_full_ellipse = algorithm.stem_diameter_estimation_gam(
-            points, ellipses[0, :2]
-        )
-
-        expected_diameter = ellipses[0, 2] + ellipses[0, 3]
-
-        assert expected_diameter == pytest.approx(diameter_with_full_ellipse, abs=0.025)
-        assert polygon_vertices_with_full_ellipse.ndim == 2
-        assert (points.min(axis=0) < polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-        assert (points.max(axis=0) > polygon_vertices_with_full_ellipse.mean(axis=0)).all()
-
-        diameter_with_missing_part, polygon_vertices_with_missing_part = algorithm.stem_diameter_estimation_gam(
-            points[:35], ellipses[0, :2]
-        )
-
-        assert expected_diameter == pytest.approx(diameter_with_missing_part, abs=0.1)
-        assert polygon_vertices_with_missing_part.ndim == 2
-        assert (points[:30].min(axis=0) < polygon_vertices_with_missing_part.mean(axis=0)).all()
-        assert (points[:30].max(axis=0) > polygon_vertices_with_missing_part.mean(axis=0)).all()
-
     @pytest.mark.parametrize("create_visualization", [False, True])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     @pytest.mark.parametrize("empty_input_points", [False, True])
@@ -1006,6 +956,32 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
             np.testing.assert_almost_equal(expected_stem_diameters, stem_diameters, decimal=2)
             np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
 
+    @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
+    def test_full_algorithm_with_known_stems(self, scalar_type: np.dtype):
+        xyz, _, expected_stem_positions, expected_stem_diameters, expected_tree_heights = generate_tree_point_cloud(
+            scalar_type, "C", generate_intensities=False
+        )
+
+        algorithm = TreeXAlgorithm(tree_seg_cum_search_dist_include_terrain=2)
+
+        instance_ids, stem_positions, stem_diameters = algorithm(
+            xyz, stem_positions=expected_stem_positions, stem_diameters=expected_stem_diameters
+        )
+
+        np.testing.assert_array_equal(expected_stem_positions.astype(scalar_type), stem_positions)
+        np.testing.assert_array_equal(expected_stem_diameters.astype(scalar_type), stem_diameters)
+
+        assert len(xyz) == len(instance_ids)
+
+        tree_heights = np.empty(len(np.unique(instance_ids)) - 1, dtype=np.float64)
+        for instance_id in np.unique(instance_ids):
+            instance_points = xyz[instance_ids == instance_id]
+            if len(instance_points) > 0:
+                tree_heights[instance_id] = instance_points[:, 2].max() - instance_points[:, 2].min()
+
+        assert len(np.unique(instance_ids)) == 3
+        np.testing.assert_almost_equal(expected_tree_heights, tree_heights, decimal=2)
+
     @pytest.mark.parametrize("stem_search_refined_circle_fitting", [True, False])
     @pytest.mark.parametrize("scalar_type", [np.float32, np.float64])
     def test_full_algorithm_no_trees_detected(
@@ -1037,6 +1013,38 @@ class TestTreeXAlgorithm:  # pylint: disable=too-many-public-methods
 
         with pytest.raises(ValueError):
             algorithm(xyz, intensities)
+
+    def test_full_algorithm_only_stem_positions_set(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_positions=np.zeros((1, 2), dtype=np.float64))
+
+    def test_full_algorithm_only_stem_diameters_set(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_diameters=np.zeros(1, dtype=np.float64))
+
+    def test_full_algorithm_invalid_stem_positions_shape(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_positions=np.zeros((1, 3), dtype=np.float64), stem_diameters=np.zeros(1))
+
+    def test_full_algorithm_stem_positions_diameters_length_mismatch(self):
+        algorithm = TreeXAlgorithm()
+
+        xyz = np.zeros((10, 3), dtype=np.float64)
+
+        with pytest.raises(ValueError):
+            algorithm(xyz, stem_positions=np.zeros((2, 2), dtype=np.float64), stem_diameters=np.zeros(1))
 
     def test_invalid_tree_id(self):
         with pytest.raises(ValueError):

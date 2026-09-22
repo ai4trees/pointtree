@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "pointtree"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   {name = "Josafat-Mattias Burmeister", email = "burmeister@uni-potsdam.de"},
 ]

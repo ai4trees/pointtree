@@ -16,7 +16,7 @@ from pointtree.tree_attributes import (
     under_branch_height,
 )
 
-from ..utils import generate_circle_points
+from ..utils import generate_circle_points, generate_ellipse_points
 
 
 def generate_cylinder_points(
@@ -53,6 +53,49 @@ def generate_cylinder_points(
         )
         circle_points = circle_points[: round(len(circle_points) * angular_fraction)]
         layers.append(np.column_stack([circle_points, np.full(len(circle_points), fill_value=z)]))
+        z += layer_spacing
+        layer_idx += 1
+
+    return np.concatenate(layers).astype(np.float64)
+
+
+def generate_elliptical_stem_points(
+    major_radius: float,
+    minor_radius: float,
+    min_z: float,
+    max_z: float,
+    layer_spacing: float = 0.05,
+    points_per_layer: int = 200,
+    variance: float = 0.03,
+) -> npt.NDArray[np.float64]:
+    """
+    Generates points sampled around the outline of a vertical stem with a constant, elliptical cross-section.
+
+    Args:
+        major_radius: Radius along the semi-major axis of the elliptical cross-section.
+        minor_radius: Radius along the semi-minor axis of the elliptical cross-section.
+        min_z: Z-coordinate of the lowest layer of points.
+        max_z: Z-coordinate up to which layers of points are generated.
+        layer_spacing: Vertical spacing between consecutive layers of points.
+        points_per_layer: Number of points sampled around the outline of each layer.
+        variance: Variance of the distance of the sampled points to the ellipse outline.
+
+    Returns:
+        X-, y-, and z-coordinates of the generated points.
+    """
+
+    layers = []
+    z = min_z
+    layer_idx = 0
+    while z <= max_z:
+        ellipse_points = generate_ellipse_points(
+            np.array([[0.0, 0.0, major_radius, minor_radius, 0.0]]),
+            min_points=points_per_layer,
+            max_points=points_per_layer,
+            seed=layer_idx,
+            variance=variance,
+        )
+        layers.append(np.column_stack([ellipse_points, np.full(len(ellipse_points), fill_value=z)]))
         z += layer_spacing
         layer_idx += 1
 
@@ -147,16 +190,6 @@ class TestStemDirection:
 
         np.testing.assert_allclose(direction, [0.0, 0.0, 1.0], atol=1e-6)
 
-    def test_direction_is_oriented_upwards(self):
-        # points are ordered from top to bottom, so the naive PCA direction could point downwards
-        z = np.linspace(2.0, 0.0, 50)
-        xyz = np.column_stack([np.zeros_like(z), np.zeros_like(z), z])
-
-        direction = stem_direction(xyz)
-
-        assert direction[2] >= 0
-        np.testing.assert_allclose(direction, [0.0, 0.0, 1.0], atol=1e-6)
-
     def test_tilted_stem(self):
         t = np.linspace(0.0, 1.0, 100)
         xyz = np.column_stack([t, np.zeros_like(t), t])
@@ -165,6 +198,17 @@ class TestStemDirection:
         expected_direction = np.array([1.0, 0.0, 1.0]) / np.sqrt(2)
 
         np.testing.assert_allclose(direction, expected_direction, atol=1e-6)
+
+    def test_direction_is_oriented_upwards(self):
+        # sklearn's PCA sign convention orients the component so that its largest-magnitude entry (here x) is
+        # positive, which leaves z negative for this configuration before the manual sign correction is applied
+        t = np.linspace(0.0, 1.0, 100)
+        xyz = np.column_stack([2 * t, np.zeros_like(t), -t])
+
+        direction = stem_direction(xyz)
+        expected_direction = np.array([-2.0, 0.0, 1.0]) / np.sqrt(5)
+
+        np.testing.assert_array_almost_equal(direction, expected_direction)
 
 
 class TestStemDiameter:
@@ -228,6 +272,37 @@ class TestStemDiameter:
         np.testing.assert_array_almost_equal(
             partial_completeness, np.full_like(partial_completeness, fill_value=angular_fraction), decimal=1
         )
+
+    def test_falls_back_to_ellipses_when_no_valid_circle_combination_exists(self):
+        major_radius = 0.3
+        minor_radius = 0.2
+        stem_xyz = generate_elliptical_stem_points(
+            major_radius=major_radius, minor_radius=minor_radius, min_z=0.2, max_z=1.7
+        )
+        kwargs = {
+            "std_num_layers": 5,
+            "num_layers": 5,
+            "layer_start": 0.2,
+            "layer_height": 0.3,
+            "layer_overlap": 0.0,
+            "max_std_diameter": 0.02,
+        }
+
+        # without the ellipse fallback, no valid combination of circles can be found
+        diameters, completeness_indices, layer_diameter_std = stem_diameter(stem_xyz, fit_ellipses=False, **kwargs)
+
+        assert np.isnan(diameters).all()
+        assert np.isnan(completeness_indices).all()
+        assert np.isnan(layer_diameter_std)
+
+        # with the ellipse fallback enabled, a valid combination of ellipses is found instead
+        diameters, completeness_indices, layer_diameter_std = stem_diameter(stem_xyz, fit_ellipses=True, **kwargs)
+
+        # the expected diameter is the diameter of the circle with the same area as the elliptical cross-section
+        assert diameters[0] == pytest.approx(2 * np.sqrt(major_radius * minor_radius), abs=0.05)
+        # no circumferential completeness index is available when the ellipse fallback is used
+        assert np.isnan(completeness_indices).all()
+        np.testing.assert_array_almost_equal(layer_diameter_std, np.zeros_like(layer_diameter_std), decimal=3)
 
 
 class TestTreeHeight:

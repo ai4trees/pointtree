@@ -48,7 +48,7 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
     stem_class_ids: Optional[List[int]] = None,
     branch_class_ids: Optional[List[int]] = None,
     leaf_class_ids: Optional[List[int]] = None,
-    stem_diameter_target_heights: Optional[npt.NDArray] = None,
+    attribute_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Computes attributes for a single tree.
@@ -66,9 +66,11 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
         stem_class_ids: Class IDs that identify stem points in :code:`classification`.
         branch_class_ids: Class IDs that identify branch points in :code:`classification`.
         leaf_class_ids: Class IDs that identify leaf points in :code:`classification`.
-        stem_diameter_target_heights: Heights above the ground at which the stem diameter is to be estimated. Passed
-            through to :code:`stem_diameter`. Defaults to :code:`None`, which means that only the stem diameter at
-            1.3 m above the ground is estimated.
+        attribute_kwargs: Additional keyword arguments to pass to the computation of individual attributes. The keys
+            are attribute names (as in :code:`attributes`) and the values are dictionaries of keyword arguments to
+            pass to the respective attribute computation function (e.g., :code:`{"stem_diameter": {"num_layers": 8,
+            "target_heights": np.array([1.3, 2.0])}}`). If :code:`None`, or if an attribute's name is not contained
+            in :code:`attribute_kwargs`, the respective function's default arguments are used.
 
     Returns:
         Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
@@ -81,6 +83,7 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
     """
 
     tree_attributes_dict: Dict[str, Any] = {}
+    attribute_kwargs = attribute_kwargs if attribute_kwargs is not None else {}
 
     stem_xyz = tree_xyz
     branch_xyz = tree_xyz
@@ -95,27 +98,35 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
     ground_height = ground_height if ground_height is not None else float(tree_xyz[:, 2].min())
 
     if attributes is None or "crown_volume" in attributes:
-        tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz)
+        tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz, **attribute_kwargs.get("crown_volume", {}))
 
     if attributes is None or "crown_width" in attributes:
-        tree_attributes_dict["crown_width"] = crown_width(crown_xyz)
+        tree_attributes_dict["crown_width"] = crown_width(crown_xyz, **attribute_kwargs.get("crown_width", {}))
 
     if attributes is None or "tree_height" in attributes:
-        tree_attributes_dict["tree_height"] = tree_height(tree_xyz, ground_height=ground_height)
+        tree_attributes_dict["tree_height"] = tree_height(
+            tree_xyz, ground_height=ground_height, **attribute_kwargs.get("tree_height", {})
+        )
 
     if attributes is None or "tree_position" in attributes:
-        tree_attributes_dict["tree_position"] = tree_position(stem_xyz)
+        tree_attributes_dict["tree_position"] = tree_position(stem_xyz, **attribute_kwargs.get("tree_position", {}))
 
     if attributes is None or "crown_base_height" in attributes:
-        tree_attributes_dict["crown_base_height"] = crown_base_height(crown_xyz, ground_height)
+        tree_attributes_dict["crown_base_height"] = crown_base_height(
+            crown_xyz, ground_height, **attribute_kwargs.get("crown_base_height", {})
+        )
 
     if attributes is None or "under_branch_height" in attributes:
-        tree_attributes_dict["under_branch_height"] = under_branch_height(branch_xyz, ground_height)
+        tree_attributes_dict["under_branch_height"] = under_branch_height(
+            branch_xyz, ground_height, **attribute_kwargs.get("under_branch_height", {})
+        )
 
     if attributes is None or "stem_diameter" in attributes:
-        target_heights = stem_diameter_target_heights if stem_diameter_target_heights is not None else np.array([1.3])
         diameters, completeness_indices, layer_diameter_std = stem_diameter(
-            stem_xyz, ground_height=ground_height, target_heights=target_heights
+            stem_xyz,
+            ground_height=ground_height,
+            target_heights=target_heights,
+            **attribute_kwargs.get("stem_diameter", {}),
         )
         tree_attributes_dict["stem_diameter"] = {
             round(float(height), 2): float(diameter) for height, diameter in zip(target_heights, diameters)
@@ -124,7 +135,7 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
         tree_attributes_dict["stem_diameter_layer_std"] = layer_diameter_std
 
     if attributes is None or "stem_direction" in attributes:
-        tree_attributes_dict["stem_direction"] = stem_direction(stem_xyz)
+        tree_attributes_dict["stem_direction"] = stem_direction(stem_xyz, **attribute_kwargs.get("stem_direction", {}))
 
     return tree_attributes_dict
 

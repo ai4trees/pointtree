@@ -345,12 +345,33 @@ class TestTreeAttributes:
             classification=classification,
             stem_class_ids=[0],
             leaf_class_ids=[1],
-            stem_diameter_target_heights=np.array([1.3, 2.0, 3.0]),
+            attribute_kwargs={"stem_diameter": {"target_heights": np.array([1.3, 2.0, 3.0])}},
         )
 
         assert set(attributes["stem_diameter"].keys()) == {1.3, 2.0, 3.0}
         for diameter in attributes["stem_diameter"].values():
             assert diameter == pytest.approx(0.3, abs=0.01)
+
+    def test_attribute_kwargs_are_passed_to_the_respective_attribute_function(self):
+        tree_xyz, classification = self.make_tree()
+
+        attributes_default_voxel_size = tree_attributes(
+            tree_xyz,
+            attributes=["crown_volume"],
+            classification=classification,
+            stem_class_ids=[0],
+            leaf_class_ids=[1],
+        )
+        attributes_custom_voxel_size = tree_attributes(
+            tree_xyz,
+            attributes=["crown_volume"],
+            classification=classification,
+            stem_class_ids=[0],
+            leaf_class_ids=[1],
+            attribute_kwargs={"crown_volume": {"voxel_size": 5.0}},
+        )
+
+        assert attributes_default_voxel_size["crown_volume"] != attributes_custom_voxel_size["crown_volume"]
 
     def test_computes_only_requested_attributes(self):
         tree_xyz, classification = self.make_tree()

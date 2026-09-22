@@ -24,10 +24,11 @@ from .stem_diameter import (
     estimate_stem_diameter,
     fit_circles_and_ellipses_to_stem_layers,
     select_best_stem_layer_combination,
+    StemDiameterAllometricModel,
 )
 
 
-def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too-many-positional-arguments
+def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, too-many-locals, too-many-positional-arguments
     tree_xyz: npt.NDArray,
     attributes: Optional[
         List[
@@ -49,6 +50,7 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
     branch_class_ids: Optional[List[int]] = None,
     leaf_class_ids: Optional[List[int]] = None,
     attribute_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
+    allometric_model: Optional[StemDiameterAllometricModel] = None,
 ) -> Dict[str, Any]:
     """
     Computes attributes for a single tree.
@@ -71,6 +73,12 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
             pass to the respective attribute computation function (e.g., :code:`{"stem_diameter": {"num_layers": 8,
             "target_heights": np.array([1.3, 2.0])}}`). If :code:`None`, or if an attribute's name is not contained
             in :code:`attribute_kwargs`, the respective function's default arguments are used.
+        allometric_model: Fitted allometric model (see :code:`pointtree.tree_attributes.stem_diameter.\
+            StemDiameterAllometricModel`) used as a fallback to estimate the stem diameter at breast height (1.3 m
+            above the ground) from the tree height and crown width, if 1.3 m is among the requested target heights
+            and the diameter at that height cannot be estimated using the circle / ellipse fitting approach (see
+            :code:`stem_diameter`). Diameters at other target heights are not affected. If :code:`None`, no
+            fallback is used and the stem diameter remains :code:`NaN` in that case.
 
     Returns:
         Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
@@ -79,7 +87,11 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
         height. If :code:`"stem_diameter"` is computed, the dictionary additionally contains the keys
         :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
         the circumferential completeness indices and the standard deviation of the diameters of the layers that
-        were used to estimate the stem diameter (see :code:`stem_diameter`).
+        were used to estimate the stem diameter (see :code:`stem_diameter`). The diameter at breast height (1.3 m
+        above the ground) is set to the prediction of :code:`allometric_model`, if one is provided, if it could
+        not be estimated using the circle / ellipse fitting approach. Diameters at other target heights, and the
+        diameter at breast height if no :code:`allometric_model` is provided, are :code:`NaN` if they could not be
+        estimated using the circle / ellipse fitting approach.
     """
 
     tree_attributes_dict: Dict[str, Any] = {}
@@ -129,6 +141,23 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-locals, too
         diameters, completeness_indices, layer_diameter_std = stem_diameter(
             stem_xyz, ground_height=ground_height, target_heights=target_heights, **stem_diameter_kwargs
         )
+
+        missing_breast_height_diameter = np.isnan(diameters) & np.isclose(target_heights, 1.3)
+        if allometric_model is not None and missing_breast_height_diameter.any():
+            fallback_tree_height = tree_attributes_dict.get("tree_height")
+            if fallback_tree_height is None:
+                fallback_tree_height = tree_height(
+                    tree_xyz, ground_height=ground_height, **attribute_kwargs.get("tree_height", {})
+                )
+            fallback_crown_width = tree_attributes_dict.get("crown_width")
+            if fallback_crown_width is None:
+                fallback_crown_width = crown_width(crown_xyz, **attribute_kwargs.get("crown_width", {}))
+            fallback_diameter = allometric_model.predict(
+                np.array([fallback_tree_height]), np.array([fallback_crown_width])
+            )[0]
+            diameters = diameters.copy()
+            diameters[missing_breast_height_diameter] = fallback_diameter
+
         tree_attributes_dict["stem_diameter"] = {
             round(float(height), 2): float(diameter) for height, diameter in zip(target_heights, diameters)
         }

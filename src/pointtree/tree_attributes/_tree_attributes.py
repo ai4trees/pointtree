@@ -84,8 +84,8 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
         estimated at multiple heights, the diameter estimated at each target height is stored under the key
         :code:`"stem_diameter_<target height>"`, where the target height is rounded to two decimal places (e.g.,
-        :code:`"stem_diameter_1.3"`). If :code:`"stem_diameter"` is computed, the dictionary additionally contains the keys
-        :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
+        :code:`"stem_diameter_1.3"`). If :code:`"stem_diameter"` is computed, the dictionary additionally contains the
+        keys :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
         the circumferential completeness indices and the standard deviation of the diameters of the layers that
         were used to estimate the stem diameter (see :code:`stem_diameter`). The diameter at breast height (1.3 m
         above the ground) is set to the prediction of :code:`allometric_model`, if one is provided, if it could

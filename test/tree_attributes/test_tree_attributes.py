@@ -404,7 +404,7 @@ class TestTreeAttributes:
             "tree_position",
             "crown_base_height",
             "under_branch_height",
-            "stem_diameter",
+            "stem_diameter_1.3",
             "stem_diameter_layer_completeness",
             "stem_diameter_layer_std",
             "stem_direction",
@@ -414,8 +414,7 @@ class TestTreeAttributes:
         assert attributes["tree_position"] == pytest.approx((0.0, 0.0), abs=0.01)
         assert attributes["crown_base_height"] == pytest.approx(5.0)
         assert attributes["under_branch_height"] == pytest.approx(4.5)
-        assert set(attributes["stem_diameter"].keys()) == {1.3}
-        assert attributes["stem_diameter"][1.3] == pytest.approx(0.3, abs=0.01)
+        assert attributes["stem_diameter_1.3"] == pytest.approx(0.3, abs=0.01)
         assert attributes["stem_diameter_layer_completeness"].shape == (6,)
         assert not np.isnan(attributes["stem_diameter_layer_completeness"]).any()
         assert attributes["stem_diameter_layer_std"] == pytest.approx(0.0, abs=1e-3)
@@ -433,9 +432,15 @@ class TestTreeAttributes:
             attribute_kwargs={"stem_diameter": {"target_heights": np.array([1.3, 2.0, 3.0])}},
         )
 
-        assert set(attributes["stem_diameter"].keys()) == {1.3, 2.0, 3.0}
-        for diameter in attributes["stem_diameter"].values():
-            assert diameter == pytest.approx(0.3, abs=0.01)
+        assert set(attributes.keys()) == {
+            "stem_diameter_1.3",
+            "stem_diameter_2.0",
+            "stem_diameter_3.0",
+            "stem_diameter_layer_completeness",
+            "stem_diameter_layer_std",
+        }
+        for key in ["stem_diameter_1.3", "stem_diameter_2.0", "stem_diameter_3.0"]:
+            assert attributes[key] == pytest.approx(0.3, abs=0.01)
 
     @pytest.mark.parametrize("use_allometric_model", (True, False))
     def test_stem_diameter_falls_back_to_allometric_model(self, use_allometric_model: bool):
@@ -456,11 +461,11 @@ class TestTreeAttributes:
         )
 
         if use_allometric_model:
-            assert attributes["stem_diameter"][1.3] == pytest.approx(14.0)
+            assert attributes["stem_diameter_1.3"] == pytest.approx(14.0)
         else:
-            assert np.isnan(attributes["stem_diameter"][1.3])
+            assert np.isnan(attributes["stem_diameter_1.3"])
 
-        assert np.isnan(attributes["stem_diameter"][2.0])
+        assert np.isnan(attributes["stem_diameter_2.0"])
 
     def test_allometric_model_is_not_used_when_normal_estimation_succeeds(self):
         tree_xyz, classification = self.make_tree()
@@ -476,7 +481,7 @@ class TestTreeAttributes:
             allometric_model=allometric_model,
         )
 
-        assert attributes["stem_diameter"][1.3] == pytest.approx(0.3, abs=0.01)
+        assert attributes["stem_diameter_1.3"] == pytest.approx(0.3, abs=0.01)
 
     def test_attribute_kwargs_are_passed_to_the_respective_attribute_function(self):
         tree_xyz, classification = self.make_tree()

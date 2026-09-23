@@ -41,6 +41,10 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
                 "under_branch_height",
                 "stem_diameter",
                 "stem_direction",
+                "tree_points",
+                "stem_points",
+                "branch_points",
+                "crown_points",
             ]
         ]
     ] = None,
@@ -57,7 +61,10 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
 
     Args:
         tree_xyz: Coordinates of all points belonging to the tree.
-        attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed.
+        attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed. The
+            attributes :code:`"tree_points"`, :code:`"stem_points"`, :code:`"branch_points"`, and
+            :code:`"crown_points"` are the number of points of the whole tree and of its stem, branch, and crown
+            points, respectively.
         classification: Semantic class ID for each point in :code:`tree_xyz`. Used together with
             :code:`stem_class_ids`, :code:`branch_class_ids`, and :code:`leaf_class_ids` to restrict the points used
             to compute the stem, branch, and crown attributes, respectively. If :code:`None`, all points of
@@ -108,6 +115,15 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         crown_xyz = tree_xyz[np.isin(classification, leaf_class_ids)]
 
     ground_height = ground_height if ground_height is not None else float(tree_xyz[:, 2].min())
+
+    for attribute_name, attribute_xyz in [
+        ("tree_points", tree_xyz),
+        ("stem_points", stem_xyz),
+        ("branch_points", branch_xyz),
+        ("crown_points", crown_xyz),
+    ]:
+        if attributes is None or attribute_name in attributes:
+            tree_attributes_dict[attribute_name] = len(attribute_xyz)
 
     if attributes is None or "crown_volume" in attributes:
         tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz, **attribute_kwargs.get("crown_volume", {}))

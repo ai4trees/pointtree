@@ -28,7 +28,7 @@ from .stem_diameter import (
 )
 
 
-def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, too-many-locals, too-many-positional-arguments
+def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, too-many-locals, too-many-positional-arguments, too-many-statements
     tree_xyz: npt.NDArray,
     attributes: Optional[
         List[
@@ -41,6 +41,10 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
                 "under_branch_height",
                 "stem_diameter",
                 "stem_direction",
+                "tree_points",
+                "stem_points",
+                "branch_points",
+                "crown_points",
             ]
         ]
     ] = None,
@@ -57,7 +61,10 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
 
     Args:
         tree_xyz: Coordinates of all points belonging to the tree.
-        attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed.
+        attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed. The
+            attributes :code:`"tree_points"`, :code:`"stem_points"`, :code:`"branch_points"`, and
+            :code:`"crown_points"` are the number of points of the whole tree and of its stem, branch, and crown
+            points, respectively.
         classification: Semantic class ID for each point in :code:`tree_xyz`. Used together with
             :code:`stem_class_ids`, :code:`branch_class_ids`, and :code:`leaf_class_ids` to restrict the points used
             to compute the stem, branch, and crown attributes, respectively. If :code:`None`, all points of
@@ -108,6 +115,20 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         crown_xyz = tree_xyz[np.isin(classification, leaf_class_ids)]
 
     ground_height = ground_height if ground_height is not None else float(tree_xyz[:, 2].min())
+
+    if attributes is None or "tree_points" in attributes:
+        tree_attributes_dict["tree_points"] = len(tree_xyz)
+
+    for attribute_name, attribute_xyz, class_ids in [
+        ("stem_points", stem_xyz, stem_class_ids),
+        ("branch_points", branch_xyz, branch_class_ids),
+        ("crown_points", crown_xyz, leaf_class_ids),
+    ]:
+        if attributes is None or attribute_name in attributes:
+            if classification is None or class_ids is None:
+                tree_attributes_dict[attribute_name] = float("nan")
+            else:
+                tree_attributes_dict[attribute_name] = len(attribute_xyz)
 
     if attributes is None or "crown_volume" in attributes:
         tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz, **attribute_kwargs.get("crown_volume", {}))

@@ -82,10 +82,10 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
 
     Returns:
         Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
-        estimated at multiple heights, the value stored under the key :code:`"stem_diameter"` is itself a
-        dictionary mapping each target height (rounded to two decimal places) to the diameter estimated at that
-        height. If :code:`"stem_diameter"` is computed, the dictionary additionally contains the keys
-        :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
+        estimated at multiple heights, the diameter estimated at each target height is stored under the key
+        :code:`"stem_diameter_<target height>"`, where the target height is rounded to two decimal places (e.g.,
+        :code:`"stem_diameter_1.3"`). If :code:`"stem_diameter"` is computed, the dictionary additionally contains the
+        keys :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
         the circumferential completeness indices and the standard deviation of the diameters of the layers that
         were used to estimate the stem diameter (see :code:`stem_diameter`). The diameter at breast height (1.3 m
         above the ground) is set to the prediction of :code:`allometric_model`, if one is provided, if it could
@@ -160,9 +160,8 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
             diameters = diameters.copy()
             diameters[missing_breast_height_diameter] = fallback_diameter
 
-        tree_attributes_dict["stem_diameter"] = {
-            round(float(height), 2): float(diameter) for height, diameter in zip(target_heights, diameters)
-        }
+        for height, diameter in zip(target_heights, diameters):
+            tree_attributes_dict[f"stem_diameter_{round(float(height), 2)}"] = float(diameter)
         tree_attributes_dict["stem_diameter_layer_completeness"] = completeness_indices
         tree_attributes_dict["stem_diameter_layer_std"] = layer_diameter_std
 

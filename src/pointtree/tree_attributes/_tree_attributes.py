@@ -121,7 +121,9 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         )
 
     if attributes is None or "tree_position" in attributes:
-        tree_attributes_dict["tree_position"] = tree_position(stem_xyz, **attribute_kwargs.get("tree_position", {}))
+        tree_attributes_dict["tree_position"] = tree_position(
+            stem_xyz, tree_xyz, **attribute_kwargs.get("tree_position", {})
+        )
 
     if attributes is None or "crown_base_height" in attributes:
         tree_attributes_dict["crown_base_height"] = crown_base_height(
@@ -265,21 +267,25 @@ def tree_height(xyz: npt.NDArray, ground_height: Optional[float] = None) -> floa
     return xyz[:, 2].max() - xyz[:, 2].min()
 
 
-def tree_position(stem_xyz: npt.NDArray) -> Tuple[float, float]:
+def tree_position(stem_xyz: npt.NDArray, tree_xyz: npt.NDArray) -> Tuple[float, float]:
     """
     Computes the position of a tree as the mean x- and y-coordinate of its stem points.
 
     Args:
         stem_xyz: Coordinates of the points belonging to the tree stem.
+        tree_xyz: Coordinates of the points belonging to the tree.
 
     Returns:
-        X- and y-coordinate of the tree position. :code:`(NaN, NaN)` if :code:`stem_xyz` is empty.
+        X- and y-coordinate of the tree position. :code:`(NaN, NaN)` if :code:`stem_xyz` and :code:`tree_xyz` are empty.
     """
 
-    if len(stem_xyz) == 0:
+    if len(stem_xyz) == 0 and len(tree_xyz) == 0:
         return float("nan"), float("nan")
 
-    mean_xy = stem_xyz[:, :2].mean(axis=0)
+    if len(stem_xyz) > 0:
+        mean_xy = stem_xyz[:, :2].mean(axis=0)
+    else:
+        mean_xy = tree_xyz[:, :2].mean(axis=0)
 
     return float(mean_xy[0]), float(mean_xy[1])
 

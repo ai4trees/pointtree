@@ -28,7 +28,7 @@ from .stem_diameter import (
 )
 
 
-def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, too-many-locals, too-many-positional-arguments
+def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, too-many-locals, too-many-positional-arguments, too-many-statements
     tree_xyz: npt.NDArray,
     attributes: Optional[
         List[
@@ -116,14 +116,19 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
 
     ground_height = ground_height if ground_height is not None else float(tree_xyz[:, 2].min())
 
-    for attribute_name, attribute_xyz in [
-        ("tree_points", tree_xyz),
-        ("stem_points", stem_xyz),
-        ("branch_points", branch_xyz),
-        ("crown_points", crown_xyz),
+    if attributes is None or "tree_points" in attributes:
+        tree_attributes_dict["tree_points"] = len(tree_xyz)
+
+    for attribute_name, attribute_xyz, class_ids in [
+        ("stem_points", stem_xyz, stem_class_ids),
+        ("branch_points", branch_xyz, branch_class_ids),
+        ("crown_points", crown_xyz, leaf_class_ids),
     ]:
         if attributes is None or attribute_name in attributes:
-            tree_attributes_dict[attribute_name] = len(attribute_xyz)
+            if classification is None or class_ids is None:
+                tree_attributes_dict[attribute_name] = float("nan")
+            else:
+                tree_attributes_dict[attribute_name] = len(attribute_xyz)
 
     if attributes is None or "crown_volume" in attributes:
         tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz, **attribute_kwargs.get("crown_volume", {}))

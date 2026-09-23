@@ -450,12 +450,25 @@ class TestTreeAttributes:
             tree_xyz, attributes=["tree_points", "stem_points", "branch_points", "crown_points"]
         )
 
-        assert attributes == {
-            "tree_points": len(tree_xyz),
-            "stem_points": len(tree_xyz),
-            "branch_points": len(tree_xyz),
-            "crown_points": len(tree_xyz),
-        }
+        assert attributes["tree_points"] == len(tree_xyz)
+        assert np.isnan(attributes["stem_points"])
+        assert np.isnan(attributes["branch_points"])
+        assert np.isnan(attributes["crown_points"])
+
+    def test_point_counts_without_class_ids(self):
+        tree_xyz, classification = self.make_tree()
+
+        attributes = tree_attributes(
+            tree_xyz,
+            attributes=["tree_points", "stem_points", "branch_points", "crown_points"],
+            classification=classification,
+            stem_class_ids=[0],
+        )
+
+        assert attributes["tree_points"] == len(tree_xyz)
+        assert attributes["stem_points"] == int((classification == 0).sum())
+        assert np.isnan(attributes["branch_points"])
+        assert np.isnan(attributes["crown_points"])
 
     def test_stem_diameter_for_multiple_target_heights(self):
         tree_xyz, classification = self.make_tree()

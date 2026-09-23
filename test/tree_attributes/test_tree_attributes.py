@@ -326,15 +326,24 @@ class TestTreeHeight:
 class TestTreePosition:
     """Tests for pointtree.tree_attributes.tree_position."""
 
-    def test_empty_stem(self):
-        position = tree_position(np.empty((0, 3), dtype=np.float64))
+    def test_empty_stem_and_tree(self):
+        empty = np.empty((0, 3), dtype=np.float64)
+
+        position = tree_position(empty, empty)
 
         assert np.isnan(position).all()
 
     def test_mean_of_stem_points(self):
         stem_xyz = np.array([[1.0, 2.0, 0.0], [3.0, 4.0, 1.0]], dtype=np.float64)
+        tree_xyz = np.array([[10.0, 20.0, 0.0], [30.0, 40.0, 1.0]], dtype=np.float64)
 
-        assert tree_position(stem_xyz) == pytest.approx((2.0, 3.0))
+        assert tree_position(stem_xyz, tree_xyz) == pytest.approx((2.0, 3.0))
+
+    def test_falls_back_to_tree_points_when_stem_is_empty(self):
+        empty_stem_xyz = np.empty((0, 3), dtype=np.float64)
+        tree_xyz = np.array([[1.0, 2.0, 0.0], [3.0, 4.0, 1.0]], dtype=np.float64)
+
+        assert tree_position(empty_stem_xyz, tree_xyz) == pytest.approx((2.0, 3.0))
 
 
 class TestUnderBranchHeight:

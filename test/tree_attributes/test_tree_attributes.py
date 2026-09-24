@@ -353,6 +353,12 @@ class TestTreeHeight:
 
         assert tree_height(xyz, ground_height=1.0) == pytest.approx(4.5)
 
+    def test_points_below_ground_height(self):
+        # e.g., on sloped terrain, some tree points can lie below the ground height at the tree position
+        xyz = np.array([[0.0, 0.0, 1.5], [0.0, 0.0, 5.5]], dtype=np.float64)
+
+        assert tree_height(xyz, ground_height=3.0) == pytest.approx(4.0)
+
 
 class TestTreePosition:
     """Tests for pointtree.tree_attributes.tree_position."""

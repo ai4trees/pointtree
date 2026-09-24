@@ -2,6 +2,7 @@
 
 __all__ = [
     "tree_attributes",
+    "bounding_box",
     "crown_base_height",
     "crown_volume",
     "crown_width",
@@ -33,6 +34,7 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
     attributes: Optional[
         List[
             Literal[
+                "bounding_box_size",
                 "crown_base_height",
                 "crown_volume",
                 "crown_width",
@@ -61,10 +63,7 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
 
     Args:
         tree_xyz: Coordinates of all points belonging to the tree.
-        attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed. The
-            attributes :code:`"tree_points"`, :code:`"stem_points"`, :code:`"branch_points"`, and
-            :code:`"crown_points"` are the number of points of the whole tree and of its stem, branch, and crown
-            points, respectively.
+        attributes: Names of the attributes to compute. If :code:`None`, all supported attributes are computed.
         classification: Semantic class ID for each point in :code:`tree_xyz`. Used together with
             :code:`stem_class_ids`, :code:`branch_class_ids`, and :code:`leaf_class_ids` to restrict the points used
             to compute the stem, branch, and crown attributes, respectively. If :code:`None`, all points of
@@ -88,17 +87,32 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
             fallback is used and the stem diameter remains :code:`NaN` in that case.
 
     Returns:
-        Dictionary mapping the name of each computed attribute to its value. Since the stem diameter can be
-        estimated at multiple heights, the diameter estimated at each target height is stored under the key
-        :code:`"stem_diameter_<target height>"`, where the target height is rounded to two decimal places (e.g.,
-        :code:`"stem_diameter_1.3"`). If :code:`"stem_diameter"` is computed, the dictionary additionally contains the
-        keys :code:`"stem_diameter_layer_completeness"` and :code:`"stem_diameter_layer_std"`, which hold, respectively,
-        the circumferential completeness indices and the standard deviation of the diameters of the layers that
-        were used to estimate the stem diameter (see :code:`stem_diameter`). The diameter at breast height (1.3 m
-        above the ground) is set to the prediction of :code:`allometric_model`, if one is provided, if it could
-        not be estimated using the circle / ellipse fitting approach. Diameters at other target heights, and the
-        diameter at breast height if no :code:`allometric_model` is provided, are :code:`NaN` if they could not be
-        estimated using the circle / ellipse fitting approach.
+        Dictionary containing the computed attributes. Depending on the requested :code:`attributes`, it contains
+        the following keys:
+
+        - :code:`"bounding_box_size_x"`, :code:`"bounding_box_size_y"`, :code:`"bounding_box_size_z"`: Size of the
+          tree's axis-aligned bounding box along the x-, y-, and z-axis (see :code:`bounding_box`). Computed if
+          :code:`"bounding_box_size"` is requested.
+        - :code:`"crown_base_height"`: See :code:`crown_base_height`.
+        - :code:`"crown_volume"`: See :code:`crown_volume`.
+        - :code:`"crown_width"`: See :code:`crown_width`.
+        - :code:`"tree_height"`: See :code:`tree_height`.
+        - :code:`"tree_position"`: See :code:`tree_position`.
+        - :code:`"under_branch_height"`: See :code:`under_branch_height`.
+        - :code:`"stem_diameter_<target height>"`: Stem diameter at each target height, where the target height is
+          rounded to two decimal places (e.g., :code:`"stem_diameter_1.3"`). :code:`NaN` if the diameter could not
+          be estimated using the circle / ellipse fitting approach (see :code:`stem_diameter`), unless the target
+          height is 1.3 m and an :code:`allometric_model` is provided, in which case the model's prediction is used.
+          Computed if :code:`"stem_diameter"` is requested.
+        - :code:`"stem_diameter_layer_completeness"`: Circumferential completeness indices of the layers that were
+          used to estimate the stem diameter (see :code:`stem_diameter`). Computed if :code:`"stem_diameter"` is
+          requested.
+        - :code:`"stem_diameter_layer_std"`: Standard deviation of the diameters of the layers that were used to
+          estimate the stem diameter (see :code:`stem_diameter`). Computed if :code:`"stem_diameter"` is requested.
+        - :code:`"stem_direction"`: See :code:`stem_direction`.
+        - :code:`"tree_points"`: Number of points of the tree.
+        - :code:`"stem_points"`, :code:`"branch_points"`, :code:`"crown_points"`: Number of stem, branch, and crown
+          points. :code:`NaN` if :code:`classification` or the respective class IDs are not provided.
     """
 
     tree_attributes_dict: Dict[str, Any] = {}
@@ -129,6 +143,11 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
                 tree_attributes_dict[attribute_name] = float("nan")
             else:
                 tree_attributes_dict[attribute_name] = len(attribute_xyz)
+
+    if attributes is None or "bounding_box_size" in attributes:
+        min_coords, max_coords = bounding_box(tree_xyz, **attribute_kwargs.get("bounding_box_size", {}))
+        for axis, size in zip(["x", "y", "z"], max_coords - min_coords):
+            tree_attributes_dict[f"bounding_box_size_{axis}"] = float(size)
 
     if attributes is None or "crown_volume" in attributes:
         tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz, **attribute_kwargs.get("crown_volume", {}))
@@ -190,6 +209,35 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         tree_attributes_dict["stem_direction"] = stem_direction(stem_xyz, **attribute_kwargs.get("stem_direction", {}))
 
     return tree_attributes_dict
+
+
+def bounding_box(xyz: npt.NDArray) -> Tuple[npt.NDArray, npt.NDArray]:
+    """
+    Computes the axis-aligned bounding box of a point cloud.
+
+    Args:
+        xyz: Coordinates of the points.
+
+    Returns:
+        :Tuple of two elements:
+            - Minimum x-, y-, and z-coordinate of the bounding box.
+            - Maximum x-, y-, and z-coordinate of the bounding box.
+
+        Both arrays contain :code:`NaN` values if :code:`xyz` is empty.
+
+    Shape:
+        - :code:`xyz`: :math:`(N, 3)`
+        - Output: :math:`(3)`, :math:`(3)`
+
+        | where
+        |
+        | :math:`N` = number of points
+    """
+
+    if len(xyz) == 0:
+        return np.full(3, fill_value=np.nan), np.full(3, fill_value=np.nan)
+
+    return xyz.min(axis=0), xyz.max(axis=0)
 
 
 def crown_base_height(crown_xyz: npt.NDArray, ground_height: float) -> float:

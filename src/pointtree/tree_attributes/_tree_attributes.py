@@ -215,14 +215,15 @@ def crown_base_height(crown_xyz: npt.NDArray, ground_height: float) -> float:
 
 def crown_volume(crown_xyz: npt.NDArray, voxel_size: float = 0.5) -> float:
     """
-    Computes the crown volume by summing the volumes of the 2.5D voxel columns spanned by the crown points.
+    Computes the crown volume by summing the volumes of the 2.5D voxel columns spanned by the crown points. Each
+    column extends from the lowest to the highest voxel that contains crown points.
 
     Args:
         crown_xyz: Coordinates of the points belonging to the tree crown.
-        voxel_size: Edge length of the (square) voxel columns in meters.
+        voxel_size: Edge length of the (cubic) voxels.
 
     Returns:
-        Crown volume in cubic meters. :code:`0.0` if :code:`crown_xyz` is empty.
+        Crown volume. :code:`0.0` if :code:`crown_xyz` is empty.
     """
 
     if len(crown_xyz) == 0:
@@ -233,15 +234,14 @@ def crown_volume(crown_xyz: npt.NDArray, voxel_size: float = 0.5) -> float:
 
     sorting_indices = np.lexsort((bins[:, 1], bins[:, 0]))
     bins_sorted = bins[sorting_indices]
-    z_sorted = crown_xyz[sorting_indices, 2]
 
     # split into contiguous (bin_x, bin_y) columns
     column_keys = bins_sorted[:, :2]
     column_boundaries = np.any(column_keys[1:] != column_keys[:-1], axis=1)
     split_idx = np.flatnonzero(column_boundaries) + 1
 
-    for column in np.split(z_sorted, split_idx):
-        volume += voxel_size * voxel_size * (column.max() - column.min())
+    for column_bins_z in np.split(bins_sorted[:, 2], split_idx):
+        volume += voxel_size**3 * (column_bins_z.max() - column_bins_z.min() + 1)
 
     return float(volume)
 
@@ -254,7 +254,7 @@ def crown_width(crown_xyz: npt.NDArray) -> float:
         crown_xyz: Coordinates of the points belonging to the tree crown.
 
     Returns:
-        Crown width in meters. :code:`0.0` if :code:`crown_xyz` is empty.
+        Crown width. :code:`0.0` if :code:`crown_xyz` is empty.
     """
 
     if len(crown_xyz) == 0:
@@ -275,7 +275,7 @@ def tree_height(xyz: npt.NDArray, ground_height: Optional[float] = None) -> floa
             z-coordinate of :code:`xyz`.
 
     Returns:
-        Tree height in meters. :code:`0.0` if :code:`xyz` is empty.
+        Tree height. :code:`0.0` if :code:`xyz` is empty.
     """
 
     if len(xyz) == 0:

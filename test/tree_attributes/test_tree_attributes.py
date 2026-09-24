@@ -130,12 +130,22 @@ class TestCrownVolume:
     def test_empty_crown(self):
         assert crown_volume(np.empty((0, 3), dtype=np.float64)) == 0.0
 
+    def test_single_point(self):
+        xyz = np.array([[0.1, 0.1, 0.1]], dtype=np.float64)
+
+        assert crown_volume(xyz, voxel_size=0.5) == pytest.approx(0.5**3)
+
+    def test_single_voxel_layer(self):
+        xyz = np.array([[0.1, 0.1, 0.1], [0.4, 0.4, 0.1], [1.1, 1.1, 0.1]], dtype=np.float64)
+
+        assert crown_volume(xyz, voxel_size=0.5) == pytest.approx(2 * 0.5**3)
+
     def test_single_voxel_column(self):
         xyz = np.array([[0.1, 0.1, 0.0], [0.4, 0.4, 2.0]], dtype=np.float64)
 
-        voxel_volume = 0.5 * 0.5
+        voxel_volume = 0.5**3
 
-        assert crown_volume(xyz, voxel_size=0.5) == pytest.approx(voxel_volume * 2.0)
+        assert crown_volume(xyz, voxel_size=0.5) == pytest.approx(voxel_volume * 5)
 
     def test_multiple_voxel_columns(self):
         xyz = np.array(
@@ -150,7 +160,7 @@ class TestCrownVolume:
 
         voxel_volume = 1.0
 
-        assert crown_volume(xyz, voxel_size=1.0) == pytest.approx(voxel_volume * (1.0 + 2.0))
+        assert crown_volume(xyz, voxel_size=1.0) == pytest.approx(voxel_volume * (2 + 3))
 
 
 class TestCrownWidth:

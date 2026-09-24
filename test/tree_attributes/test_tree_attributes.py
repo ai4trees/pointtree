@@ -5,6 +5,7 @@ import numpy.typing as npt
 import pytest
 
 from pointtree.tree_attributes import (
+    bounding_box,
     crown_base_height,
     crown_volume,
     crown_width,
@@ -101,6 +102,26 @@ def generate_elliptical_stem_points(
         layer_idx += 1
 
     return np.concatenate(layers).astype(np.float64)
+
+
+class TestBoundingBox:
+    """Tests for pointtree.tree_attributes.bounding_box."""
+
+    def test_empty(self):
+        min_coords, max_coords = bounding_box(np.empty((0, 3), dtype=np.float64))
+
+        assert min_coords.shape == (3,)
+        assert max_coords.shape == (3,)
+        assert np.isnan(min_coords).all()
+        assert np.isnan(max_coords).all()
+
+    def test_valid(self):
+        xyz = np.array([[-1.0, 2.0, 0.5], [3.0, -4.0, 1.0], [0.0, 0.0, 6.0]], dtype=np.float64)
+
+        min_coords, max_coords = bounding_box(xyz)
+
+        np.testing.assert_array_equal(min_coords, [-1.0, -4.0, 0.5])
+        np.testing.assert_array_equal(max_coords, [3.0, 2.0, 6.0])
 
 
 class TestCrownBaseHeight:
@@ -408,6 +429,9 @@ class TestTreeAttributes:
         )
 
         assert set(attributes.keys()) == {
+            "bounding_box_size_x",
+            "bounding_box_size_y",
+            "bounding_box_size_z",
             "crown_volume",
             "crown_width",
             "tree_height",
@@ -479,6 +503,25 @@ class TestTreeAttributes:
         assert attributes["stem_points"] == int((classification == 0).sum())
         assert np.isnan(attributes["branch_points"])
         assert np.isnan(attributes["crown_points"])
+
+    def test_bounding_box_size(self):
+        tree_xyz, classification = self.make_tree()
+
+        attributes = tree_attributes(
+            tree_xyz,
+            attributes=["bounding_box_size"],
+            classification=classification,
+            stem_class_ids=[0],
+            branch_class_ids=[2],
+            leaf_class_ids=[1],
+        )
+
+        # the crown spans two meters along the x- and y-axis and the tree spans seven meters along the z-axis
+        assert attributes == {
+            "bounding_box_size_x": pytest.approx(2.0),
+            "bounding_box_size_y": pytest.approx(2.0),
+            "bounding_box_size_z": pytest.approx(7.0),
+        }
 
     def test_stem_diameter_for_multiple_target_heights(self):
         tree_xyz, classification = self.make_tree()

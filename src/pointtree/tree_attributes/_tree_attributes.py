@@ -318,9 +318,9 @@ def tree_height(xyz: npt.NDArray, ground_height: Optional[float] = None) -> floa
     Args:
         xyz: Coordinates of all points belonging to the tree.
         ground_height: Height of the ground surface underneath the tree. If provided, the tree height is computed
-            as the difference between the maximum z-coordinate of :code:`xyz` and :code:`ground_height`. If
-            :code:`None`, the tree height is computed as the difference between the maximum and minimum
-            z-coordinate of :code:`xyz`.
+            as the difference between the maximum z-coordinate of :code:`xyz` and the smaller of
+            :code:`ground_height` and the minimum z-coordinate of :code:`xyz`. If :code:`None`, the tree height is
+            computed as the difference between the maximum and minimum z-coordinate of :code:`xyz`.
 
     Returns:
         Tree height. :code:`0.0` if :code:`xyz` is empty.
@@ -329,10 +329,11 @@ def tree_height(xyz: npt.NDArray, ground_height: Optional[float] = None) -> floa
     if len(xyz) == 0:
         return 0.0
 
+    min_z = xyz[:, 2].min()
     if ground_height is not None:
-        return max(xyz[:, 2].max() - ground_height, 0.0)
+        min_z = min(min_z, ground_height)
 
-    return xyz[:, 2].max() - xyz[:, 2].min()
+    return float(xyz[:, 2].max() - min_z)
 
 
 def tree_position(stem_xyz: npt.NDArray, tree_xyz: npt.NDArray) -> Tuple[float, float]:

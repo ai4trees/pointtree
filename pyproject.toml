@@ -42,7 +42,8 @@ dependencies = [
     "rasterio>=1.3.9, <2.0.0",
     "scipy>=1.8.0, <2.0.0",
     "scikit-image>=0.25.0, <1.0.0",
-    "scikit-learn>=1.2.0, <2.0.0"
+    "scikit-learn>=1.2.0, <2.0.0",
+    "shapely>=2.0.0, <3.0.0"
 ]
 [project.optional-dependencies]
 dev = [
@@ -54,6 +55,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "scipy-stubs",
+    "types-shapely",
     "types-Pillow",
     "types-psutil",
 ]

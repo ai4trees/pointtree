@@ -4,6 +4,7 @@ __all__ = [
     "tree_attributes",
     "bounding_box",
     "crown_base_height",
+    "crown_polygon",
     "crown_volume",
     "crown_width",
     "tree_height",
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 from circle_detection.operations import circumferential_completeness_index
 import numpy as np
 import numpy.typing as npt
+import shapely
 from sklearn.decomposition import PCA
 
 from .stem_diameter import (
@@ -35,7 +37,9 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         List[
             Literal[
                 "bounding_box_size",
+                "crown_area",
                 "crown_base_height",
+                "crown_polygon",
                 "crown_volume",
                 "crown_width",
                 "tree_height",
@@ -93,7 +97,11 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         - :code:`"bounding_box_size_x"`, :code:`"bounding_box_size_y"`, :code:`"bounding_box_size_z"`: Size of the
           tree's axis-aligned bounding box along the x-, y-, and z-axis (see :code:`bounding_box`). Computed if
           :code:`"bounding_box_size"` is requested.
+        - :code:`"crown_area"`: Area of the crown polygon (see :code:`crown_polygon`). :code:`0.0` if the crown
+          polygon is empty. The keyword arguments for its computation are taken from
+          :code:`attribute_kwargs["crown_polygon"]`, so that the area always matches the computed crown polygon.
         - :code:`"crown_base_height"`: See :code:`crown_base_height`.
+        - :code:`"crown_polygon"`: See :code:`crown_polygon`.
         - :code:`"crown_volume"`: See :code:`crown_volume`.
         - :code:`"crown_width"`: See :code:`crown_width`.
         - :code:`"tree_height"`: See :code:`tree_height`.
@@ -148,6 +156,15 @@ def tree_attributes(  # pylint: disable=too-many-arguments, too-many-branches, t
         min_coords, max_coords = bounding_box(tree_xyz, **attribute_kwargs.get("bounding_box_size", {}))
         for axis, size in zip(["x", "y", "z"], max_coords - min_coords):
             tree_attributes_dict[f"bounding_box_size_{axis}"] = float(size)
+
+    if attributes is None or "crown_polygon" in attributes:
+        tree_attributes_dict["crown_polygon"] = crown_polygon(crown_xyz, **attribute_kwargs.get("crown_polygon", {}))
+
+    if attributes is None or "crown_area" in attributes:
+        polygon = tree_attributes_dict.get("crown_polygon")
+        if polygon is None:
+            polygon = crown_polygon(crown_xyz, **attribute_kwargs.get("crown_polygon", {}))
+        tree_attributes_dict["crown_area"] = float(polygon.area)
 
     if attributes is None or "crown_volume" in attributes:
         tree_attributes_dict["crown_volume"] = crown_volume(crown_xyz, **attribute_kwargs.get("crown_volume", {}))
@@ -259,6 +276,53 @@ def crown_base_height(crown_xyz: npt.NDArray, ground_height: float) -> float:
     crown_base = float(crown_xyz[:, 2].min()) - ground_height
 
     return max(crown_base, 0.0)
+
+
+def crown_polygon(
+    crown_xyz: npt.NDArray, concave_hull_ratio: float = 0.3, simplify_tolerance: Optional[float] = 0.05
+) -> shapely.Polygon:
+    """
+    Vectorizes the 2D outline of the tree crown by projecting the crown points onto the xy-plane and computing the
+    (concave) hull of the projected points. To limit the number of vertices, the hull is then simplified using the
+    Douglas-Peucker algorithm.
+
+    Args:
+        crown_xyz: Coordinates of the points belonging to the tree crown.
+        concave_hull_ratio: Concaveness of the hull, ranging from 0 to 1 (see :code:`shapely.concave_hull`). A value
+            of 1 yields the convex hull of the crown points, while smaller values yield increasingly concave hulls
+            that follow the outline of the crown more closely. Since the ratio is relative to the edge lengths of the
+            triangulation of the crown points, the same value can result in a different tightness of the hull for
+            crowns with different point densities. Very small values (close to 0) produce hulls that pass through
+            almost every crown point and therefore severely underestimate the crown outline.
+        simplify_tolerance: Maximum distance between the simplified and the original hull (in the units of
+            :code:`crown_xyz`), see :code:`shapely.simplify`. Due to the simplification, some of the outermost crown
+            points can lie slightly outside the returned polygon. Since the simplification cuts off corners of convex
+            parts of the outline, it tends to reduce the polygon's area. This effect is stronger for small crowns and
+            large tolerances (e.g., for a circular crown with a diameter of 2 m, a tolerance of 0.05 reduces the area
+            by about 2 % and a tolerance of 0.1 by about 9 %). If :code:`None`, the hull is not simplified.
+
+    Returns:
+        Polygon describing the outline of the crown in the xy-plane. An empty polygon if :code:`crown_xyz` contains
+        fewer than three points or if all points are collinear.
+    """
+
+    if len(crown_xyz) < 3:
+        return shapely.Polygon()
+
+    projected_points = shapely.MultiPoint(np.unique(crown_xyz[:, :2], axis=0))
+    if concave_hull_ratio >= 1.0:
+        hull = shapely.convex_hull(projected_points)
+    else:
+        hull = shapely.concave_hull(projected_points, ratio=concave_hull_ratio)
+
+    # the hull of collinear points is a line string instead of a polygon
+    if not isinstance(hull, shapely.Polygon):
+        return shapely.Polygon()
+
+    if simplify_tolerance is not None and simplify_tolerance > 0:
+        hull = shapely.simplify(hull, simplify_tolerance, preserve_topology=True)
+
+    return hull
 
 
 def crown_volume(crown_xyz: npt.NDArray, voxel_size: float = 0.5) -> float:

@@ -3,10 +3,12 @@
 import numpy as np
 import numpy.typing as npt
 import pytest
+import shapely
 
 from pointtree.tree_attributes import (
     bounding_box,
     crown_base_height,
+    crown_polygon,
     crown_volume,
     crown_width,
     stem_diameter,
@@ -143,6 +145,82 @@ class TestCrownBaseHeight:
 
     def test_no_crown_points(self):
         assert np.isnan(crown_base_height(np.empty((0, 3), dtype=np.float64), ground_height=0.0))
+
+
+class TestCrownPolygon:
+    """Tests for pointtree.tree_attributes.crown_polygon."""
+
+    @pytest.mark.parametrize(
+        "crown_xyz",
+        [
+            np.empty((0, 3), dtype=np.float64),
+            np.array([[0.0, 0.0, 1.0], [1.0, 1.0, 2.0]], dtype=np.float64),
+            np.array([[0.0, 0.0, 1.0], [1.0, 1.0, 2.0], [2.0, 2.0, 3.0]], dtype=np.float64),
+            np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 2.0], [0.0, 0.0, 3.0]], dtype=np.float64),
+        ],
+    )
+    def test_degenerate_crown(self, crown_xyz: npt.NDArray):
+        polygon = crown_polygon(crown_xyz)
+
+        assert isinstance(polygon, shapely.Polygon)
+        assert polygon.is_empty
+
+    def test_convex_hull(self):
+        # square crown with points at different heights and an inner point that is not part of the hull
+        crown_xyz = np.array(
+            [[0.0, 0.0, 5.0], [2.0, 0.0, 6.0], [2.0, 2.0, 7.0], [0.0, 2.0, 5.0], [1.0, 1.0, 8.0]], dtype=np.float64
+        )
+
+        polygon = crown_polygon(crown_xyz, concave_hull_ratio=1.0)
+
+        assert polygon.is_valid
+        assert not polygon.has_z
+        assert polygon.area == pytest.approx(4.0)
+        assert polygon.equals(shapely.box(0.0, 0.0, 2.0, 2.0))
+
+    def make_l_shaped_crown(self) -> npt.NDArray:
+        # densely sampled L-shaped crown, whose convex hull also covers the missing upper right quadrant
+        grid = np.stack(np.meshgrid(np.linspace(0, 2, 21), np.linspace(0, 2, 21)), axis=-1).reshape(-1, 2)
+        grid = grid[(grid[:, 0] <= 1.0) | (grid[:, 1] <= 1.0)]
+        return np.column_stack([grid, np.full(len(grid), fill_value=5.0)])
+
+    def test_concave_hull(self):
+        crown_xyz = self.make_l_shaped_crown()
+
+        convex_polygon = crown_polygon(crown_xyz, concave_hull_ratio=1.0, simplify_tolerance=None)
+        concave_polygon = crown_polygon(crown_xyz, concave_hull_ratio=0.1, simplify_tolerance=None)
+
+        assert convex_polygon.area == pytest.approx(3.5)
+        assert concave_polygon.is_valid
+        assert concave_polygon.area == pytest.approx(3.0, abs=0.05)
+        assert concave_polygon.covers(shapely.MultiPoint(crown_xyz[:, :2]))
+
+    @pytest.mark.parametrize("simplify_tolerance", (0.05, 0.1, 0.2))
+    def test_simplification(self, simplify_tolerance: float):
+        # densely sampled circular crown with a diameter of 8 m, whose hull has many vertices
+        random_generator = np.random.default_rng(seed=0)
+        angles = random_generator.uniform(0, 2 * np.pi, 5000)
+        radii = 4.0 * np.sqrt(random_generator.uniform(0, 1, 5000))
+        crown_xyz = np.column_stack([radii * np.cos(angles), radii * np.sin(angles), np.full(5000, fill_value=5.0)])
+
+        polygon = crown_polygon(crown_xyz, simplify_tolerance=None)
+        simplified_polygon = crown_polygon(crown_xyz, simplify_tolerance=simplify_tolerance)
+
+        assert simplified_polygon.is_valid
+        assert len(simplified_polygon.exterior.coords) < len(polygon.exterior.coords)
+        assert polygon.hausdorff_distance(simplified_polygon) <= simplify_tolerance + 1e-9
+        # the simplification only slightly reduces the area of large crowns
+        assert simplified_polygon.area <= polygon.area
+        assert simplified_polygon.area == pytest.approx(polygon.area, rel=0.02)
+
+    def test_simplification_disabled(self):
+        crown_xyz = self.make_l_shaped_crown()
+
+        polygon = crown_polygon(crown_xyz, simplify_tolerance=None)
+        polygon_zero_tolerance = crown_polygon(crown_xyz, simplify_tolerance=0.0)
+
+        assert polygon.equals_exact(polygon_zero_tolerance, tolerance=0.0)
+        assert polygon.covers(shapely.MultiPoint(crown_xyz[:, :2]))
 
 
 class TestCrownVolume:
@@ -438,6 +516,8 @@ class TestTreeAttributes:
             "bounding_box_size_x",
             "bounding_box_size_y",
             "bounding_box_size_z",
+            "crown_area",
+            "crown_polygon",
             "crown_volume",
             "crown_width",
             "tree_height",
@@ -455,6 +535,9 @@ class TestTreeAttributes:
         }
         assert attributes["tree_height"] == pytest.approx(tree_xyz[:, 2].max() - tree_xyz[:, 2].min())
         assert attributes["crown_width"] == pytest.approx(2.0)
+        # the crown points form a diamond with diagonals of length 2.0
+        assert attributes["crown_polygon"].area == pytest.approx(2.0)
+        assert attributes["crown_area"] == pytest.approx(2.0)
         assert attributes["tree_position"] == pytest.approx((0.0, 0.0), abs=0.01)
         assert attributes["crown_base_height"] == pytest.approx(5.0)
         assert attributes["under_branch_height"] == pytest.approx(4.5)
@@ -528,6 +611,45 @@ class TestTreeAttributes:
             "bounding_box_size_y": pytest.approx(2.0),
             "bounding_box_size_z": pytest.approx(7.0),
         }
+
+    @pytest.mark.parametrize("concave_hull_ratio", (1.0, 0.0))
+    def test_crown_area_without_crown_polygon(self, concave_hull_ratio: float):
+        tree_xyz, classification = self.make_tree()
+        # crown points that form an L-shape, for which the concave hull is smaller than the convex hull
+        grid = np.stack(np.meshgrid(np.linspace(0, 2, 21), np.linspace(0, 2, 21)), axis=-1).reshape(-1, 2)
+        grid = grid[(grid[:, 0] <= 1.0) | (grid[:, 1] <= 1.0)]
+        crown_xyz = np.column_stack([grid, np.full(len(grid), fill_value=5.0)])
+        tree_xyz = np.concatenate([tree_xyz, crown_xyz])
+        classification = np.concatenate([classification, np.ones(len(crown_xyz), dtype=classification.dtype)])
+        attribute_kwargs = {"crown_polygon": {"concave_hull_ratio": concave_hull_ratio}}
+
+        attributes = tree_attributes(
+            tree_xyz,
+            attributes=["crown_area"],
+            classification=classification,
+            leaf_class_ids=[1],
+            attribute_kwargs=attribute_kwargs,
+        )
+        attributes_with_polygon = tree_attributes(
+            tree_xyz,
+            attributes=["crown_area", "crown_polygon"],
+            classification=classification,
+            leaf_class_ids=[1],
+            attribute_kwargs=attribute_kwargs,
+        )
+
+        assert set(attributes.keys()) == {"crown_area"}
+        assert attributes["crown_area"] == pytest.approx(attributes_with_polygon["crown_polygon"].area)
+        assert attributes["crown_area"] == pytest.approx(attributes_with_polygon["crown_area"])
+
+    def test_crown_area_without_crown_points(self):
+        tree_xyz, classification = self.make_tree()
+
+        attributes = tree_attributes(
+            tree_xyz, attributes=["crown_area"], classification=classification, leaf_class_ids=[5]
+        )
+
+        assert attributes == {"crown_area": 0.0}
 
     def test_stem_diameter_for_multiple_target_heights(self):
         tree_xyz, classification = self.make_tree()
